@@ -9,8 +9,8 @@ import {TransactionPartial} from '@core/transaction-mapper/services/transaction-
 import {TransactionMapperService} from '@core/transaction-mapper/services/transaction-mapper.service';
 import {Account} from '@modules/account/account.entity';
 import {AccountService} from '@modules/account/account.service';
+import {PaginationDto} from '@modules/bank-statement/api/pagination.dto';
 import {FileService} from '@modules/file/file.service';
-import {PaginationDto} from '@modules/transaction/api/pagination.dto';
 import {TransactionService} from '@modules/transaction/transaction.service';
 import {User} from '@modules/user/user.entity';
 

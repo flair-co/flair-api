@@ -5,8 +5,7 @@ import {User} from '@modules/user/user.entity';
 
 import {Transaction} from '../transaction.entity';
 import {TransactionService} from '../transaction.service';
-import {FilterDto} from './filter.dto';
-import {PaginationDto} from './pagination.dto';
+import {TransactionQueryDto} from './transaction.query.dto';
 
 @Controller('transactions')
 export class TransactionController {
@@ -18,11 +17,7 @@ export class TransactionController {
   }
 
   @Get()
-  findAll(
-    @CurrentUser() user: User,
-    @Query() paginationDto: PaginationDto,
-    @Query() filterDto: FilterDto,
-  ) {
-    return this.transactionService.findAllByUserId(user.id, paginationDto, filterDto);
+  findAll(@CurrentUser() user: User, @Query() queryParams: TransactionQueryDto) {
+    return this.transactionService.findAllByUserId(user.id, queryParams);
   }
 }

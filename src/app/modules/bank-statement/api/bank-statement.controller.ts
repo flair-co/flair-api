@@ -18,7 +18,7 @@ import {Response} from 'express';
 
 import {CurrentUser} from '@core/auth/decorators/current-user.decorator';
 import {Account} from '@modules/account/account.entity';
-import {PaginationDto} from '@modules/transaction/api/pagination.dto';
+import {PaginationDto} from '@modules/bank-statement/api/pagination.dto';
 import {User} from '@modules/user/user.entity';
 
 import {BankStatement} from '../bank-statement.entity';
