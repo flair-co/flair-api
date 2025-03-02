@@ -6,7 +6,6 @@ import {User} from '@modules/user/user.entity';
 
 import {TransactionQueryDto} from './api/transaction.query.dto';
 import {DEFAULT_PAGE_INDEX, DEFAULT_PAGE_SIZE} from './api/transaction.query.pagination.dto';
-import {SortField, SortOrder} from './api/transaction.query.sort.dto';
 import {Transaction} from './transaction.entity';
 
 type TransactionSaveOptions = Omit<Transaction, 'id' | 'createdAt' | 'updatedAt'>;
@@ -40,8 +39,10 @@ export class TransactionService {
       .skip(pagination.pageIndex * pagination.pageSize)
       .take(pagination.pageSize);
 
-    const sort = queryParams.sort || {by: SortField.STARTED_AT, order: SortOrder.DESC};
-    query.orderBy(`transaction.${sort.by}`, sort.order);
+    const sort = queryParams.sort;
+    if (sort) {
+      query.orderBy(`transaction.${sort.by}`, sort.order);
+    }
 
     const filter = queryParams.filter || {};
     if (filter.categories && filter.categories.length > 0) {
