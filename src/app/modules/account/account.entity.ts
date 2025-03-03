@@ -24,6 +24,10 @@ export class Account {
   @Expose()
   bank: Bank;
 
+  @Column({type: 'varchar', length: 3})
+  @Expose()
+  currency: string;
+
   @OneToMany(() => Transaction, (transaction) => transaction.account)
   @Exclude()
   @Type(() => Transaction)
