@@ -1,4 +1,4 @@
-import {ConflictException, Injectable, NotFoundException} from '@nestjs/common';
+import {Injectable, NotFoundException} from '@nestjs/common';
 import {InjectRepository} from '@nestjs/typeorm';
 import {Repository} from 'typeorm';
 
@@ -18,17 +18,6 @@ export class AccountService {
 
   async save(dto: AccountCreateDto, userId: User['id']): Promise<Account> {
     const user = await this.userService.findById(userId);
-
-    if (dto.alias) {
-      const aliasExists = await this.accountRepository.existsBy({
-        user: {id: userId},
-        alias: dto.alias,
-      });
-
-      if (aliasExists) {
-        throw new ConflictException(`Account with alias ${dto.alias} already exists.`);
-      }
-    }
     return this.accountRepository.save({...dto, user});
   }
 
