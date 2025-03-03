@@ -79,7 +79,6 @@ export class Transaction {
   category: Category;
 
   @ManyToOne(() => Account, (account) => account.transactions)
-  @Exclude()
   @Type(() => Account)
   account: Account;
 

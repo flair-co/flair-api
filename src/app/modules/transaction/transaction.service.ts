@@ -4,6 +4,7 @@ import {Repository} from 'typeorm';
 
 import {User} from '@modules/user/user.entity';
 
+import {TransactionPatchDto} from './api/transaction.patch.dto';
 import {TransactionQueryDto} from './api/transaction.query.dto';
 import {DEFAULT_PAGE_INDEX, DEFAULT_PAGE_SIZE} from './api/transaction.query.pagination.dto';
 import {Transaction} from './transaction.entity';
@@ -17,8 +18,11 @@ export class TransactionService {
     private readonly transactionRepository: Repository<Transaction>,
   ) {}
 
-  async findById(id: Transaction['id']) {
-    const transaction = await this.transactionRepository.findOneBy({id});
+  async findById(userId: User['id'], id: Transaction['id']) {
+    const transaction = await this.transactionRepository.findOne({
+      where: {id, account: {user: {id: userId}}},
+      relations: ['account'],
+    });
 
     if (!transaction) {
       throw new NotFoundException(`Transaction with id ${id} not found.`);
@@ -67,5 +71,14 @@ export class TransactionService {
 
   async deleteByIds(ids: Transaction['id'][]) {
     return this.transactionRepository.delete(ids);
+  }
+
+  async update(userId: User['id'], id: Transaction['id'], patchDto: TransactionPatchDto) {
+    const transaction = await this.findById(userId, id);
+
+    if (patchDto.category) {
+      transaction.category = patchDto.category;
+    }
+    return this.transactionRepository.save(transaction);
   }
 }
