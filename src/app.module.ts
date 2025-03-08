@@ -1,6 +1,8 @@
 import {validationSchema} from '@config/env/validation-schema';
 import {REDIS} from '@config/redis/redis.constants';
 import {RedisModule} from '@config/redis/redis.module';
+import {MailerModule as NestJSMailerModule} from '@nestjs-modules/mailer';
+import {HandlebarsAdapter} from '@nestjs-modules/mailer/dist/adapters/handlebars.adapter';
 import {
   ClassSerializerInterceptor,
   Inject,
@@ -17,10 +19,12 @@ import session from 'express-session';
 import ms from 'ms';
 import {GracefulShutdownModule} from 'nestjs-graceful-shutdown';
 import passport from 'passport';
+import {join} from 'path';
 import {RedisClientType} from 'redis';
 
 import {AuthModule} from '@core/auth/auth.module';
 import {FileParserModule} from '@core/file-parser/file-parser.module';
+import {MailerModule} from '@core/mailer/mailer.module';
 import {TransactionCategorizerModule} from '@core/transaction-categorizer/transaction-categorizer.module';
 import {BankStatementModule} from '@modules/bank-statement/bank-statement.module';
 import {TransactionModule} from '@modules/transaction/transaction.module';
@@ -51,6 +55,26 @@ import {UserModule} from '@modules/user/user.module';
         autoLoadEntities: true,
       }),
     }),
+    NestJSMailerModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        transport: {
+          host: config.get<string>('EMAIL_HOST'),
+          auth: {
+            user: config.get<string>('EMAIL_USERNAME'),
+            pass: config.get<string>('EMAIL_PASSWORD'),
+          },
+        },
+        defaults: {from: '"Flair" <no-reply@flair.com>'},
+        preview: config.get<string>('NODE_ENV') === 'development',
+        template: {
+          dir: join(__dirname, 'app', 'core', 'mailer', 'templates'),
+          adapter: new HandlebarsAdapter(),
+          options: {strict: true},
+        },
+      }),
+    }),
     ThrottlerModule.forRoot([
       {
         ttl: minutes(1),
@@ -59,12 +83,13 @@ import {UserModule} from '@modules/user/user.module';
     ]),
     GracefulShutdownModule.forRoot(),
     RedisModule,
+    AuthModule,
     FileParserModule,
     TransactionModule,
-    AuthModule,
+    MailerModule,
+    TransactionCategorizerModule,
     UserModule,
     BankStatementModule,
-    TransactionCategorizerModule,
   ],
   providers: [
     {
