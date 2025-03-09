@@ -83,7 +83,7 @@ export class BankStatementService {
     });
 
     if (!bankStatement) {
-      throw new NotFoundException(`Bank statement with id ${id} not found.`);
+      throw new NotFoundException(`Bank statement not found.`);
     }
     return this.fileService.findById(bankStatement.file.id);
   }

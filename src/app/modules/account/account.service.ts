@@ -29,7 +29,7 @@ export class AccountService {
     const account = await this.accountRepository.findOneBy({id: accountId, user: {id: userId}});
 
     if (!account) {
-      throw new NotFoundException(`Account with id ${accountId} not found.`);
+      throw new NotFoundException(`Account not found.`);
     }
     return account;
   }

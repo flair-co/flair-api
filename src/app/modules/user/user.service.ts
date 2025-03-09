@@ -18,7 +18,7 @@ export class UserService {
     const user = await this.userRepository.findOneBy({id});
 
     if (!user) {
-      throw new NotFoundException(`User with id ${id} not found.`);
+      throw new NotFoundException(`User not found.`);
     }
     return user;
   }
@@ -27,7 +27,7 @@ export class UserService {
     const user = await this.userRepository.findOneBy({email});
 
     if (!user) {
-      throw new NotFoundException(`User with email ${email} not found.`);
+      throw new NotFoundException(`User not found.`);
     }
     return user;
   }
@@ -36,7 +36,7 @@ export class UserService {
     const emailExists = await this.userRepository.existsBy({email});
 
     if (emailExists) {
-      throw new ConflictException(`An account with email ${email} already exists.`);
+      throw new ConflictException(`A user with this email already exists.`);
     }
     const hash = await argon2.hash(password);
 
