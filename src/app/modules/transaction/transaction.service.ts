@@ -4,9 +4,9 @@ import {Repository} from 'typeorm';
 
 import {User} from '@modules/user/user.entity';
 
-import {TransactionPatchDto} from './api/transaction.patch.dto';
-import {TransactionQueryDto} from './api/transaction.query.dto';
-import {DEFAULT_PAGE_INDEX, DEFAULT_PAGE_SIZE} from './api/transaction.query.pagination.dto';
+import {DEFAULT_PAGE_INDEX, DEFAULT_PAGE_SIZE} from './api/transaction-query-pagination.dto';
+import {TransactionQueryDto} from './api/transaction-query.dto';
+import {TransactionUpdateDto} from './api/transaction-update.dto';
 import {Transaction} from './transaction.entity';
 
 type TransactionSaveOptions = Omit<Transaction, 'id' | 'createdAt' | 'updatedAt'>;
@@ -73,11 +73,11 @@ export class TransactionService {
     return this.transactionRepository.delete(ids);
   }
 
-  async update(userId: User['id'], id: Transaction['id'], patchDto: TransactionPatchDto) {
+  async update(userId: User['id'], id: Transaction['id'], dto: TransactionUpdateDto) {
     const transaction = await this.findById(userId, id);
 
-    if (patchDto.category) {
-      transaction.category = patchDto.category;
+    if (dto.category) {
+      transaction.category = dto.category;
     }
     return this.transactionRepository.save(transaction);
   }

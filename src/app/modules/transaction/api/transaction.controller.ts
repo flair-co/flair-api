@@ -5,8 +5,8 @@ import {User} from '@modules/user/user.entity';
 
 import {Transaction} from '../transaction.entity';
 import {TransactionService} from '../transaction.service';
-import {TransactionPatchDto} from './transaction.patch.dto';
-import {TransactionQueryDto} from './transaction.query.dto';
+import {TransactionQueryDto} from './transaction-query.dto';
+import {TransactionUpdateDto} from './transaction-update.dto';
 
 @Controller('transactions')
 export class TransactionController {
@@ -29,8 +29,8 @@ export class TransactionController {
   update(
     @CurrentUser() user: User,
     @Param('id', new ParseUUIDPipe({version: '4'})) id: Transaction['id'],
-    @Body() patchDto: TransactionPatchDto,
+    @Body() dto: TransactionUpdateDto,
   ) {
-    return this.transactionService.update(user.id, id, patchDto);
+    return this.transactionService.update(user.id, id, dto);
   }
 }
