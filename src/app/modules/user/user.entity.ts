@@ -18,6 +18,10 @@ export class User {
   @Expose()
   email: string;
 
+  @Column({type: 'boolean', default: false})
+  @Expose()
+  isEmailVerified: boolean;
+
   @Column({type: 'varchar', length: 255})
   @Exclude()
   password: string;

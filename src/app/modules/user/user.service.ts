@@ -42,4 +42,9 @@ export class UserService {
 
     return this.userRepository.save({name, email, password: hash});
   }
+
+  // TODO: Update ts when implementing PATCH for users
+  async verifyEmail(id: User['id']) {
+    return this.userRepository.update({id}, {isEmailVerified: true});
+  }
 }

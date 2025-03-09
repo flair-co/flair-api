@@ -1,7 +1,7 @@
 import {validationSchema} from '@config/env/validation-schema';
 import {REDIS} from '@config/redis/redis.constants';
 import {RedisModule} from '@config/redis/redis.module';
-import {MailerModule as NestJSMailerModule} from '@nestjs-modules/mailer';
+import {MailerModule} from '@nestjs-modules/mailer';
 import {HandlebarsAdapter} from '@nestjs-modules/mailer/dist/adapters/handlebars.adapter';
 import {
   ClassSerializerInterceptor,
@@ -24,7 +24,6 @@ import {RedisClientType} from 'redis';
 
 import {AuthModule} from '@core/auth/auth.module';
 import {FileParserModule} from '@core/file-parser/file-parser.module';
-import {MailerModule} from '@core/mailer/mailer.module';
 import {TransactionCategorizerModule} from '@core/transaction-categorizer/transaction-categorizer.module';
 import {BankStatementModule} from '@modules/bank-statement/bank-statement.module';
 import {TransactionModule} from '@modules/transaction/transaction.module';
@@ -55,7 +54,7 @@ import {UserModule} from '@modules/user/user.module';
         autoLoadEntities: true,
       }),
     }),
-    NestJSMailerModule.forRootAsync({
+    MailerModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
@@ -69,7 +68,7 @@ import {UserModule} from '@modules/user/user.module';
         defaults: {from: '"Flair" <no-reply@flair.com>'},
         preview: config.get<string>('NODE_ENV') === 'development',
         template: {
-          dir: join(__dirname, 'app', 'core', 'mailer', 'templates'),
+          dir: join(__dirname, 'app', 'templates'),
           adapter: new HandlebarsAdapter(),
           options: {strict: true},
         },
@@ -86,7 +85,6 @@ import {UserModule} from '@modules/user/user.module';
     AuthModule,
     FileParserModule,
     TransactionModule,
-    MailerModule,
     TransactionCategorizerModule,
     UserModule,
     BankStatementModule,
