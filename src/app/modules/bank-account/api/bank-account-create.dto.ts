@@ -4,21 +4,21 @@ import {IsEnum, IsIn, IsNotEmpty, IsOptional, IsString, Length, MaxLength} from 
 import {Bank} from '@core/transaction-mapper/constants/bank.enum';
 import {currencyCodes} from '@core/transaction-mapper/constants/currency-codes';
 
-import {Account} from '../account.entity';
+import {BankAccount} from '../bank-account.entity';
 
-export class AccountCreateDto {
+export class BankAccountCreateDto {
   @IsOptional()
   @IsString()
   @MaxLength(255)
-  alias: Account['alias'];
+  alias: BankAccount['alias'];
 
   @IsEnum(Bank)
-  bank: Account['bank'];
+  bank: BankAccount['bank'];
 
   @IsNotEmpty()
   @IsString()
   @Length(3, 3)
   @IsIn(currencyCodes)
   @Expose()
-  currency: Account['currency'];
+  currency: BankAccount['currency'];
 }

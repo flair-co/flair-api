@@ -20,12 +20,12 @@ export class TransactionService {
 
   async findById(userId: User['id'], id: Transaction['id']) {
     const transaction = await this.transactionRepository.findOne({
-      where: {id, account: {user: {id: userId}}},
-      relations: ['account'],
+      where: {id, bankAccount: {user: {id: userId}}},
+      relations: ['bankAccount'],
     });
 
     if (!transaction) {
-      throw new NotFoundException(`Transaction with id ${id} not found.`);
+      throw new NotFoundException(`Transaction not found.`);
     }
     return transaction;
   }
@@ -37,8 +37,8 @@ export class TransactionService {
     };
     const query = this.transactionRepository
       .createQueryBuilder('transaction')
-      .innerJoin('transaction.account', 'account')
-      .innerJoin('account.user', 'user')
+      .innerJoin('transaction.bankAccount', 'bankAccount')
+      .innerJoin('bankAccount.user', 'user')
       .where('user.id = :userId', {userId})
       .skip(pagination.pageIndex * pagination.pageSize)
       .take(pagination.pageSize);
@@ -62,7 +62,7 @@ export class TransactionService {
     return {transactions, total};
   }
 
-  async saveAll(transactions: TransactionSaveOptions[]): Promise<Transaction[]> {
+  async saveAll(transactions: TransactionSaveOptions[]) {
     if (transactions.length === 0) {
       return Promise.resolve([]);
     }
