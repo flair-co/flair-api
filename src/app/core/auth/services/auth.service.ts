@@ -62,7 +62,7 @@ export class AuthService {
       throw new BadRequestException('Email is already verified.');
     }
 
-    await this.userService.verifyEmail(user.id);
+    await this.userService.update(user.id, {isEmailVerified: true});
     await this.emailVerifierService.removeToken(user.email);
   }
 }

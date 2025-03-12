@@ -76,9 +76,12 @@ export class TransactionService {
   async update(userId: User['id'], id: Transaction['id'], dto: TransactionUpdateDto) {
     const transaction = await this.findById(userId, id);
 
+    const updates: Partial<Transaction> = {};
     if (dto.category) {
-      transaction.category = dto.category;
+      updates.category = dto.category;
     }
-    return this.transactionRepository.save(transaction);
+
+    await this.transactionRepository.update({id: transaction.id}, updates);
+    return this.transactionRepository.findBy({id: transaction.id});
   }
 }
