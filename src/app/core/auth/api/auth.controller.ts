@@ -74,7 +74,7 @@ export class AuthController {
     return user;
   }
 
-  @Throttle({default: {limit: 3, ttl: minutes(1)}})
+  @Throttle({default: {limit: 6, ttl: minutes(1)}})
   @Post('resend')
   @SkipEmailVerification()
   @HttpCode(200)
@@ -86,7 +86,7 @@ export class AuthController {
     await this.emailVerifierService.resendEmail(user);
   }
 
-  @Throttle({default: {limit: 3, ttl: minutes(1)}})
+  @Throttle({default: {limit: 6, ttl: minutes(1)}})
   @Public()
   @Post('verify')
   @SkipEmailVerification()
