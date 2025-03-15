@@ -1,14 +1,8 @@
-import {IsEmail, IsNotEmpty, IsUUID, Length} from 'class-validator';
-
-import {User} from '@modules/user/user.entity';
+import {IsNotEmpty, Length, Matches} from 'class-validator';
 
 export class EmailVerifyDto {
   @IsNotEmpty()
-  @IsEmail()
-  @Length(1, 255)
-  email: User['email'];
-
-  @IsUUID(4)
-  @IsNotEmpty()
-  token: string;
+  @Length(6, 6, {message: 'Verification code must be exactly 6 digits.'})
+  @Matches(/^[0-9]{6}$/, {message: 'Verification code must contain only digits.'})
+  code: string;
 }

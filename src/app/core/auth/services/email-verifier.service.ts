@@ -1,12 +1,14 @@
 import {REDIS} from '@config/redis/redis.constants';
 import {MailerService} from '@nestjs-modules/mailer';
-import {Injectable} from '@nestjs/common';
+import {BadRequestException, Injectable} from '@nestjs/common';
 import {Inject} from '@nestjs/common';
 import {ConfigService} from '@nestjs/config';
 import ms from 'ms';
+import crypto from 'node:crypto';
 import {RedisClientType} from 'redis';
 
 import {User} from '@modules/user/user.entity';
+import {UserService} from '@modules/user/user.service';
 
 @Injectable()
 export class EmailVerifierService {
@@ -18,45 +20,92 @@ export class EmailVerifierService {
     @Inject(REDIS) private readonly redisClient: RedisClientType,
     private readonly configService: ConfigService,
     private readonly mailerService: MailerService,
+    private readonly userService: UserService,
   ) {
     this.EXPIRATION = ms(this.configService.get('EMAIL_VERIFICATION_EXPIRATION') as string);
     this.REDIS_KEY = this.configService.get('EMAIL_VERIFICATION_REDIS_KEY') as string;
     this.WEB_BASE_URL = this.configService.get('WEB_BASE_URL') as string;
   }
 
-  async sendVerificationEmail(user: User, token: string) {
-    const {name, email} = user;
-    const verificationUrl = this.createUrl(token, email);
+  async verify(code: string) {
+    const email = await this.getEmailByCode(code);
+    if (!email) {
+      throw new BadRequestException('Invalid or expired verification code.');
+    }
+
+    const user = await this.userService.findByEmail(email).catch(() => {
+      throw new BadRequestException('Invalid or expired verification code.');
+    });
+
+    if (user.isEmailVerified) {
+      throw new BadRequestException('Email is already verified.');
+    }
+
+    const updatedUser = await this.userService.update(user.id, {isEmailVerified: true});
+    await this.removeCode(code);
+
+    return updatedUser;
+  }
+
+  async sendWelcomeEmail(user: User) {
+    const code = await this.createCode(user.email);
+    const verificationUrl = await this.createUrl(code);
 
     await this.mailerService.sendMail({
-      to: email,
-      subject: 'Verify your email',
-      template: './verify-email',
-      context: {name, verificationUrl},
+      to: user.email,
+      subject: `Welcome to Flair - ${code} is your verification code`,
+      template: './welcome',
+      context: {name: user.name, verificationUrl, code},
     });
   }
 
-  async createUrl(token: string, email: User['email']) {
+  async resendEmail(user: User) {
+    if (user.isEmailVerified) {
+      throw new BadRequestException('Email is already verified.');
+    }
+
+    const code = await this.createCode(user.email);
+    const verificationUrl = await this.createUrl(code);
+
+    await this.mailerService.sendMail({
+      to: user.email,
+      subject: `${code} is your verification code`,
+      template: './verify-email',
+      context: {name: user.name, verificationUrl, code},
+    });
+  }
+
+  async createUrl(code: string) {
     const url = new URL('/verify', this.WEB_BASE_URL);
-    url.search = new URLSearchParams({token, email}).toString();
+    url.search = new URLSearchParams({code}).toString();
     return url.toString();
   }
 
-  async createToken(email: User['email']) {
-    const key = `${this.REDIS_KEY}:${email}`;
-    const token = crypto.randomUUID();
-    await this.redisClient.set(key, token, {EX: this.EXPIRATION});
-    return token;
+  async createCode(email: User['email']) {
+    let code: string;
+    let exists = true;
+
+    while (exists) {
+      code = crypto.randomInt(100000, 999999).toString();
+      const existingEmail = await this.getEmailByCode(code);
+      exists = existingEmail !== null;
+
+      if (!exists) {
+        const key = `${this.REDIS_KEY}:${code}`;
+        await this.redisClient.set(key, email, {EX: this.EXPIRATION});
+        return code;
+      }
+    }
+    return code!;
   }
 
-  async isTokenValid(email: User['email'], token: string) {
-    const key = `${this.REDIS_KEY}:${email}`;
-    const storedToken = await this.redisClient.get(key);
-    return storedToken === token;
+  async getEmailByCode(code: string) {
+    const key = `${this.REDIS_KEY}:${code}`;
+    return this.redisClient.get(key);
   }
 
-  async removeToken(email: User['email']) {
-    const key = `${this.REDIS_KEY}:${email}`;
+  async removeCode(code: string) {
+    const key = `${this.REDIS_KEY}:${code}`;
     await this.redisClient.del(key);
   }
 }
