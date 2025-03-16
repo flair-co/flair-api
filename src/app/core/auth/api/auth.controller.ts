@@ -68,7 +68,6 @@ export class AuthController {
     return this.emailVerifierService.sendVerifyEmail(user);
   }
 
-  @Throttle({default: {limit: 6, ttl: minutes(1)}})
   @Public()
   @Post('signup/verify')
   @SkipEmailVerification()
@@ -90,7 +89,6 @@ export class AuthController {
   @ApiResponse({status: 401, description: 'User is not logged in.'})
   @ApiResponse({status: 409, description: 'This email is already in use.'})
   @ApiResponse({status: 429, description: 'Too many requests. Try again later.'})
-  @Throttle({default: {limit: 3, ttl: minutes(1)}})
   async requestEmailChange(@CurrentUser() user: User, @Body() dto: EmailChangeDto) {
     return this.emailVerifierService.requestEmailChange(user, dto);
   }
