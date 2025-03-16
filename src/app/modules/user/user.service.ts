@@ -32,18 +32,22 @@ export class UserService {
     return user;
   }
 
-  async save({name, email, password}: SignUpDto): Promise<User> {
+  async validateEmailIsUnique(email: User['email']) {
     const emailExists = await this.userRepository.existsBy({email});
 
     if (emailExists) {
-      throw new ConflictException(`A user with this email already exists.`);
+      throw new ConflictException(`This email is already in use.`);
     }
-    const hash = await argon2.hash(password);
+  }
 
+  async save({name, email, password}: SignUpDto): Promise<User> {
+    await this.validateEmailIsUnique(email);
+
+    const hash = await argon2.hash(password);
     return this.userRepository.save({name, email, password: hash});
   }
 
-  async update(id: User['id'], updates: Partial<Pick<User, 'isEmailVerified' | 'name'>>) {
+  async update(id: User['id'], updates: Partial<Pick<User, 'isEmailVerified' | 'name' | 'email'>>) {
     await this.userRepository.update({id}, updates);
     return this.findById(id);
   }

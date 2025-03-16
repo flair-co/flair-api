@@ -4,25 +4,25 @@ import {Throttle, minutes} from '@nestjs/throttler';
 import {Request} from 'express';
 import {User} from 'src/app/modules/user/user.entity';
 
-import {UserService} from '@modules/user/user.service';
-
 import {CurrentUser} from '../decorators/current-user.decorator';
 import {Public} from '../decorators/public.decorator';
 import {SkipEmailVerification} from '../decorators/skip-email-verification.decorator';
 import {LocalLogInGuard} from '../guards/local-login.guard';
+import {AuthService} from '../services/auth.service';
 import {EmailVerifierService} from '../services/email-verifier.service';
+import {EmailChangeDto} from './email-change.dto';
 import {EmailVerifyDto} from './email-verify.dto';
 import {LogInDto} from './login.dto';
 import {SignUpDto} from './signup.dto';
 
 @Controller('auth')
+@Throttle({default: {limit: 6, ttl: minutes(1)}})
 export class AuthController {
   constructor(
-    private readonly userService: UserService,
     private readonly emailVerifierService: EmailVerifierService,
+    private readonly authService: AuthService,
   ) {}
 
-  @Throttle({default: {limit: 6, ttl: minutes(1)}})
   @Public()
   @UseGuards(LocalLogInGuard)
   @Post('login')
@@ -35,7 +35,6 @@ export class AuthController {
     return user;
   }
 
-  @Throttle({default: {limit: 6, ttl: minutes(1)}})
   @Post('logout')
   @SkipEmailVerification()
   @HttpCode(200)
@@ -43,52 +42,35 @@ export class AuthController {
   @ApiResponse({status: 401, description: 'User is not logged in.'})
   @ApiResponse({status: 429, description: 'Too many requests. Try again later.'})
   async logOut(@Req() request: Request) {
-    await new Promise<void>((resolve) => {
-      request.logOut({keepSessionInfo: false}, () => {
-        resolve();
-      });
-      request.session.destroy(() => {
-        resolve();
-      });
-    });
+    return this.authService.logOut(request);
   }
 
-  @Throttle({default: {limit: 6, ttl: minutes(1)}})
   @Public()
   @Post('signup')
   @SkipEmailVerification()
   @HttpCode(201)
   @ApiResponse({status: 201, description: 'User created.'})
   @ApiResponse({status: 400, description: 'Validation of the request body failed.'})
-  @ApiResponse({status: 409, description: 'A user with this email already exists.'})
+  @ApiResponse({status: 409, description: 'This email is already in use.'})
   @ApiResponse({status: 429, description: 'Too many requests. Try again later.'})
   async signUp(@Body() dto: SignUpDto, @Req() request: Request) {
-    const user = await this.userService.save(dto);
-    await this.emailVerifierService.sendWelcomeEmail(user);
-
-    await new Promise<void>((resolve) => {
-      request.logIn(user, () => {
-        resolve();
-      });
-    });
-    return user;
+    return this.authService.signUp(dto, request);
   }
 
-  @Throttle({default: {limit: 6, ttl: minutes(1)}})
-  @Post('resend')
+  @Post('signup/resend')
   @SkipEmailVerification()
   @HttpCode(200)
   @ApiResponse({status: 200, description: 'Verification email sent.'})
   @ApiResponse({status: 400, description: 'Email is already verified.'})
   @ApiResponse({status: 401, description: 'User is not logged in.'})
   @ApiResponse({status: 429, description: 'Too many requests. Try again later.'})
-  async resendVerificationEmail(@CurrentUser() user: User) {
-    await this.emailVerifierService.resendEmail(user);
+  async sendVerifyEmail(@CurrentUser() user: User) {
+    return this.emailVerifierService.sendVerifyEmail(user);
   }
 
   @Throttle({default: {limit: 6, ttl: minutes(1)}})
   @Public()
-  @Post('verify')
+  @Post('signup/verify')
   @SkipEmailVerification()
   @HttpCode(200)
   @ApiResponse({status: 200, description: 'Email verified.'})
@@ -96,14 +78,30 @@ export class AuthController {
   @ApiResponse({status: 429, description: 'Too many requests. Try again later.'})
   async verifyEmail(@Body() dto: EmailVerifyDto, @Req() request: Request) {
     const user = await this.emailVerifierService.verify(dto.code);
-
     if (!request.isAuthenticated()) {
-      await new Promise<void>((resolve) => {
-        request.logIn(user, () => {
-          resolve();
-        });
-      });
+      await this.authService.logIn(user, request);
     }
-    return user;
+    return {message: 'Email verified.'};
+  }
+
+  @Post('change-email/request')
+  @ApiResponse({status: 200, description: 'Verification email sent.'})
+  @ApiResponse({status: 400, description: 'Validation of the request body failed.'})
+  @ApiResponse({status: 401, description: 'User is not logged in.'})
+  @ApiResponse({status: 409, description: 'This email is already in use.'})
+  @ApiResponse({status: 429, description: 'Too many requests. Try again later.'})
+  @Throttle({default: {limit: 3, ttl: minutes(1)}})
+  async requestEmailChange(@CurrentUser() user: User, @Body() dto: EmailChangeDto) {
+    return this.emailVerifierService.requestEmailChange(user, dto);
+  }
+
+  @Post('change-email/verify')
+  @ApiResponse({status: 200, description: 'Email changed.'})
+  @ApiResponse({status: 400, description: 'Validation of the request body failed.'})
+  @ApiResponse({status: 401, description: 'User is not logged in.'})
+  @ApiResponse({status: 409, description: 'This email is already in use.'})
+  @ApiResponse({status: 429, description: 'Too many requests. Try again later.'})
+  async verifyEmailChange(@CurrentUser() user: User, @Body() dto: EmailVerifyDto) {
+    return this.emailVerifierService.verifyEmailChange(user, dto.code);
   }
 }

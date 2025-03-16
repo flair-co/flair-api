@@ -33,7 +33,7 @@ export class BankStatementController {
   @UseInterceptors(FileInterceptor('file'))
   @Post('login')
   @HttpCode(200)
-  @ApiResponse({status: 200, description: 'Bank statement has been successfully created.'})
+  @ApiResponse({status: 200, description: 'Bank statement created.'})
   @ApiResponse({status: 400, description: 'Failed to parse file.'})
   @ApiResponse({status: 401, description: 'Invalid credentials.'})
   @ApiResponse({status: 409, description: 'A bank statement already exists for this period.'})
