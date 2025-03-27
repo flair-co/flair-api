@@ -5,7 +5,6 @@ import {Inject} from '@nestjs/common';
 import {ConfigService} from '@nestjs/config';
 import argon2 from 'argon2';
 import ms from 'ms';
-import crypto from 'node:crypto';
 import {RedisClientType} from 'redis';
 
 import {User} from '@modules/user/user.entity';
@@ -113,7 +112,7 @@ export class EmailVerifierService {
 
   async createCode(email: User['email']) {
     while (true) {
-      const code = crypto.randomInt(100000, 999999).toString();
+      const code = Array.from({length: 6}, () => Math.floor(Math.random() * 10)).join('');
       const key = `${this.REDIS_KEY}:${code}`;
 
       try {
