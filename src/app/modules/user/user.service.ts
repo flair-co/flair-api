@@ -1,9 +1,6 @@
 import {ConflictException, Injectable, NotFoundException} from '@nestjs/common';
 import {InjectRepository} from '@nestjs/typeorm';
-import argon2 from 'argon2';
 import {Repository} from 'typeorm';
-
-import {SignUpDto} from '@core/auth/api/signup.dto';
 
 import {User} from './user.entity';
 
@@ -40,14 +37,11 @@ export class UserService {
     }
   }
 
-  async save({name, email, password}: SignUpDto): Promise<User> {
-    await this.validateEmailIsUnique(email);
-
-    const hash = await argon2.hash(password);
-    return this.userRepository.save({name, email, password: hash});
+  async save(name: User['name'], email: User['email'], password: User['password']) {
+    return this.userRepository.save({name, email, password});
   }
 
-  async update(id: User['id'], updates: Partial<Pick<User, 'isEmailVerified' | 'name' | 'email'>>) {
+  async update(id: User['id'], updates: Partial<User>) {
     await this.userRepository.update({id}, updates);
     return this.findById(id);
   }

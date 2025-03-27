@@ -13,6 +13,7 @@ import {EmailVerifierService} from '../services/email-verifier.service';
 import {EmailChangeDto} from './email-change.dto';
 import {EmailVerifyDto} from './email-verify.dto';
 import {LogInDto} from './login.dto';
+import {ChangePasswordDto} from './password-change.dto';
 import {SignUpDto} from './signup.dto';
 
 @Controller('auth')
@@ -57,6 +58,19 @@ export class AuthController {
     return this.authService.signUp(dto, request);
   }
 
+  @Post('change-password')
+  @HttpCode(200)
+  @ApiResponse({status: 200, description: 'Password changed.'})
+  @ApiResponse({status: 400, description: 'Validation of the request body failed.'})
+  @ApiResponse({
+    status: 401,
+    description: 'User is not logged in or current password is incorrect.',
+  })
+  @ApiResponse({status: 429, description: 'Too many requests. Try again later.'})
+  async changePassword(@CurrentUser() user: User, @Body() dto: ChangePasswordDto) {
+    return this.authService.changePassword(user, dto);
+  }
+
   @Post('signup/resend')
   @SkipEmailVerification()
   @HttpCode(200)
@@ -83,16 +97,18 @@ export class AuthController {
     return {message: 'Email verified.'};
   }
 
+  @HttpCode(200)
   @Post('change-email/request')
   @ApiResponse({status: 200, description: 'Verification email sent.'})
   @ApiResponse({status: 400, description: 'Validation of the request body failed.'})
-  @ApiResponse({status: 401, description: 'User is not logged in.'})
+  @ApiResponse({status: 401, description: 'User is not logged in or password is incorrect.'})
   @ApiResponse({status: 409, description: 'This email is already in use.'})
   @ApiResponse({status: 429, description: 'Too many requests. Try again later.'})
   async requestEmailChange(@CurrentUser() user: User, @Body() dto: EmailChangeDto) {
     return this.emailVerifierService.requestEmailChange(user, dto);
   }
 
+  @HttpCode(200)
   @Post('change-email/verify')
   @ApiResponse({status: 200, description: 'Email changed.'})
   @ApiResponse({status: 400, description: 'Validation of the request body failed.'})
