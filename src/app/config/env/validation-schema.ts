@@ -12,14 +12,17 @@ export const validationSchema = Joi.object({
   DB_PASSWORD: Joi.string().regex(/\S/).required(),
   DB_NAME: Joi.string().regex(/\S/).required(),
   DB_SYNCHRONIZE: Joi.boolean().required(),
+  PGADMIN_PORT: Joi.number().min(0).max(65535).required(),
   SESSION_SECRET: Joi.string().regex(/\S/).required(),
   SESSION_EXPIRATION: Joi.string().regex(durationPattern).required(),
   REDIS_URL: Joi.string()
     .uri({scheme: ['redis']})
     .required(),
+  REDIS_PORT: Joi.number().min(0).max(65535).required(),
   GEMINI_API_KEY: Joi.string().regex(/\S/).required(),
   EMAIL_HOST: Joi.string().regex(/\S/).required(),
   EMAIL_USERNAME: Joi.string().regex(/\S/).required(),
   EMAIL_PASSWORD: Joi.string().regex(/\S/).required(),
   EMAIL_VERIFICATION_EXPIRATION: Joi.string().regex(durationPattern).required(),
+  EMAIL_VERIFICATION_REDIS_KEY: Joi.string().regex(/\S/).required(),
 });
