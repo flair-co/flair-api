@@ -19,6 +19,8 @@ export const validationSchema = Joi.object({
     .uri({scheme: ['redis']})
     .required(),
   REDIS_PORT: Joi.number().min(0).max(65535).required(),
+  REDIS_HOST: Joi.string().regex(/\S/).required(),
+  REDIS_INSIGHT_PORT: Joi.number().min(0).max(65535).required(),
   GEMINI_API_KEY: Joi.string().regex(/\S/).required(),
   EMAIL_HOST: Joi.string().regex(/\S/).required(),
   EMAIL_USERNAME: Joi.string().regex(/\S/).required(),
