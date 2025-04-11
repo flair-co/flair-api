@@ -1,9 +1,8 @@
 import {REDIS} from '@config/redis/redis.constants';
 import {MailerService} from '@nestjs-modules/mailer';
-import {BadRequestException, Injectable, UnauthorizedException} from '@nestjs/common';
+import {BadRequestException, Injectable} from '@nestjs/common';
 import {Inject} from '@nestjs/common';
 import {ConfigService} from '@nestjs/config';
-import argon2 from 'argon2';
 import ms from 'ms';
 import {RedisClientType} from 'redis';
 
@@ -76,11 +75,7 @@ export class EmailVerifierService {
   }
 
   async requestEmailChange(user: User, {newEmail, password}: EmailChangeDto) {
-    const isPasswordValid = await argon2.verify(user.password, password);
-    if (!isPasswordValid) {
-      throw new UnauthorizedException();
-    }
-
+    this.userService.verifyPassword(user.password, password);
     await this.userService.validateEmailIsUnique(newEmail);
 
     const code = await this.createCode(newEmail);

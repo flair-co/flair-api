@@ -1,6 +1,5 @@
 import {BadRequestException, Injectable, UnauthorizedException} from '@nestjs/common';
 import {PassportStrategy} from '@nestjs/passport';
-import argon2 from 'argon2';
 import {plainToClass} from 'class-transformer';
 import {validate} from 'class-validator';
 import {Strategy} from 'passport-local';
@@ -29,11 +28,7 @@ export class LocalStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException();
     });
 
-    const isPasswordValid = await argon2.verify(user.password, credentials.password);
-
-    if (!isPasswordValid) {
-      throw new UnauthorizedException();
-    }
+    this.userService.verifyPassword(user.password, credentials.password);
     return user;
   }
 }

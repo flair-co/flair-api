@@ -1,4 +1,4 @@
-import {Injectable, UnauthorizedException} from '@nestjs/common';
+import {Injectable} from '@nestjs/common';
 import argon2 from 'argon2';
 import {Request} from 'express';
 
@@ -49,10 +49,7 @@ export class AuthService {
   }
 
   async changePassword(user: User, dto: ChangePasswordDto) {
-    const isPasswordValid = await argon2.verify(user.password, dto.currentPassword);
-    if (!isPasswordValid) {
-      throw new UnauthorizedException('Current password is incorrect.');
-    }
+    this.userService.verifyPassword(user.password, dto.currentPassword);
 
     const hash = await argon2.hash(dto.newPassword);
     await this.userService.update(user.id, {password: hash});

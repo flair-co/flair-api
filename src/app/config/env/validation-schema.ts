@@ -20,6 +20,7 @@ export const validationSchema = Joi.object({
   PGADMIN_PORT: portNumber,
   SESSION_SECRET: nonWhitespaceString,
   SESSION_EXPIRATION: expirationDuration,
+  SESSION_REDIS_KEY: nonWhitespaceString,
   REDIS_URL: uriString,
   REDIS_PORT: portNumber,
   REDIS_HOST: nonWhitespaceString,

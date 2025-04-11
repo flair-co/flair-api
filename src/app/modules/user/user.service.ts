@@ -1,5 +1,11 @@
-import {ConflictException, Injectable, NotFoundException} from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import {InjectRepository} from '@nestjs/typeorm';
+import argon2 from 'argon2';
 import {Repository} from 'typeorm';
 
 import {User} from './user.entity';
@@ -34,6 +40,13 @@ export class UserService {
 
     if (emailExists) {
       throw new ConflictException(`This email is already in use.`);
+    }
+  }
+
+  async verifyPassword(hash: User['password'], password: User['password']) {
+    const isPasswordValid = await argon2.verify(hash, password);
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Password is incorrect.');
     }
   }
 
