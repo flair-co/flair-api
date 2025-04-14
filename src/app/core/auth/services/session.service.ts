@@ -7,7 +7,7 @@ import {RedisClientType} from 'redis';
 import {User} from '@modules/user/user.entity';
 import {UserService} from '@modules/user/user.service';
 
-import {SessionDto} from '../api/session.dto';
+import {SessionDto} from '../api/dtos/session.dto';
 import {AuthenticatedSession} from './authenticated-session.interface';
 
 @Injectable()
@@ -33,12 +33,12 @@ export class SessionService {
     const session: AuthenticatedSession = request.session;
 
     if (session.passport?.user && !session.metadata) {
-      const nowISOString = new Date().toISOString();
+      const now = new Date().toISOString();
       session.metadata = {
         ip: request.ip ?? 'unknown',
         userAgent: request.headers['user-agent'] ?? 'unknown',
-        createdAt: nowISOString,
-        lastAccessed: nowISOString,
+        createdAt: now,
+        lastAccessed: now,
       };
     }
   }
@@ -52,22 +52,18 @@ export class SessionService {
     if (!session.passport?.user || !session.metadata) {
       return;
     }
-    const now = new Date();
-    const lastAccessed = new Date(session.metadata.lastAccessed);
+    const now = new Date().toISOString();
+    const lastAccessed = new Date(session.metadata.lastAccessed).toISOString();
 
-    const isDifferentCalendarDay =
-      now.getFullYear() !== lastAccessed.getFullYear() ||
-      now.getMonth() !== lastAccessed.getMonth() ||
-      now.getDate() !== lastAccessed.getDate();
-
+    const isDifferentCalendarDay = now.slice(0, 10) !== lastAccessed.slice(0, 10);
     if (isDifferentCalendarDay) {
-      session.metadata.lastAccessed = now.toISOString();
+      session.metadata.lastAccessed = now;
     }
   }
 
   /**
    * Gets metadata of all active sessions for a user.
-   * Uses the Redis SCAN command to iterate through session keys efficiently in batches.
+   * Uses the Redis SCAN command to iterate through session keys in batches.
    *
    * NOTE: This implementation does not scale well.
    */

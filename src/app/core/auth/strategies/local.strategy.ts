@@ -7,7 +7,7 @@ import {Strategy} from 'passport-local';
 import {User} from '@modules/user/user.entity';
 import {UserService} from '@modules/user/user.service';
 
-import {LogInDto} from '../api/login.dto';
+import {LogInDto} from '../api/dtos/login.dto';
 
 @Injectable()
 export class LocalStrategy extends PassportStrategy(Strategy) {
@@ -15,7 +15,7 @@ export class LocalStrategy extends PassportStrategy(Strategy) {
     super({usernameField: 'email'});
   }
 
-  async validate(email: User['email'], password: User['password']): Promise<User> {
+  async validate(email: User['email'], password: User['password']) {
     const credentials = plainToClass(LogInDto, {email, password});
     const errors = await validate(credentials);
 

@@ -9,7 +9,7 @@ export class LocalLogInGuard extends AuthGuard('local') implements CanActivate {
     super();
   }
 
-  async canActivate(context: ExecutionContext): Promise<boolean> {
+  async canActivate(context: ExecutionContext) {
     const result = (await super.canActivate(context)) as boolean;
     const request = context.switchToHttp().getRequest();
 
