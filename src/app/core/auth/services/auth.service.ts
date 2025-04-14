@@ -5,8 +5,8 @@ import {Request} from 'express';
 import {User} from '@modules/user/user.entity';
 import {UserService} from '@modules/user/user.service';
 
-import {ChangePasswordDto} from '../api/password-change.dto';
-import {SignUpDto} from '../api/signup.dto';
+import {ChangePasswordDto} from '../api/dtos/change-password.dto';
+import {SignUpDto} from '../api/dtos/signup.dto';
 import {EmailVerifierService} from './email-verifier.service';
 
 @Injectable()

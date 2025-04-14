@@ -9,7 +9,7 @@ import {RedisClientType} from 'redis';
 import {User} from '@modules/user/user.entity';
 import {UserService} from '@modules/user/user.service';
 
-import {EmailChangeDto} from '../api/email-change.dto';
+import {EmailChangeDto} from '../api/dtos/email-change.dto';
 
 @Injectable()
 export class EmailVerifierService {

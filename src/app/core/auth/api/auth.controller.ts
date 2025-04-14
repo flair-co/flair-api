@@ -11,12 +11,12 @@ import {LocalLogInGuard} from '../guards/local-login.guard';
 import {AuthService} from '../services/auth.service';
 import {EmailVerifierService} from '../services/email-verifier.service';
 import {SessionService} from '../services/session.service';
-import {EmailChangeDto} from './email-change.dto';
-import {EmailVerifyDto} from './email-verify.dto';
-import {LogInDto} from './login.dto';
-import {ChangePasswordDto} from './password-change.dto';
-import {RevokeSessionDto, RevokeSessionParamsDto} from './revoke-session.dto';
-import {SignUpDto} from './signup.dto';
+import {ChangePasswordDto} from './dtos/change-password.dto';
+import {EmailChangeDto} from './dtos/email-change.dto';
+import {EmailVerifyDto} from './dtos/email-verify.dto';
+import {LogInDto} from './dtos/login.dto';
+import {RevokeSessionDto, RevokeSessionParamsDto} from './dtos/revoke-session.dto';
+import {SignUpDto} from './dtos/signup.dto';
 
 @Controller('auth')
 export class AuthController {
