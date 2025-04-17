@@ -11,7 +11,7 @@ export class SessionMiddleware implements NestMiddleware {
     if (!req.session) {
       return next();
     }
-    this.sessionService.updateDailyLastAccessed(req.session);
+    this.sessionService.updateLastSeen(req.session);
     next();
   }
 }

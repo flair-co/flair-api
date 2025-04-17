@@ -3,6 +3,7 @@ import {BadRequestException, Inject, Injectable, NotFoundException} from '@nestj
 import {ConfigService} from '@nestjs/config';
 import {Request} from 'express';
 import {RedisClientType} from 'redis';
+import {IResult, UAParser} from 'ua-parser-js';
 
 import {User} from '@modules/user/user.entity';
 import {UserService} from '@modules/user/user.service';
@@ -20,45 +21,6 @@ export class SessionService {
     private readonly userService: UserService,
   ) {
     this.REDIS_KEY = this.configService.get('SESSION_REDIS_KEY') as string;
-  }
-
-  /**
-   * Initializes the metadata (IP, UserAgent, timestamps) on an authenticated session.
-   * Mutates the passed request object directly.
-   */
-  initializeSessionMetadata(request: Request) {
-    if (!request.session) {
-      return;
-    }
-    const session: AuthenticatedSession = request.session;
-
-    if (session.passport?.user && !session.metadata) {
-      const now = new Date().toISOString();
-      session.metadata = {
-        ip: request.ip ?? 'unknown',
-        userAgent: request.headers['user-agent'] ?? 'unknown',
-        createdAt: now,
-        lastAccessed: now,
-      };
-    }
-  }
-
-  /**
-   * Updates the `lastAccessed` timestamp in the session metadata
-   * if the access occurs on a new calendar day.
-   * Mutates the passed session object directly.
-   */
-  updateDailyLastAccessed(session: AuthenticatedSession) {
-    if (!session.passport?.user || !session.metadata) {
-      return;
-    }
-    const now = new Date().toISOString();
-    const lastAccessed = new Date(session.metadata.lastAccessed).toISOString();
-
-    const isDifferentCalendarDay = now.slice(0, 10) !== lastAccessed.slice(0, 10);
-    if (isDifferentCalendarDay) {
-      session.metadata.lastAccessed = now;
-    }
   }
 
   /**
@@ -100,7 +62,7 @@ export class SessionService {
             ip: sessionData.metadata?.ip,
             userAgent: sessionData.metadata?.userAgent,
             createdAt: sessionData.metadata?.createdAt ?? new Date(0).toISOString(),
-            lastAccessed: sessionData.metadata?.lastAccessed ?? new Date(0).toISOString(),
+            lastSeen: sessionData.metadata?.lastSeen ?? new Date(0).toISOString(),
             isCurrent: sessionId === currentSessionId,
           });
         }
@@ -109,21 +71,18 @@ export class SessionService {
       if (cursor === 0) break;
     }
 
-    // Sort: Current session first, then by lastAccessed descending.
     userSessions.sort((a, b) => {
       const isCurrentSortOrder = Number(b.isCurrent) - Number(a.isCurrent);
       if (isCurrentSortOrder !== 0) {
         return isCurrentSortOrder;
       }
-      return new Date(b.lastAccessed).getTime() - new Date(a.lastAccessed).getTime();
+      return new Date(b.lastSeen).getTime() - new Date(a.lastSeen).getTime();
     });
 
     return userSessions;
   }
 
-  /**
-   * Revokes a user's active session.
-   */
+  /** Revokes a user's active session. */
   async revokeSession(
     currentUser: User,
     password: User['password'],
@@ -149,5 +108,66 @@ export class SessionService {
 
     await this.redisClient.del(sessionKey);
     return {message: 'Session revoked.'};
+  }
+
+  /** Initializes the metadata (ip, user agent, timestamps) on a session. */
+  initializeSessionMetadata(request: Request) {
+    if (!request.session) {
+      return;
+    }
+    const session: AuthenticatedSession = request.session;
+
+    if (!session.passport?.user || session.metadata) {
+      return;
+    }
+
+    const now = new Date().toISOString();
+    const userAgent = request.headers['user-agent'];
+    session.metadata = {
+      ip: request.ip ?? 'unknown',
+      userAgent: userAgent ?? 'unknown',
+      clientDescription: this.getClientDescription(userAgent),
+      createdAt: now,
+      lastSeen: now,
+    };
+  }
+
+  /** Updates the `lastSeen` timestamp in the session metadata */
+  updateLastSeen(session: AuthenticatedSession) {
+    if (!session.passport?.user || !session.metadata) {
+      return;
+    }
+    session.metadata.lastSeen = new Date().toISOString();
+  }
+
+  /** Formats a session's user agent into a readable string. */
+  getClientDescription(userAgent: string | undefined) {
+    const trimmedUserAgent = userAgent?.trim();
+    if (!trimmedUserAgent || trimmedUserAgent.toLowerCase() === 'unknown') {
+      return 'Unknown device';
+    }
+
+    const parser = new UAParser(trimmedUserAgent);
+    const result: IResult = parser.getResult();
+
+    const browserName = result.browser?.name;
+    const osName = result.os?.name;
+    const osVersion = result.os?.version;
+    const deviceType = result.device?.type;
+
+    let osPart = '';
+
+    if (osName) {
+      osPart = osVersion ? `${osName} ${osVersion}` : osName;
+    }
+    if (browserName && osPart) return `${browserName} on ${osPart}`;
+    if (browserName) return browserName;
+    if (osPart) return osPart;
+
+    if (deviceType) {
+      const capitalizedDeviceType = deviceType.charAt(0).toUpperCase() + deviceType.slice(1);
+      return `Device type: ${capitalizedDeviceType}`;
+    }
+    return 'Unknown device';
   }
 }

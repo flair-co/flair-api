@@ -3,6 +3,6 @@ export class SessionDto {
   ip?: string;
   userAgent?: string;
   createdAt: string;
-  lastAccessed: string;
+  lastSeen: string;
   isCurrent: boolean;
 }

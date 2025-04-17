@@ -9,7 +9,8 @@ export interface AuthenticatedSession extends SessionData {
   metadata?: {
     ip: string;
     userAgent: string;
+    clientDescription: string;
     createdAt: string;
-    lastAccessed: string;
+    lastSeen: string;
   };
 }
