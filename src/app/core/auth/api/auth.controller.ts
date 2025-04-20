@@ -15,7 +15,7 @@ import {ChangePasswordDto} from './dtos/change-password.dto';
 import {EmailChangeDto} from './dtos/email-change.dto';
 import {EmailVerifyDto} from './dtos/email-verify.dto';
 import {LogInDto} from './dtos/login.dto';
-import {RevokeSessionDto, RevokeSessionParamsDto} from './dtos/revoke-session.dto';
+import {SessionRevokeDto, SessionRevokeParamsDto} from './dtos/revoke-session.dto';
 import {SignUpDto} from './dtos/signup.dto';
 
 @Controller('auth')
@@ -151,8 +151,8 @@ export class AuthController {
   async revokeSession(
     @CurrentUser() user: User,
     @Req() request: Request,
-    @Param() params: RevokeSessionParamsDto,
-    @Body() dto: RevokeSessionDto,
+    @Param() params: SessionRevokeParamsDto,
+    @Body() dto: SessionRevokeDto,
   ) {
     return this.sessionService.revokeSession(
       user,

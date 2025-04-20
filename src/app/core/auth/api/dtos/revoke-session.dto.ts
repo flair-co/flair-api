@@ -2,7 +2,7 @@ import {IsNotEmpty, IsString, Length, MaxLength, MinLength} from 'class-validato
 
 import {User} from '@modules/user/user.entity';
 
-export class RevokeSessionDto {
+export class SessionRevokeDto {
   @IsNotEmpty()
   @IsString()
   @MinLength(8)
@@ -10,7 +10,7 @@ export class RevokeSessionDto {
   password: User['password'];
 }
 
-export class RevokeSessionParamsDto {
+export class SessionRevokeParamsDto {
   @IsString()
   @Length(32, 32)
   sessionId: string;
