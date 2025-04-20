@@ -8,12 +8,14 @@ import {UserService} from '@modules/user/user.service';
 import {ChangePasswordDto} from '../api/dtos/change-password.dto';
 import {SignUpDto} from '../api/dtos/signup.dto';
 import {EmailVerifierService} from './email-verifier.service';
+import {SessionService} from './session.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly emailVerifierService: EmailVerifierService,
     private readonly userService: UserService,
+    private readonly sessionService: SessionService,
   ) {}
 
   async signUp({name, email, password}: SignUpDto, request: Request) {
@@ -45,6 +47,7 @@ export class AuthService {
         resolve();
       });
     });
+    this.sessionService.initializeSessionMetadata(request);
     return {message: 'User logged in.'};
   }
 
