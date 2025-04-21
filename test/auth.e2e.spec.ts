@@ -4,6 +4,7 @@ import {ConfigService} from '@nestjs/config';
 import {Test, TestingModule} from '@nestjs/testing';
 import axios from 'axios';
 import request from 'supertest';
+import TestAgent from 'supertest/lib/agent';
 
 import {SignUpDto} from '@core/auth/api/dtos/signup.dto';
 import {User} from '@modules/user/user.entity';
@@ -71,7 +72,9 @@ describe('AuthController (e2e)', () => {
     });
 
     it('should log in with correct credentials', async () => {
-      const response = await request(app.getHttpServer())
+      const agent = request.agent(app.getHttpServer());
+
+      const response = await agent
         .post('/auth/login')
         .send({
           email: userCredentials.email,
@@ -98,6 +101,8 @@ describe('AuthController (e2e)', () => {
       expect(sessionCookie).toMatch(/Path=\//);
       expect(sessionCookie).toMatch(/SameSite=Strict/);
       expect(sessionCookie).toMatch(/Expires=/);
+
+      await agent.get('/users/me').expect(200);
     });
 
     it('should fail to log in with incorrect password', async () => {
@@ -189,6 +194,67 @@ describe('AuthController (e2e)', () => {
               expect.stringMatching(/password must be longer than or equal to 8 characters/i),
             ]),
           );
+        });
+    });
+  });
+
+  describe('/auth/logout (POST)', () => {
+    let agent: TestAgent;
+    let userCredentials: SignUpDto;
+
+    beforeEach(async () => {
+      userCredentials = {
+        name: faker.person.fullName(),
+        email: faker.internet.email(),
+        password: faker.internet.password({length: 10}),
+      };
+
+      await request(app.getHttpServer()).post('/auth/signup').send(userCredentials).expect(201);
+
+      agent = request.agent(app.getHttpServer());
+      await agent
+        .post('/auth/login')
+        .send({
+          email: userCredentials.email,
+          password: userCredentials.password,
+        })
+        .expect(200);
+    });
+
+    it('should log out an authenticated user', async () => {
+      await agent.get('/users/me').expect(200);
+
+      const response = await agent
+        .post('/auth/logout')
+        .send()
+        .expect(200)
+        .expect((res) => {
+          expect(res.body.message).toEqual('User logged out.');
+        });
+
+      const cookiesHeader = response.headers['set-cookie'];
+      expect(cookiesHeader).toBeDefined();
+
+      const sessionCookie = ([] as string[])
+        .concat(cookiesHeader || [])
+        .find((cookie: string) => cookie.startsWith('session='));
+
+      expect(sessionCookie).toBeDefined();
+      console.log(sessionCookie);
+      expect(sessionCookie).toMatch(/Max-Age=0|Expires=.*1970/);
+      expect(sessionCookie).toMatch(/Path=\//);
+
+      // Verify session is terminated by accessing a protected route
+      await agent.get('/users/me').expect(401);
+    });
+
+    it('should fail with 401 Unauthorized if user is not logged in', () => {
+      return request(app.getHttpServer())
+        .post('/auth/logout')
+        .send()
+        .expect(401)
+        .expect((res) => {
+          expect(res.body.message).toMatch(/Unauthorized/i);
         });
     });
   });
