@@ -2,7 +2,8 @@ import {Body, Controller, Delete, Get, HttpCode, Param, Post, Req, UseGuards} fr
 import {ApiResponse} from '@nestjs/swagger';
 import {Throttle, minutes} from '@nestjs/throttler';
 import {Request} from 'express';
-import {User} from 'src/app/modules/user/user.entity';
+
+import {User} from '@modules/user/user.entity';
 
 import {CurrentUser} from '../decorators/current-user.decorator';
 import {Public} from '../decorators/public.decorator';
@@ -30,7 +31,7 @@ export class AuthController {
   @Post('login')
   @HttpCode(200)
   @UseGuards(LocalLogInGuard)
-  @Throttle({default: {limit: 6, ttl: minutes(1)}})
+  @Throttle({default: {limit: 10, ttl: minutes(1)}})
   @ApiResponse({status: 200, description: 'User logged in.'})
   @ApiResponse({status: 400, description: 'Validation of the request body failed.'})
   @ApiResponse({status: 401, description: 'Invalid credentials.'})
@@ -42,7 +43,7 @@ export class AuthController {
   @Post('logout')
   @HttpCode(200)
   @SkipEmailVerification()
-  @Throttle({default: {limit: 6, ttl: minutes(1)}})
+  @Throttle({default: {limit: 10, ttl: minutes(1)}})
   @ApiResponse({status: 200, description: 'User logged out.'})
   @ApiResponse({status: 401, description: 'User is not logged in.'})
   @ApiResponse({status: 429, description: 'Too many requests. Try again later.'})
@@ -54,7 +55,7 @@ export class AuthController {
   @Post('signup')
   @HttpCode(201)
   @SkipEmailVerification()
-  @Throttle({default: {limit: 6, ttl: minutes(1)}})
+  @Throttle({default: {limit: 10, ttl: minutes(1)}})
   @ApiResponse({status: 201, description: 'User created.'})
   @ApiResponse({status: 400, description: 'Validation of the request body failed.'})
   @ApiResponse({status: 409, description: 'This email is already in use.'})

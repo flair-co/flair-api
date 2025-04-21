@@ -17,7 +17,6 @@ import {TypeOrmModule} from '@nestjs/typeorm';
 import RedisStore from 'connect-redis';
 import session from 'express-session';
 import ms from 'ms';
-import {GracefulShutdownModule} from 'nestjs-graceful-shutdown';
 import passport from 'passport';
 import {join} from 'path';
 import {RedisClientType} from 'redis';
@@ -30,11 +29,19 @@ import {BankStatementModule} from '@modules/bank-statement/bank-statement.module
 import {TransactionModule} from '@modules/transaction/transaction.module';
 import {UserModule} from '@modules/user/user.module';
 
+const envFilePaths = ['.env'];
+
+if (process.env.NODE_ENV === 'test') {
+  envFilePaths.unshift('.env.test.local', '.env.test');
+} else {
+  envFilePaths.unshift('.env.development.local', '.env.development');
+}
+
 @Module({
   imports: [
     ConfigModule.forRoot({
       validationSchema,
-      envFilePath: ['.env.development.local', '.env.development'],
+      envFilePath: envFilePaths,
       cache: true,
       validationOptions: {
         allowUnknown: true,
@@ -78,7 +85,6 @@ import {UserModule} from '@modules/user/user.module';
         limit: 400,
       },
     ]),
-    GracefulShutdownModule.forRoot(),
     RedisModule,
     AuthModule,
     FileParserModule,

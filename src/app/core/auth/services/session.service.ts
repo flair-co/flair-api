@@ -93,11 +93,11 @@ export class SessionService {
     currentSessionId: string,
     sessionIdToRevoke: string,
   ) {
-    await this.userService.verifyPassword(currentUser.password, password);
-
     if (sessionIdToRevoke === currentSessionId) {
       throw new ConflictException('Cannot revoke the current session. Log out instead.');
     }
+
+    await this.userService.verifyPassword(currentUser.password, password);
 
     const sessionKey = `${this.REDIS_KEY}:${sessionIdToRevoke}`;
     const sessionDataString = await this.redisClient.get(sessionKey);

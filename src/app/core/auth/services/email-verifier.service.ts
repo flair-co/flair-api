@@ -75,7 +75,7 @@ export class EmailVerifierService {
   }
 
   async requestEmailChange(user: User, {newEmail, password}: EmailChangeDto) {
-    this.userService.verifyPassword(user.password, password);
+    await this.userService.verifyPassword(user.password, password);
     await this.userService.validateEmailIsUnique(newEmail);
 
     const code = await this.createCode(newEmail);
