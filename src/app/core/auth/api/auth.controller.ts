@@ -1,7 +1,18 @@
-import {Body, Controller, Delete, Get, HttpCode, Param, Post, Req, UseGuards} from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Param,
+  Post,
+  Req,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
 import {ApiResponse} from '@nestjs/swagger';
 import {Throttle, minutes} from '@nestjs/throttler';
-import {Request} from 'express';
+import {Request, Response} from 'express';
 
 import {User} from '@modules/user/user.entity';
 
@@ -47,7 +58,8 @@ export class AuthController {
   @ApiResponse({status: 200, description: 'User logged out.'})
   @ApiResponse({status: 401, description: 'User is not logged in.'})
   @ApiResponse({status: 429, description: 'Too many requests. Try again later.'})
-  async logOut(@Req() request: Request) {
+  async logOut(@Req() request: Request, @Res({passthrough: true}) res: Response) {
+    res.clearCookie('session');
     return this.authService.logOut(request);
   }
 
