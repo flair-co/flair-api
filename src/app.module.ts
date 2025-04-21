@@ -127,6 +127,7 @@ export class AppModule implements NestModule {
     const secret = this.config.get('SESSION_SECRET');
     const expiration = this.config.get('SESSION_EXPIRATION');
     const expirationMs = ms(expiration as string);
+    const webBaseUrl = this.config.get('WEB_BASE_URL');
 
     consumer
       .apply(
@@ -140,8 +141,8 @@ export class AppModule implements NestModule {
             secure: isProduction,
             httpOnly: true,
             sameSite: 'strict',
-            domain: 'localhost',
             maxAge: expirationMs,
+            ...(isProduction ? {domain: webBaseUrl} : {}),
           },
         }),
         passport.initialize(),
