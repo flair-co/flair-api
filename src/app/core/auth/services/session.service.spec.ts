@@ -5,7 +5,7 @@ import {Test, TestingModule} from '@nestjs/testing';
 import {Request} from 'express';
 import {Session} from 'express-session';
 import * as geoip from 'fast-geoip';
-import {RedisClientType} from 'redis';
+import Redis from 'ioredis';
 import {UAParser} from 'ua-parser-js';
 
 import {User} from '@modules/user/user.entity';
@@ -28,7 +28,7 @@ jest.mock('ua-parser-js', () => {
 
 const mockRedisClient = {
   scan: jest.fn(),
-  mGet: jest.fn(),
+  mget: jest.fn(),
   get: jest.fn(),
   del: jest.fn(),
 };
@@ -50,7 +50,7 @@ type MockSession = Session & AuthenticatedSession;
 
 describe('SessionService', () => {
   let service: SessionService;
-  let redisClient: jest.Mocked<RedisClientType>;
+  let redisClient: jest.Mocked<Redis>;
   let configService: jest.Mocked<ConfigService>;
   let userService: jest.Mocked<UserService>;
 
@@ -116,16 +116,19 @@ describe('SessionService', () => {
 
   describe('getSessions', () => {
     it('should return an empty array if no sessions found in redis', async () => {
-      redisClient.scan.mockResolvedValueOnce({cursor: 0, keys: []});
+      redisClient.scan.mockResolvedValueOnce(['0', []]);
 
       const sessions = await service.getSessions(MOCK_USER_ID, MOCK_CURRENT_SESSION_ID);
 
       expect(sessions).toEqual([]);
-      expect(redisClient.scan).toHaveBeenCalledWith(0, {
-        MATCH: `${SESSION_KEY_PREFIX}:*`,
-        COUNT: 250,
-      });
-      expect(redisClient.mGet).not.toHaveBeenCalled();
+      expect(redisClient.scan).toHaveBeenCalledWith(
+        '0',
+        'MATCH',
+        `${SESSION_KEY_PREFIX}:*`,
+        'COUNT',
+        '250',
+      );
+      expect(redisClient.mget).not.toHaveBeenCalled();
     });
 
     it('should return formatted sessions for the given user, sorting correctly', async () => {
@@ -194,11 +197,11 @@ describe('SessionService', () => {
 
       // Simulate SCAN returning keys in batches
       redisClient.scan
-        .mockResolvedValueOnce({cursor: 1, keys: [sessionKey1, sessionKey2]})
-        .mockResolvedValueOnce({cursor: 0, keys: [sessionKey3, sessionKey4]});
+        .mockResolvedValueOnce(['1', [sessionKey1, sessionKey2]])
+        .mockResolvedValueOnce(['0', [sessionKey3, sessionKey4]]);
 
       // Simulate MGET responses
-      redisClient.mGet
+      redisClient.mget
         .mockResolvedValueOnce([JSON.stringify(mockSessionData1), JSON.stringify(mockSessionData2)])
         .mockResolvedValueOnce([
           JSON.stringify(mockSessionData3),
@@ -208,9 +211,9 @@ describe('SessionService', () => {
       const sessions = await service.getSessions(MOCK_USER_ID, MOCK_CURRENT_SESSION_ID);
 
       expect(redisClient.scan).toHaveBeenCalledTimes(2);
-      expect(redisClient.mGet).toHaveBeenCalledTimes(2);
-      expect(redisClient.mGet).toHaveBeenCalledWith([sessionKey1, sessionKey2]);
-      expect(redisClient.mGet).toHaveBeenCalledWith([sessionKey3, sessionKey4]);
+      expect(redisClient.mget).toHaveBeenCalledTimes(2);
+      expect(redisClient.mget).toHaveBeenCalledWith([sessionKey1, sessionKey2]);
+      expect(redisClient.mget).toHaveBeenCalledWith([sessionKey3, sessionKey4]);
       expect(sessions).toHaveLength(3);
 
       expect(sessions[0].id).toBe(MOCK_CURRENT_SESSION_ID);
@@ -242,8 +245,8 @@ describe('SessionService', () => {
         cookie: {originalMaxAge: 360000} as any,
       };
 
-      redisClient.scan.mockResolvedValueOnce({cursor: 0, keys: [sessionKey1]});
-      redisClient.mGet.mockResolvedValueOnce([JSON.stringify(mockSessionData1)]);
+      redisClient.scan.mockResolvedValueOnce(['0', [sessionKey1]]);
+      redisClient.mget.mockResolvedValueOnce([JSON.stringify(mockSessionData1)]);
 
       const sessions = await service.getSessions(MOCK_USER_ID, MOCK_CURRENT_SESSION_ID);
 
@@ -261,9 +264,9 @@ describe('SessionService', () => {
       });
     });
 
-    it('should handle null responses from mGet', async () => {
+    it('should handle null responses from mget', async () => {
       const sessionKey1 = `${SESSION_KEY_PREFIX}:session-1`; // Valid
-      const sessionKey2 = `${SESSION_KEY_PREFIX}:session-2`; // Will return null from mGet
+      const sessionKey2 = `${SESSION_KEY_PREFIX}:session-2`; // Will return null from mget
       const mockSessionData1: Partial<AuthenticatedSession> & {id?: string} = {
         id: 'session-1',
         passport: {user: MOCK_USER_ID},
@@ -279,8 +282,8 @@ describe('SessionService', () => {
         cookie: {originalMaxAge: 360000} as any,
       };
 
-      redisClient.scan.mockResolvedValueOnce({cursor: 0, keys: [sessionKey1, sessionKey2]});
-      redisClient.mGet.mockResolvedValueOnce([JSON.stringify(mockSessionData1), null]); // Simulate one key missing in Redis
+      redisClient.scan.mockResolvedValueOnce(['0', [sessionKey1, sessionKey2]]);
+      redisClient.mget.mockResolvedValueOnce([JSON.stringify(mockSessionData1), null]); // Simulate one key missing in Redis
 
       const sessions = await service.getSessions(MOCK_USER_ID, MOCK_CURRENT_SESSION_ID);
 

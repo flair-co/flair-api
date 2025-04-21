@@ -1,6 +1,7 @@
 import {validationSchema} from '@config/env/validation-schema';
 import {REDIS} from '@config/redis/redis.constants';
 import {RedisModule} from '@config/redis/redis.module';
+import {ThrottlerStorageRedisService} from '@nest-lab/throttler-storage-redis';
 import {MailerModule} from '@nestjs-modules/mailer';
 import {HandlebarsAdapter} from '@nestjs-modules/mailer/dist/adapters/handlebars.adapter';
 import {
@@ -12,14 +13,14 @@ import {
 } from '@nestjs/common';
 import {ConfigModule, ConfigService} from '@nestjs/config';
 import {APP_GUARD, APP_INTERCEPTOR} from '@nestjs/core';
-import {ThrottlerGuard, ThrottlerModule, minutes} from '@nestjs/throttler';
+import {ThrottlerGuard, ThrottlerModule} from '@nestjs/throttler';
 import {TypeOrmModule} from '@nestjs/typeorm';
 import RedisStore from 'connect-redis';
 import session from 'express-session';
+import Redis from 'ioredis';
 import ms from 'ms';
 import passport from 'passport';
 import {join} from 'path';
-import {RedisClientType} from 'redis';
 
 import {AuthModule} from '@core/auth/auth.module';
 import {SessionMiddleware} from '@core/auth/services/session.middleware';
@@ -79,13 +80,22 @@ if (process.env.NODE_ENV === 'test') {
         },
       }),
     }),
-    ThrottlerModule.forRoot([
-      {
-        ttl: minutes(1),
-        limit: 400,
-      },
-    ]),
     RedisModule,
+    ThrottlerModule.forRootAsync({
+      imports: [ConfigModule, RedisModule],
+      inject: [ConfigService, REDIS],
+      useFactory: (config: ConfigService, redisClient: Redis) => {
+        return {
+          throttlers: [
+            {
+              ttl: ms(config.get('THROTTLE_TTL') as string),
+              limit: config.get<number>('THROTTLE_LIMIT') as number,
+            },
+          ],
+          storage: new ThrottlerStorageRedisService(redisClient),
+        };
+      },
+    }),
     AuthModule,
     FileParserModule,
     TransactionModule,
@@ -106,15 +116,18 @@ if (process.env.NODE_ENV === 'test') {
 })
 export class AppModule implements NestModule {
   constructor(
-    @Inject(REDIS) private readonly redisClient: RedisClientType,
+    @Inject(REDIS) private readonly redisClient: Redis,
     private readonly config: ConfigService,
   ) {}
+
   async configure(consumer: MiddlewareConsumer) {
     const redisStore = new RedisStore({client: this.redisClient});
+
     const isProduction = this.config.get('NODE_ENV') === 'production';
     const secret = this.config.get('SESSION_SECRET');
     const expiration = this.config.get('SESSION_EXPIRATION');
     const expirationMs = ms(expiration as string);
+
     consumer
       .apply(
         session({
