@@ -1,3 +1,5 @@
+[![Coverage Status](https://coveralls.io/repos/github/eduard-cc/flair-api/badge.svg?branch=e2e)](https://coveralls.io/github/eduard-cc/flair-api?branch=e2e)
+
 ## Installation
 
 ```bash
