@@ -141,12 +141,10 @@ export class AuthController {
   @Delete('sessions/:sessionId')
   @HttpCode(200)
   @ApiResponse({status: 200, description: 'Session revoked.'})
-  @ApiResponse({
-    status: 400,
-    description: 'Validation of the request body failed or cannot revoke current session.',
-  })
+  @ApiResponse({status: 400, description: 'Validation of the request body failed.'})
   @ApiResponse({status: 401, description: 'User is not logged in or password is incorrect.'})
-  @ApiResponse({status: 404, description: 'Session not found for this user.'})
+  @ApiResponse({status: 404, description: 'Session not found or expired.'})
+  @ApiResponse({status: 409, description: 'Cannot revoke the current session. Log out instead.'})
   @ApiResponse({status: 429, description: 'Too many requests. Try again later.'})
   async revokeSession(
     @CurrentUser() user: User,

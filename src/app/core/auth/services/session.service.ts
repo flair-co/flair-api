@@ -1,5 +1,5 @@
 import {REDIS} from '@config/redis/redis.constants';
-import {BadRequestException, Inject, Injectable, NotFoundException} from '@nestjs/common';
+import {ConflictException, Inject, Injectable, NotFoundException} from '@nestjs/common';
 import {ConfigService} from '@nestjs/config';
 import {Request} from 'express';
 import {RedisClientType} from 'redis';
@@ -89,8 +89,10 @@ export class SessionService {
     currentSessionId: string,
     sessionIdToRevoke: string,
   ) {
+    await this.userService.verifyPassword(currentUser.password, password);
+
     if (sessionIdToRevoke === currentSessionId) {
-      throw new BadRequestException('Cannot revoke the current session. Log out instead.');
+      throw new ConflictException('Cannot revoke the current session. Log out instead.');
     }
 
     const sessionKey = `${this.REDIS_KEY}:${sessionIdToRevoke}`;
@@ -103,8 +105,6 @@ export class SessionService {
     if (sessionData?.passport?.user !== currentUser.id) {
       throw new NotFoundException(`Session not found or expired.`);
     }
-
-    await this.userService.verifyPassword(currentUser.password, password);
 
     await this.redisClient.del(sessionKey);
     return {message: 'Session revoked.'};
