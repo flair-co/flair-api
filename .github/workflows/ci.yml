@@ -1,4 +1,4 @@
-name: API CI
+name: CI/CD
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
 
 jobs:
   lint-format:
-    name: Lint & Format Check
+    name: Lint & Format
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
@@ -28,7 +28,7 @@ jobs:
         run: npm run format:check
 
   build:
-    name: Build Application
+    name: Build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
@@ -66,7 +66,7 @@ jobs:
         run: npm run test
 
   e2e-test:
-    name: End-to-End Tests
+    name: E2E Tests
     runs-on: ubuntu-latest
     environment: test
     needs: [build]
