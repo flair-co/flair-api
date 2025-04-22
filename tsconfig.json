@@ -14,7 +14,7 @@
     "paths": {
       "@modules/*": ["src/app/modules/*"],
       "@core/*": ["src/app/core/*"],
-      "@config/*": ["src/app/config/*"]
+      "@config/*": ["src/app/core/config/*"]
     },
     "incremental": true,
     "skipLibCheck": true,

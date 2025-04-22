@@ -1,9 +1,10 @@
-import {ConfigurationService} from '@config/config.service';
 import {ValidationPipe} from '@nestjs/common';
 import {NestFactory} from '@nestjs/core';
 import {NestExpressApplication} from '@nestjs/platform-express';
 import {DocumentBuilder, SwaggerDocumentOptions, SwaggerModule} from '@nestjs/swagger';
 import helmet from 'helmet';
+
+import {ConfigurationService} from '@core/config/config.service';
 
 import {AppModule} from './app.module';
 

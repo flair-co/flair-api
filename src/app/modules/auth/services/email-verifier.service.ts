@@ -1,11 +1,11 @@
-import {ConfigurationService} from '@config/config.service';
 import {MailerService} from '@nestjs-modules/mailer';
 import {BadRequestException, Injectable} from '@nestjs/common';
 import {Inject} from '@nestjs/common';
 import Redis from 'ioredis';
 import ms from 'ms';
-import {REDIS} from 'src/app/redis/redis.constants';
 
+import {ConfigurationService} from '@core/config/config.service';
+import {REDIS} from '@core/redis/redis.constants';
 import {User} from '@modules/user/user.entity';
 import {UserService} from '@modules/user/user.service';
 

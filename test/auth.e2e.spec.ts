@@ -1,4 +1,3 @@
-import {ConfigurationService} from '@config/config.service';
 import {faker} from '@faker-js/faker';
 import {INestApplication, ValidationPipe} from '@nestjs/common';
 import {Test, TestingModule} from '@nestjs/testing';
@@ -6,7 +5,8 @@ import axios from 'axios';
 import request from 'supertest';
 import TestAgent from 'supertest/lib/agent';
 
-import {SignUpDto} from '@core/auth/api/dtos/signup.dto';
+import {ConfigurationService} from '@core/config/config.service';
+import {SignUpDto} from '@modules/auth/api/dtos/signup.dto';
 import {User} from '@modules/user/user.entity';
 
 import {AppModule} from '../src/app.module';

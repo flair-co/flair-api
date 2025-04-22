@@ -1,13 +1,13 @@
-import {ConfigurationService} from '@config/config.service';
 import {ConflictException, NotFoundException, UnauthorizedException} from '@nestjs/common';
 import {Test, TestingModule} from '@nestjs/testing';
 import {Request} from 'express';
 import {Session} from 'express-session';
 import * as geoip from 'fast-geoip';
 import Redis from 'ioredis';
-import {REDIS} from 'src/app/redis/redis.constants';
 import {UAParser} from 'ua-parser-js';
 
+import {ConfigurationService} from '@core/config/config.service';
+import {REDIS} from '@core/redis/redis.constants';
 import {User} from '@modules/user/user.entity';
 import {UserService} from '@modules/user/user.service';
 

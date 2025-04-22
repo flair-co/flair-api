@@ -1,5 +1,3 @@
-import {ConfigurationModule} from '@config/config.module';
-import {ConfigurationService} from '@config/config.service';
 import {ThrottlerStorageRedisService} from '@nest-lab/throttler-storage-redis';
 import {MailerModule} from '@nestjs-modules/mailer';
 import {HandlebarsAdapter} from '@nestjs-modules/mailer/dist/adapters/handlebars.adapter';
@@ -19,17 +17,18 @@ import Redis from 'ioredis';
 import ms from 'ms';
 import passport from 'passport';
 import {join} from 'path';
-import {RedisModule} from 'src/app/redis/redis.module';
 
-import {AuthModule} from '@core/auth/auth.module';
-import {SessionMiddleware} from '@core/auth/services/session.middleware';
-import {FileParserModule} from '@core/file-parser/file-parser.module';
-import {TransactionCategorizerModule} from '@core/transaction-categorizer/transaction-categorizer.module';
+import {ConfigurationModule} from '@core/config/config.module';
+import {ConfigurationService} from '@core/config/config.service';
+import {REDIS} from '@core/redis/redis.constants';
+import {RedisModule} from '@core/redis/redis.module';
+import {AuthModule} from '@modules/auth/auth.module';
+import {SessionMiddleware} from '@modules/auth/services/session.middleware';
 import {BankStatementModule} from '@modules/bank-statement/bank-statement.module';
+import {FileParserModule} from '@modules/file/file-parser/file-parser.module';
+import {TransactionCategorizerModule} from '@modules/transaction/transaction-categorizer/transaction-categorizer.module';
 import {TransactionModule} from '@modules/transaction/transaction.module';
 import {UserModule} from '@modules/user/user.module';
-
-import {REDIS} from './app/redis/redis.constants';
 
 @Module({
   imports: [

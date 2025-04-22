@@ -1,4 +1,3 @@
-import {ConfigurationService} from '@config/config.service';
 import {
   FunctionDeclarationSchemaType,
   GenerationConfig,
@@ -6,6 +5,8 @@ import {
   GoogleGenerativeAI,
 } from '@google/generative-ai';
 import {Provider} from '@nestjs/common';
+
+import {ConfigurationService} from '@core/config/config.service';
 
 import {Category} from '../constants/category.enum';
 

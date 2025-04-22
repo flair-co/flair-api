@@ -1,8 +1,7 @@
 import {UnprocessableEntityException} from '@nestjs/common';
 import {z} from 'zod';
 
-import {amountPattern} from '@core/transaction-mapper/constants/amount.regex';
-
+import {amountPattern} from '../../constants/amount.regex';
 import {TransactionMapper, TransactionPartial} from '../transaction-mapper.interface';
 
 const revolutTransactionSchema = z.object({
