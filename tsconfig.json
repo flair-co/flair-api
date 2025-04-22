@@ -12,9 +12,9 @@
     "outDir": "./dist",
     "baseUrl": "./",
     "paths": {
-      "@modules/*": ["src/app/modules/*"],
       "@core/*": ["src/app/core/*"],
-      "@config/*": ["src/app/core/config/*"]
+      "@modules/*": ["src/app/modules/*"],
+      "@templates/*": ["src/app/core/templates/*"]
     },
     "incremental": true,
     "skipLibCheck": true,
