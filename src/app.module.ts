@@ -1,6 +1,5 @@
-import {validationSchema} from '@config/env/validation-schema';
-import {REDIS} from '@config/redis/redis.constants';
-import {RedisModule} from '@config/redis/redis.module';
+import {ConfigurationModule} from '@config/config.module';
+import {ConfigurationService} from '@config/config.service';
 import {ThrottlerStorageRedisService} from '@nest-lab/throttler-storage-redis';
 import {MailerModule} from '@nestjs-modules/mailer';
 import {HandlebarsAdapter} from '@nestjs-modules/mailer/dist/adapters/handlebars.adapter';
@@ -11,7 +10,6 @@ import {
   Module,
   NestModule,
 } from '@nestjs/common';
-import {ConfigModule, ConfigService} from '@nestjs/config';
 import {APP_GUARD, APP_INTERCEPTOR} from '@nestjs/core';
 import {ThrottlerGuard, ThrottlerModule} from '@nestjs/throttler';
 import {TypeOrmModule} from '@nestjs/typeorm';
@@ -21,6 +19,7 @@ import Redis from 'ioredis';
 import ms from 'ms';
 import passport from 'passport';
 import {join} from 'path';
+import {RedisModule} from 'src/app/redis/redis.module';
 
 import {AuthModule} from '@core/auth/auth.module';
 import {SessionMiddleware} from '@core/auth/services/session.middleware';
@@ -30,48 +29,33 @@ import {BankStatementModule} from '@modules/bank-statement/bank-statement.module
 import {TransactionModule} from '@modules/transaction/transaction.module';
 import {UserModule} from '@modules/user/user.module';
 
-const envFilePaths = ['.env'];
-
-if (process.env.NODE_ENV === 'test') {
-  envFilePaths.unshift('.env.test.local', '.env.test');
-} else {
-  envFilePaths.unshift('.env.development.local', '.env.development');
-}
+import {REDIS} from './app/redis/redis.constants';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({
-      isGlobal: true,
-      validationSchema,
-      envFilePath: envFilePaths,
-      cache: true,
-      validationOptions: {
-        allowUnknown: true,
-        abortEarly: true,
-      },
-    }),
+    ConfigurationModule,
     TypeOrmModule.forRootAsync({
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
+      inject: [ConfigurationService],
+      useFactory: (config: ConfigurationService) => ({
         type: 'postgres',
-        host: config.get<string>('DB_HOST'),
-        port: config.get<number>('DB_PORT'),
-        username: config.get<string>('DB_USERNAME'),
-        password: config.get<string>('DB_PASSWORD'),
-        database: config.get<string>('DB_NAME'),
-        synchronize: config.get<boolean>('DB_SYNCHRONIZE'),
+        host: config.get('DB_HOST'),
+        port: config.get('DB_PORT'),
+        username: config.get('DB_USERNAME'),
+        password: config.get('DB_PASSWORD'),
+        database: config.get('DB_NAME'),
+        synchronize: config.get('DB_SYNCHRONIZE'),
         autoLoadEntities: true,
       }),
     }),
     MailerModule.forRootAsync({
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
+      inject: [ConfigurationService],
+      useFactory: (config: ConfigurationService) => ({
         transport: {
-          host: config.get<string>('EMAIL_HOST'),
-          port: config.get<number>('EMAIL_PORT'),
+          host: config.get('EMAIL_HOST'),
+          port: config.get('EMAIL_PORT'),
         },
         defaults: {from: '"Flair" <no-reply@flair.com>'},
-        preview: config.get<string>('NODE_ENV') === 'development',
+        preview: config.get('NODE_ENV') === 'development',
         template: {
           dir: join(__dirname, 'app', 'templates'),
           adapter: new HandlebarsAdapter(),
@@ -82,13 +66,13 @@ if (process.env.NODE_ENV === 'test') {
     RedisModule,
     ThrottlerModule.forRootAsync({
       imports: [RedisModule],
-      inject: [ConfigService, REDIS],
-      useFactory: (config: ConfigService, redisClient: Redis) => {
+      inject: [ConfigurationService, REDIS],
+      useFactory: (config: ConfigurationService, redisClient: Redis) => {
         return {
           throttlers: [
             {
-              ttl: ms(config.get('THROTTLE_TTL') as string),
-              limit: config.get<number>('THROTTLE_LIMIT') as number,
+              ttl: ms(config.get('THROTTLE_TTL')),
+              limit: config.get('THROTTLE_LIMIT'),
             },
           ],
           storage: new ThrottlerStorageRedisService(redisClient),
@@ -116,32 +100,26 @@ if (process.env.NODE_ENV === 'test') {
 export class AppModule implements NestModule {
   constructor(
     @Inject(REDIS) private readonly redisClient: Redis,
-    private readonly config: ConfigService,
+    private readonly config: ConfigurationService,
   ) {}
 
   async configure(consumer: MiddlewareConsumer) {
-    const redisStore = new RedisStore({client: this.redisClient});
-
     const isProduction = this.config.get('NODE_ENV') === 'production';
-    const secret = this.config.get('SESSION_SECRET');
-    const expiration = this.config.get('SESSION_EXPIRATION');
-    const expirationMs = ms(expiration as string);
-    const webBaseUrl = this.config.get('WEB_BASE_URL');
 
     consumer
       .apply(
         session({
-          store: redisStore,
+          store: new RedisStore({client: this.redisClient}),
           name: 'session',
-          secret: secret,
+          secret: this.config.get('SESSION_SECRET'),
           resave: false,
           saveUninitialized: false,
           cookie: {
             secure: isProduction,
             httpOnly: true,
             sameSite: 'strict',
-            maxAge: expirationMs,
-            ...(isProduction ? {domain: webBaseUrl} : {}),
+            maxAge: ms(this.config.get('SESSION_EXPIRATION')),
+            ...(isProduction ? {domain: this.config.get('WEB_BASE_URL')} : {}),
           },
         }),
         passport.initialize(),

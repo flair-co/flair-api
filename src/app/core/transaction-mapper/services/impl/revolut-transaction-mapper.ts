@@ -1,40 +1,30 @@
 import {UnprocessableEntityException} from '@nestjs/common';
-import Joi from 'joi';
+import {z} from 'zod';
 
 import {amountPattern} from '@core/transaction-mapper/constants/amount.regex';
 
 import {TransactionMapper, TransactionPartial} from '../transaction-mapper.interface';
 
-export type RevolutTransaction = {
-  type: string;
-  product: string;
-  startedDate: string;
-  completedDate: string;
-  description: string;
-  amount: string;
-  fee: string;
-  currency: string;
-  state: string;
-  balance: string;
-};
+const revolutTransactionSchema = z.object({
+  type: z.string().optional(),
+  product: z.string().optional(),
+  fee: z.string().optional(),
+  state: z.string().optional(),
+  balance: z.string().optional(),
 
-const revolutTransactionSchema = Joi.object({
-  type: Joi.optional(),
-  product: Joi.optional(),
-  startedDate: Joi.string().isoDate().required(),
-  completedDate: Joi.string().isoDate().required(),
-  description: Joi.string().required(),
-  amount: Joi.string().pattern(amountPattern).required(),
-  fee: Joi.optional(),
-  currency: Joi.string().required(),
-  state: Joi.optional(),
-  balance: Joi.optional(),
+  startedDate: z.string().datetime(),
+  completedDate: z.string().datetime(),
+  description: z.string().min(1),
+  amount: z.string().regex(amountPattern),
+  currency: z.string().min(1),
 });
+
+export type RevolutTransaction = z.infer<typeof revolutTransactionSchema>;
 
 export class RevolutTransactionMapper implements TransactionMapper {
   map(transaction: RevolutTransaction): TransactionPartial {
-    const {error} = revolutTransactionSchema.validate(transaction);
-    if (error) {
+    const validationResult = revolutTransactionSchema.safeParse(transaction);
+    if (!validationResult.success) {
       throw new UnprocessableEntityException('File is not a valid Revolut bank statement.');
     }
 

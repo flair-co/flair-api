@@ -1,6 +1,6 @@
+import {ConfigurationService} from '@config/config.service';
 import {faker} from '@faker-js/faker';
 import {INestApplication, ValidationPipe} from '@nestjs/common';
-import {ConfigService} from '@nestjs/config';
 import {Test, TestingModule} from '@nestjs/testing';
 import axios from 'axios';
 import request from 'supertest';
@@ -46,8 +46,8 @@ describe('AuthController (e2e)', () => {
 
     await app.init();
 
-    const configService = moduleFixture.get<ConfigService>(ConfigService);
-    const mailhogPort = configService.get<number>('EMAIL_UI_PORT');
+    const configService = moduleFixture.get(ConfigurationService);
+    const mailhogPort = configService.get('EMAIL_UI_PORT');
     mailhogApiUrl = `http://localhost:${mailhogPort}`;
   });
 

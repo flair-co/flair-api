@@ -1,10 +1,10 @@
-import {REDIS} from '@config/redis/redis.constants';
+import {ConfigurationService} from '@config/config.service';
 import {MailerService} from '@nestjs-modules/mailer';
 import {BadRequestException, Injectable} from '@nestjs/common';
 import {Inject} from '@nestjs/common';
-import {ConfigService} from '@nestjs/config';
 import Redis from 'ioredis';
 import ms from 'ms';
+import {REDIS} from 'src/app/redis/redis.constants';
 
 import {User} from '@modules/user/user.entity';
 import {UserService} from '@modules/user/user.service';
@@ -19,14 +19,14 @@ export class EmailVerifierService {
 
   constructor(
     @Inject(REDIS) private readonly redisClient: Redis,
-    private readonly configService: ConfigService,
+    private readonly configService: ConfigurationService,
     private readonly mailerService: MailerService,
     private readonly userService: UserService,
   ) {
-    this.REDIS_KEY = this.configService.get('EMAIL_VERIFICATION_REDIS_KEY') as string;
-    this.WEB_BASE_URL = this.configService.get('WEB_BASE_URL') as string;
+    this.REDIS_KEY = this.configService.get('EMAIL_VERIFICATION_REDIS_KEY');
+    this.WEB_BASE_URL = this.configService.get('WEB_BASE_URL');
 
-    const expirationMs = ms(this.configService.get('EMAIL_VERIFICATION_EXPIRATION') as string);
+    const expirationMs = ms(this.configService.get('EMAIL_VERIFICATION_EXPIRATION'));
     const expirationSeconds = Math.floor(expirationMs / 1000);
     this.EXPIRATION = expirationSeconds;
   }
