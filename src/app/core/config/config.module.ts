@@ -11,8 +11,6 @@ const envFiles: Record<NodeEnv, string[]> = {
 };
 const NODE_ENV = (process.env.NODE_ENV as NodeEnv) || 'development';
 
-console.log(NODE_ENV);
-
 function validate(config: Record<string, unknown>) {
   return configSchema.parse(config);
 }

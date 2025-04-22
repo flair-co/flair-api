@@ -1,6 +1,6 @@
 import {faker} from '@faker-js/faker';
 import {INestApplication, ValidationPipe} from '@nestjs/common';
-import {Test, TestingModule} from '@nestjs/testing';
+import {Test} from '@nestjs/testing';
 import axios from 'axios';
 import request from 'supertest';
 import TestAgent from 'supertest/lib/agent';
@@ -36,14 +36,10 @@ describe('AuthController (e2e)', () => {
   let mailhogApiUrl: string;
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
-
+    const moduleFixture = await Test.createTestingModule({imports: [AppModule]}).compile();
     app = moduleFixture.createNestApplication();
 
     app.useGlobalPipes(new ValidationPipe({whitelist: true, transform: true}));
-
     await app.init();
 
     const configService = moduleFixture.get(ConfigurationService);
@@ -240,7 +236,6 @@ describe('AuthController (e2e)', () => {
         .find((cookie: string) => cookie.startsWith('session='));
 
       expect(sessionCookie).toBeDefined();
-      console.log(sessionCookie);
       expect(sessionCookie).toMatch(/Max-Age=0|Expires=.*1970/);
       expect(sessionCookie).toMatch(/Path=\//);
 

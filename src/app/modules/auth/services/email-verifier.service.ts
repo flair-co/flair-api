@@ -54,7 +54,7 @@ export class EmailVerifierService {
     await this.mailerService.sendMail({
       to: user.email,
       subject: `Welcome to Flair - ${code} is your verification code`,
-      template: './welcome',
+      template: 'welcome',
       context: {name: user.name, verificationUrl, code},
     });
   }
@@ -70,7 +70,7 @@ export class EmailVerifierService {
     await this.mailerService.sendMail({
       to: user.email,
       subject: `${code} is your verification code`,
-      template: './verify-email',
+      template: 'verify-email',
       context: {name: user.name, verificationUrl, code},
     });
 
@@ -86,7 +86,7 @@ export class EmailVerifierService {
     await this.mailerService.sendMail({
       to: newEmail,
       subject: `${code} is your verification code`,
-      template: './verify-new-email',
+      template: 'verify-new-email',
       context: {name: user.name, code},
     });
     return {message: 'Verification email sent.'};

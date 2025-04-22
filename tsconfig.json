@@ -13,8 +13,7 @@
     "baseUrl": "./",
     "paths": {
       "@core/*": ["src/app/core/*"],
-      "@modules/*": ["src/app/modules/*"],
-      "@templates/*": ["src/app/core/templates/*"]
+      "@modules/*": ["src/app/modules/*"]
     },
     "incremental": true,
     "skipLibCheck": true,

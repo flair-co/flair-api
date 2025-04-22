@@ -10,15 +10,26 @@ import {AppModule} from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  const config = app.get(ConfigurationService);
 
   app.enableCors({
-    origin: 'http://localhost:5173',
+    origin: config.get('WEB_BASE_URL'),
     credentials: true,
   });
   app.use(helmet());
   app.disable('x-powered-by');
-  app.useGlobalPipes(new ValidationPipe());
 
+  app.useGlobalPipes(new ValidationPipe({whitelist: true, transform: true}));
+
+  if (config.get('NODE_ENV') == 'development') {
+    setupSwagger(app);
+  }
+
+  await app.listen(config.get('PORT'));
+}
+bootstrap();
+
+function setupSwagger(app: NestExpressApplication) {
   const config = new DocumentBuilder().setTitle('Flair API').build();
   const options: SwaggerDocumentOptions = {
     operationIdFactory: (_controllerKey: string, methodKey: string) => methodKey,
@@ -26,8 +37,4 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config, options);
 
   SwaggerModule.setup('api', app, document);
-
-  const port = app.get(ConfigurationService).get('PORT');
-  await app.listen(port);
 }
-bootstrap();
