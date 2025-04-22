@@ -24,7 +24,6 @@ export const GenerativeModelProvider: Provider = {
       generationConfig,
     });
   },
-  inject: [ConfigService],
 };
 
 const systemInstruction =

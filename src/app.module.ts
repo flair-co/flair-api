@@ -41,6 +41,7 @@ if (process.env.NODE_ENV === 'test') {
 @Module({
   imports: [
     ConfigModule.forRoot({
+      isGlobal: true,
       validationSchema,
       envFilePath: envFilePaths,
       cache: true,
@@ -50,7 +51,6 @@ if (process.env.NODE_ENV === 'test') {
       },
     }),
     TypeOrmModule.forRootAsync({
-      imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         type: 'postgres',
@@ -64,7 +64,6 @@ if (process.env.NODE_ENV === 'test') {
       }),
     }),
     MailerModule.forRootAsync({
-      imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         transport: {
@@ -82,7 +81,7 @@ if (process.env.NODE_ENV === 'test') {
     }),
     RedisModule,
     ThrottlerModule.forRootAsync({
-      imports: [ConfigModule, RedisModule],
+      imports: [RedisModule],
       inject: [ConfigService, REDIS],
       useFactory: (config: ConfigService, redisClient: Redis) => {
         return {
