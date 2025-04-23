@@ -53,6 +53,7 @@ describe('AuthController (e2e)', () => {
 
   afterAll(async () => {
     await app.close();
+    await new Promise((resolve) => setTimeout(resolve, 1000));
   });
 
   describe('/auth/login (POST)', () => {
