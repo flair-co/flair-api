@@ -25,12 +25,21 @@ export async function clearEmails(apiUrl: string) {
 }
 
 export async function findEmailByRecipient(recipientEmail: string, apiUrl: string) {
-  const response = await axios.get<MailHogResponse>(`${apiUrl}/api/v2/messages`);
-  const emails = response?.data?.items;
+  let retries = 5;
+  const delayMs = 50;
 
-  return emails.find((msg) =>
-    msg.To?.some((recipient) => recipient.Mailbox + '@' + recipient.Domain === recipientEmail),
-  );
+  while (retries > 0) {
+    const response = await axios.get<MailHogResponse>(`${apiUrl}/api/v2/messages`);
+    const email = response.data?.items?.find((msg) =>
+      msg.To?.some((recipient) => recipient.Mailbox + '@' + recipient.Domain === recipientEmail),
+    );
+
+    if (email) return email;
+
+    retries--;
+    if (retries > 0) await sleep(delayMs);
+  }
+  return undefined;
 }
 
 export function extractVerificationCode(body: string | undefined) {
@@ -39,6 +48,6 @@ export function extractVerificationCode(body: string | undefined) {
   return match ? match[1] : null;
 }
 
-export function sleep(ms: number = 1000) {
+export function sleep(ms: number = 250) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }

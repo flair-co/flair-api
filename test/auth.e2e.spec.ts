@@ -17,12 +17,7 @@ import {
   VERIFIED_USER_PASSWORD,
 } from './setup/constants';
 import {getApp} from './setup/e2e.setup';
-import {
-  clearEmails,
-  extractVerificationCode,
-  findEmailByRecipient,
-  sleep,
-} from './utils/email.util';
+import {clearEmails, extractVerificationCode, findEmailByRecipient} from './utils/email.util';
 
 describe('AuthController (e2e)', () => {
   let mailhogApiUrl: string;
@@ -251,9 +246,6 @@ describe('AuthController (e2e)', () => {
       const response = await request(httpServer).post('/auth/signup').send(signUpDto).expect(201);
 
       expect(response.body?.email).toEqual(signUpDto.email);
-
-      // Wait for BullMQ to process job
-      await sleep();
 
       const welcomeEmail = await findEmailByRecipient(signUpDto.email, mailhogApiUrl);
       expect(welcomeEmail).toBeDefined();
@@ -577,7 +569,6 @@ describe('AuthController (e2e)', () => {
           expect(res.body.message).toEqual('Verification email sent.');
         });
 
-      await sleep();
       const verificationEmail = await findEmailByRecipient(UNVERIFIED_USER_EMAIL, mailhogApiUrl);
       expect(verificationEmail).toBeDefined();
 
@@ -600,7 +591,6 @@ describe('AuthController (e2e)', () => {
           expect(res.body.message).toMatch(/Email is already verified/i);
         });
 
-      await sleep();
       const email = await findEmailByRecipient(VERIFIED_USER_EMAIL, mailhogApiUrl);
       expect(email).toBeUndefined();
     });
@@ -629,7 +619,6 @@ describe('AuthController (e2e)', () => {
       };
       await request(httpServer).post('/auth/signup').send(userCredentials).expect(201);
 
-      await sleep();
       const welcomeEmail = await findEmailByRecipient(userCredentials.email, mailhogApiUrl);
       verificationCode = extractVerificationCode(welcomeEmail?.Content?.Body);
       expect(verificationCode).toBeDefined();
@@ -680,7 +669,6 @@ describe('AuthController (e2e)', () => {
     it('should verify email with resend code (authenticated)', async () => {
       await agent.post('/auth/signup/resend').send().expect(200);
 
-      await sleep();
       const resendEmail = await findEmailByRecipient(userCredentials.email, mailhogApiUrl);
       const resendCode = extractVerificationCode(resendEmail?.Content?.Body);
       expect(resendCode).toBeDefined();
@@ -818,7 +806,6 @@ describe('AuthController (e2e)', () => {
           expect(res.body.message).toEqual('Verification email sent.');
         });
 
-      await sleep();
       const verificationEmail = await findEmailByRecipient(newEmail, mailhogApiUrl);
       expect(verificationEmail).toBeDefined();
 
@@ -973,7 +960,7 @@ describe('AuthController (e2e)', () => {
       const requestedNewEmail = faker.internet.email();
       const changeDto: EmailChangeDto = {newEmail: requestedNewEmail, password};
       await agent.post('/auth/change-email/request').send(changeDto).expect(200);
-      await sleep();
+
       const emailContent = await findEmailByRecipient(requestedNewEmail, mailhogApiUrl);
       const code = extractVerificationCode(emailContent?.Content?.Body);
       return {code, newEmail: requestedNewEmail};
@@ -1121,7 +1108,6 @@ describe('AuthController (e2e)', () => {
       };
       await request(httpServer).post('/auth/signup').send(userBCredentials).expect(201);
 
-      await sleep();
       const signupEmailC = await findEmailByRecipient(userBCredentials.email, mailhogApiUrl);
       const signupCodeC = extractVerificationCode(signupEmailC?.Content?.Body);
       expect(signupCodeC).toBeDefined();
@@ -1139,7 +1125,6 @@ describe('AuthController (e2e)', () => {
         password: userBCredentials.password,
       };
       await userBAgent.post('/auth/change-email/request').send(changeDtoForB).expect(200);
-      await sleep();
 
       const emailForB = await findEmailByRecipient(targetEmail, mailhogApiUrl);
       const codeForB = extractVerificationCode(emailForB?.Content?.Body);
