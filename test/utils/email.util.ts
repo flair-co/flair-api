@@ -38,3 +38,7 @@ export function extractVerificationCode(body: string | undefined) {
   const match = body.match(/following code:\s*(\d{6})/i);
   return match ? match[1] : null;
 }
+
+export function sleep(ms: number = 1000) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
