@@ -43,19 +43,9 @@ describe('AuthController (e2e)', () => {
         email: faker.internet.email(),
         password: faker.internet.password({length: 10}),
       };
-      await request(httpServer).post('/auth/signup').send(userCredentials).expect(201);
-    });
+      agent = request.agent(httpServer);
 
-    it('should log in with correct credentials', async () => {
-      const agent = request.agent(httpServer);
-
-      const response = await agent
-        .post('/auth/login')
-        .send({
-          email: userCredentials.email,
-          password: userCredentials.password,
-        })
-        .expect(200);
+      await agent.post('/auth/signup').send(userCredentials).expect(201);
     });
 
     it('should log in with correct credentials and establish session', async () => {
@@ -255,6 +245,9 @@ describe('AuthController (e2e)', () => {
       const response = await request(httpServer).post('/auth/signup').send(signUpDto).expect(201);
 
       expect(response.body?.email).toEqual(signUpDto.email);
+
+      // Wait for BullMQ to process job
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       const welcomeEmail = await findEmailByRecipient(signUpDto.email, mailhogApiUrl);
       expect(welcomeEmail).toBeDefined();
