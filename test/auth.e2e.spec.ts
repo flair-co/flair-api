@@ -1,58 +1,36 @@
 import {faker} from '@faker-js/faker';
-import {INestApplication, ValidationPipe} from '@nestjs/common';
-import {Test} from '@nestjs/testing';
-import axios from 'axios';
 import request from 'supertest';
 import TestAgent from 'supertest/lib/agent';
 
 import {ConfigurationService} from '@core/config/config.service';
+import {ChangePasswordDto} from '@modules/auth/api/dtos/change-password.dto';
 import {SignUpDto} from '@modules/auth/api/dtos/signup.dto';
 import {User} from '@modules/user/user.entity';
 
-import {AppModule} from '../src/app.module';
-
-type MailHogMessage = {
-  ID: string;
-  To?: {Mailbox: string; Domain: string; Params: any}[];
-  Content?: {
-    Headers?: {
-      Subject?: string[];
-      [key: string]: any;
-    };
-    Body?: string;
-    [key: string]: any;
-  };
-};
-
-type MailHogResponse = {
-  total?: number;
-  count?: number;
-  start?: number;
-  items: MailHogMessage[];
-};
+import {
+  PW_CHANGE_USER_EMAIL,
+  PW_CHANGE_USER_PASSWORD,
+  UNVERIFIED_USER_EMAIL,
+  UNVERIFIED_USER_PASSWORD,
+  VERIFIED_USER_EMAIL,
+  VERIFIED_USER_PASSWORD,
+} from './setup/constants';
+import {getApp} from './setup/e2e.setup';
+import {clearEmails, findEmailByRecipient} from './utils/email.util';
 
 describe('AuthController (e2e)', () => {
-  let app: INestApplication;
   let mailhogApiUrl: string;
+  let httpServer: any;
 
   beforeAll(async () => {
-    const moduleFixture = await Test.createTestingModule({imports: [AppModule]}).compile();
-    app = moduleFixture.createNestApplication();
+    const app = getApp();
 
-    app.useGlobalPipes(new ValidationPipe({whitelist: true, transform: true}));
-    await app.init();
-
-    const configService = moduleFixture.get(ConfigurationService);
-    const mailhogPort = configService.get('EMAIL_UI_PORT');
-    mailhogApiUrl = `http://localhost:${mailhogPort}`;
+    mailhogApiUrl = app.get(ConfigurationService).get('EMAIL_UI_URL');
+    httpServer = app.getHttpServer();
   });
 
   beforeEach(async () => {
-    await axios.delete(`${mailhogApiUrl}/api/v1/messages`);
-  });
-
-  afterAll(async () => {
-    await app.close();
+    await clearEmails(mailhogApiUrl);
   });
 
   describe('/auth/login (POST)', () => {
@@ -64,11 +42,11 @@ describe('AuthController (e2e)', () => {
         email: faker.internet.email(),
         password: faker.internet.password({length: 10}),
       };
-      await request(app.getHttpServer()).post('/auth/signup').send(userCredentials).expect(201);
+      await request(httpServer).post('/auth/signup').send(userCredentials).expect(201);
     });
 
     it('should log in with correct credentials', async () => {
-      const agent = request.agent(app.getHttpServer());
+      const agent = request.agent(httpServer);
 
       const response = await agent
         .post('/auth/login')
@@ -102,7 +80,7 @@ describe('AuthController (e2e)', () => {
     });
 
     it('should fail to log in with incorrect password', async () => {
-      const response = await request(app.getHttpServer())
+      const response = await request(httpServer)
         .post('/auth/login')
         .send({
           email: userCredentials.email,
@@ -113,7 +91,7 @@ describe('AuthController (e2e)', () => {
     });
 
     it('should fail to log in with incorrect email', async () => {
-      const response = await request(app.getHttpServer())
+      const response = await request(httpServer)
         .post('/auth/login')
         .send({
           email: 'incorrect@email.com',
@@ -124,7 +102,7 @@ describe('AuthController (e2e)', () => {
     });
 
     it('should fail with 401 Unauthorized if email is missing', () => {
-      return request(app.getHttpServer())
+      return request(httpServer)
         .post('/auth/login')
         .send({
           password: 'password123',
@@ -133,7 +111,7 @@ describe('AuthController (e2e)', () => {
     });
 
     it('should fail with 401 Unauthorized if email is empty', () => {
-      return request(app.getHttpServer())
+      return request(httpServer)
         .post('/auth/login')
         .send({
           email: '',
@@ -143,7 +121,7 @@ describe('AuthController (e2e)', () => {
     });
 
     it('should fail with 401 Unauthorized if password is missing', () => {
-      return request(app.getHttpServer())
+      return request(httpServer)
         .post('/auth/login')
         .send({
           email: userCredentials.email,
@@ -152,7 +130,7 @@ describe('AuthController (e2e)', () => {
     });
 
     it('should fail with 401 Unauthorized if password is empty', () => {
-      return request(app.getHttpServer())
+      return request(httpServer)
         .post('/auth/login')
         .send({
           email: userCredentials.email,
@@ -162,7 +140,7 @@ describe('AuthController (e2e)', () => {
     });
 
     it('should fail with 400 Bad Request if email is not a valid email format', () => {
-      return request(app.getHttpServer())
+      return request(httpServer)
         .post('/auth/login')
         .send({
           email: 'not-a-valid-email',
@@ -177,7 +155,7 @@ describe('AuthController (e2e)', () => {
     });
 
     it('should fail with 400 Bad Request if password is too short', () => {
-      return request(app.getHttpServer())
+      return request(httpServer)
         .post('/auth/login')
         .send({
           email: userCredentials.email,
@@ -205,9 +183,9 @@ describe('AuthController (e2e)', () => {
         password: faker.internet.password({length: 10}),
       };
 
-      await request(app.getHttpServer()).post('/auth/signup').send(userCredentials).expect(201);
+      await request(httpServer).post('/auth/signup').send(userCredentials).expect(201);
 
-      agent = request.agent(app.getHttpServer());
+      agent = request.agent(httpServer);
       await agent
         .post('/auth/login')
         .send({
@@ -244,7 +222,7 @@ describe('AuthController (e2e)', () => {
     });
 
     it('should fail with 401 Unauthorized if user is not logged in', () => {
-      return request(app.getHttpServer())
+      return request(httpServer)
         .post('/auth/logout')
         .send()
         .expect(401)
@@ -262,20 +240,11 @@ describe('AuthController (e2e)', () => {
         password: faker.internet.password({length: 10}),
       };
 
-      const response = await request(app.getHttpServer())
-        .post('/auth/signup')
-        .send(signUpDto)
-        .expect(201);
+      const response = await request(httpServer).post('/auth/signup').send(signUpDto).expect(201);
 
       expect(response.body?.email).toEqual(signUpDto.email);
 
-      const mailhogResponse = await axios.get<MailHogResponse>(`${mailhogApiUrl}/api/v2/messages`);
-      const emails = mailhogResponse?.data?.items;
-
-      expect(emails.length).toBeGreaterThanOrEqual(1);
-      const welcomeEmail = emails.find((msg) =>
-        msg.To?.some((recipient) => recipient.Mailbox + '@' + recipient.Domain === signUpDto.email),
-      );
+      const welcomeEmail = await findEmailByRecipient(signUpDto.email, mailhogApiUrl);
       expect(welcomeEmail).toBeDefined();
 
       const recipientEmail = welcomeEmail?.To?.[0]?.Mailbox + '@' + welcomeEmail?.To?.[0]?.Domain;
@@ -296,7 +265,7 @@ describe('AuthController (e2e)', () => {
         email: email,
         password: faker.internet.password({length: 10}),
       };
-      await request(app.getHttpServer()).post('/auth/signup').send(existingUserDto).expect(201);
+      await request(httpServer).post('/auth/signup').send(existingUserDto).expect(201);
 
       const duplicateSignUpDto = {
         name: faker.person.fullName(),
@@ -304,7 +273,7 @@ describe('AuthController (e2e)', () => {
         password: faker.internet.password({length: 11}),
       };
 
-      return request(app.getHttpServer())
+      return request(httpServer)
         .post('/auth/signup')
         .send(duplicateSignUpDto)
         .expect(409)
@@ -320,7 +289,7 @@ describe('AuthController (e2e)', () => {
         password: '123',
       };
 
-      return request(app.getHttpServer())
+      return request(httpServer)
         .post('/auth/signup')
         .send(signUpDto)
         .expect(400)
@@ -338,7 +307,7 @@ describe('AuthController (e2e)', () => {
         email: faker.internet.email(),
         password: faker.internet.password({length: 10}),
       };
-      await request(app.getHttpServer())
+      await request(httpServer)
         .post('/auth/signup')
         .send(signUpDto)
         .expect(400)
@@ -354,7 +323,7 @@ describe('AuthController (e2e)', () => {
         name: faker.person.fullName(),
         password: faker.internet.password({length: 10}),
       };
-      await request(app.getHttpServer())
+      await request(httpServer)
         .post('/auth/signup')
         .send(signUpDto)
         .expect(400)
@@ -371,7 +340,7 @@ describe('AuthController (e2e)', () => {
         email: faker.internet.email(),
         password: faker.internet.password({length: 10}),
       };
-      await request(app.getHttpServer())
+      await request(httpServer)
         .post('/auth/signup')
         .send(signUpDto)
         .expect(400)
@@ -388,7 +357,7 @@ describe('AuthController (e2e)', () => {
         email: '',
         password: faker.internet.password({length: 10}),
       };
-      await request(app.getHttpServer())
+      await request(httpServer)
         .post('/auth/signup')
         .send(signUpDto)
         .expect(400)
@@ -405,7 +374,7 @@ describe('AuthController (e2e)', () => {
         email: 'not-a-valid-email',
         password: faker.internet.password({length: 10}),
       };
-      await request(app.getHttpServer())
+      await request(httpServer)
         .post('/auth/signup')
         .send(signUpDto)
         .expect(400)
@@ -414,6 +383,157 @@ describe('AuthController (e2e)', () => {
             expect.arrayContaining([expect.stringMatching(/email must be an email/i)]),
           );
         });
+    });
+  });
+
+  describe('/auth/change-password (POST) - Success Case', () => {
+    let agent: TestAgent;
+
+    beforeEach(async () => {
+      agent = request.agent(httpServer);
+      await agent
+        .post('/auth/login')
+        .send({
+          email: PW_CHANGE_USER_EMAIL,
+          password: PW_CHANGE_USER_PASSWORD,
+        })
+        .expect(200);
+    });
+
+    it('should change password and allow login with new password', async () => {
+      const newPassword = faker.internet.password({length: 12});
+      const changePasswordDto: ChangePasswordDto = {
+        currentPassword: PW_CHANGE_USER_PASSWORD,
+        newPassword: newPassword,
+      };
+
+      await agent
+        .post('/auth/change-password')
+        .send(changePasswordDto)
+        .expect(200)
+        .expect((res) => {
+          expect(res.body.message).toEqual('Password changed.');
+        });
+
+      await agent.post('/auth/logout').expect(200);
+
+      await request(httpServer)
+        .post('/auth/login')
+        .send({email: PW_CHANGE_USER_EMAIL, password: PW_CHANGE_USER_PASSWORD})
+        .expect(401);
+
+      await request(httpServer)
+        .post('/auth/login')
+        .send({email: PW_CHANGE_USER_EMAIL, password: newPassword})
+        .expect(200);
+    });
+  });
+
+  describe('/auth/change-password (POST) - Failure Cases', () => {
+    let agent: TestAgent;
+
+    beforeEach(async () => {
+      agent = request.agent(httpServer);
+
+      await agent
+        .post('/auth/login')
+        .send({
+          email: VERIFIED_USER_EMAIL,
+          password: VERIFIED_USER_PASSWORD,
+        })
+        .expect(200);
+    });
+
+    it('should fail with 401 Unauthorized if current password is incorrect', async () => {
+      const changePasswordDto: ChangePasswordDto = {
+        currentPassword: 'wrong-current-password',
+        newPassword: faker.internet.password({length: 12}),
+      };
+
+      return agent.post('/auth/change-password').send(changePasswordDto).expect(401);
+    });
+
+    it('should fail with 403 Forbidden when unverified user tries to change password', async () => {
+      const unverifiedAgent = request.agent(httpServer);
+      await unverifiedAgent
+        .post('/auth/login')
+        .send({email: UNVERIFIED_USER_EMAIL, password: UNVERIFIED_USER_PASSWORD})
+        .expect(200);
+
+      const newPassword = faker.internet.password({length: 12});
+      const changePasswordDto: ChangePasswordDto = {
+        currentPassword: UNVERIFIED_USER_PASSWORD,
+        newPassword: newPassword,
+      };
+
+      await unverifiedAgent
+        .post('/auth/change-password')
+        .send(changePasswordDto)
+        .expect(403)
+        .expect((res) => {
+          expect(res.body.message).toMatch(/Email not verified/i);
+        });
+    });
+
+    it('should fail with 400 Bad Request if new password is too short', async () => {
+      const changePasswordDto: ChangePasswordDto = {
+        currentPassword: VERIFIED_USER_PASSWORD,
+        newPassword: 'short',
+      };
+
+      return agent
+        .post('/auth/change-password')
+        .send(changePasswordDto)
+        .expect(400)
+        .expect((res) => {
+          expect(res.body.message).toEqual(
+            expect.arrayContaining([
+              expect.stringMatching(/newPassword must be longer than or equal to 8 characters/i),
+            ]),
+          );
+        });
+    });
+
+    it('should fail with 400 Bad Request if current password is missing', async () => {
+      const changePasswordDto: Partial<ChangePasswordDto> = {
+        newPassword: faker.internet.password({length: 12}),
+      };
+
+      return agent
+        .post('/auth/change-password')
+        .send(changePasswordDto)
+        .expect(400)
+        .expect((res) => {
+          expect(res.body.message).toEqual(
+            expect.arrayContaining([expect.stringMatching(/currentPassword should not be empty/i)]),
+          );
+        });
+    });
+
+    it('should fail with 400 Bad Request if new password is missing', async () => {
+      const changePasswordDto: Partial<ChangePasswordDto> = {
+        currentPassword: VERIFIED_USER_PASSWORD,
+      };
+
+      return agent
+        .post('/auth/change-password')
+        .send(changePasswordDto)
+        .expect(400)
+        .expect((res) => {
+          expect(res.body.message).toEqual(
+            expect.arrayContaining([expect.stringMatching(/newPassword should not be empty/i)]),
+          );
+        });
+    });
+
+    it('should fail with 401 Unauthorized if user is not logged in', async () => {
+      const newPassword = faker.internet.password({length: 12});
+      const changePasswordDto: ChangePasswordDto = {
+        currentPassword: VERIFIED_USER_PASSWORD,
+        newPassword: newPassword,
+      };
+
+      return request(httpServer).post('/auth/change-password').send(changePasswordDto).expect(401);
     });
   });
 });
