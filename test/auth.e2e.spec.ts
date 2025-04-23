@@ -269,6 +269,8 @@ describe('AuthController (e2e)', () => {
 
       expect(response.body?.email).toEqual(signUpDto.email);
 
+      // Wait for BullMQ to process the job
+      await new Promise((resolve) => setTimeout(resolve, 1000));
       const mailhogResponse = await axios.get<MailHogResponse>(`${mailhogApiUrl}/api/v2/messages`);
       const emails = mailhogResponse?.data?.items;
 
