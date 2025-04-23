@@ -21,8 +21,8 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest",
     "docker:test:up": "docker compose -f docker-compose.test.yml --env-file .env.test up -d --wait",
     "docker:test:down": "docker compose -f docker-compose.test.yml --env-file .env.test down --remove-orphans",
-    "test:e2e": "npm run docker:test:down && npm run docker:test:up && rimraf dist && jest --config ./test/jest-e2e.json --verbose",
-    "test:e2e:cov": "npm run docker:test:down && npm run docker:test:up && rimraf dist && jest --config ./test/jest-e2e.json --verbose --coverage"
+    "test:e2e": "npm run docker:test:down && npm run docker:test:up && rimraf dist && jest --config ./test/jest-e2e.json --verbose --watchAll",
+    "test:e2e:cov": "npm run docker:test:down && npm run docker:test:up && rimraf dist && jest --config ./test/jest-e2e.json --verbose --coverage --forceExit"
   },
   "dependencies": {
     "@faker-js/faker": "^8.4.1",
