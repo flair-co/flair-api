@@ -35,6 +35,7 @@ describe('AuthController (e2e)', () => {
 
   describe('/auth/login (POST)', () => {
     let userCredentials: SignUpDto;
+    let agent: TestAgent;
 
     beforeEach(async () => {
       userCredentials = {
@@ -55,6 +56,10 @@ describe('AuthController (e2e)', () => {
           password: userCredentials.password,
         })
         .expect(200);
+    });
+
+    it('should log in with correct credentials and establish session', async () => {
+      const response = await agent.get('/users/me').expect(200);
 
       const user: User = response.body;
       expect(user).toBeDefined();
@@ -75,8 +80,15 @@ describe('AuthController (e2e)', () => {
       expect(sessionCookie).toMatch(/Path=\//);
       expect(sessionCookie).toMatch(/SameSite=Strict/);
       expect(sessionCookie).toMatch(/Expires=/);
+    });
 
-      await agent.get('/users/me').expect(200);
+    it('should return 403 Forbidden when accessing email-verified route without verification', async () => {
+      await agent
+        .get('/auth/sessions')
+        .expect(403)
+        .expect((res) => {
+          expect(res.body.message).toMatch(/email not verified/i);
+        });
     });
 
     it('should fail to log in with incorrect password', async () => {
