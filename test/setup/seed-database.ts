@@ -14,30 +14,47 @@ import {
   VERIFIED_USER_PASSWORD,
 } from './constants';
 
+type UserSeedData = {
+  name: string;
+  email: string;
+  password: string;
+  isEmailVerified: boolean;
+};
+
 export async function seedDatabase(app: INestApplication) {
   const userRepository = app.get<Repository<User>>(getRepositoryToken(User));
 
-  const verifiedPasswordHash = await argon2.hash(VERIFIED_USER_PASSWORD);
-  const unverifiedPasswordHash = await argon2.hash(UNVERIFIED_USER_PASSWORD);
-  const pwChangePasswordHash = await argon2.hash(PW_CHANGE_USER_PASSWORD);
+  const usersToSeed: UserSeedData[] = [
+    {
+      name: 'Verified User',
+      email: VERIFIED_USER_EMAIL,
+      password: VERIFIED_USER_PASSWORD,
+      isEmailVerified: true,
+    },
+    {
+      name: 'Unverified User',
+      email: UNVERIFIED_USER_EMAIL,
+      password: UNVERIFIED_USER_PASSWORD,
+      isEmailVerified: false,
+    },
+    {
+      name: 'Password Change User',
+      email: PW_CHANGE_USER_EMAIL,
+      password: PW_CHANGE_USER_PASSWORD,
+      isEmailVerified: true,
+    },
+  ];
 
-  const verifiedUser = await userRepository.save({
-    name: 'Verified User',
-    email: VERIFIED_USER_EMAIL,
-    password: verifiedPasswordHash,
-  });
-  await userRepository.update({id: verifiedUser.id}, {isEmailVerified: true});
-
-  await userRepository.save({
-    name: 'Unverified User',
-    email: UNVERIFIED_USER_EMAIL,
-    password: unverifiedPasswordHash,
-  });
-
-  const pwChangeUser = await userRepository.save({
-    name: 'Password Change User',
-    email: PW_CHANGE_USER_EMAIL,
-    password: pwChangePasswordHash,
-  });
-  await userRepository.update({id: pwChangeUser.id}, {isEmailVerified: true});
+  const users = await Promise.all(
+    usersToSeed.map(async (user) => {
+      const hashedPassword = await argon2.hash(user.password);
+      return userRepository.create({
+        name: user.name,
+        email: user.email,
+        password: hashedPassword,
+        isEmailVerified: user.isEmailVerified,
+      });
+    }),
+  );
+  await userRepository.save(users);
 }
