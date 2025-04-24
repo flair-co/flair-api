@@ -14,9 +14,7 @@ import {RedisModule} from '@core/redis/redis.module';
       imports: [RedisModule],
       inject: [ConfigurationService, REDIS],
       useFactory: (config: ConfigurationService, redisClient: Redis) => {
-        if (config.get('NODE_ENV') === 'test') {
-          return [];
-        }
+        if (config.get('NODE_ENV') === 'test') return [];
         return {
           throttlers: [
             {
