@@ -16,8 +16,7 @@ describe('AuthController - Sessions', () => {
   let httpServer: any;
 
   beforeAll(async () => {
-    const app = getApp();
-    httpServer = app.getHttpServer();
+    httpServer = getApp().getHttpServer();
   });
 
   describe('/auth/sessions (GET)', () => {

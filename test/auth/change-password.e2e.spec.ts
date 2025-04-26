@@ -17,8 +17,7 @@ describe('AuthController - Change password', () => {
   let httpServer: any;
 
   beforeAll(() => {
-    const app = getApp();
-    httpServer = app.getHttpServer();
+    httpServer = getApp().getHttpServer();
   });
 
   describe('POST /auth/change-password', () => {
