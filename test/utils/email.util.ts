@@ -1,24 +1,5 @@
 import axios from 'axios';
-
-type MailHogResponse = {
-  total?: number;
-  count?: number;
-  start?: number;
-  items: MailHogMessage[];
-};
-
-type MailHogMessage = {
-  ID: string;
-  To?: {Mailbox: string; Domain: string; Params: any}[];
-  Content?: {
-    Headers?: {
-      Subject?: string[];
-      [key: string]: any;
-    };
-    Body?: string;
-    [key: string]: any;
-  };
-};
+import {MailHogResponse} from 'test/types/mailhog-response';
 
 export async function clearEmails(apiUrl: string) {
   await axios.delete(`${apiUrl}/api/v1/messages`);
