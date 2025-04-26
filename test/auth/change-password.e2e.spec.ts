@@ -13,7 +13,7 @@ import {
 } from '../setup/constants';
 import {getApp} from '../setup/e2e.setup';
 
-describe('AuthController (e2e) - Change Password', () => {
+describe('AuthController - Change password', () => {
   let httpServer: any;
 
   beforeAll(() => {

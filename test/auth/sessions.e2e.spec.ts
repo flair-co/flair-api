@@ -12,7 +12,7 @@ import {
 } from '../setup/constants';
 import {getApp} from '../setup/e2e.setup';
 
-describe('AuthController (e2e)', () => {
+describe('AuthController - Sessions', () => {
   let httpServer: any;
 
   beforeAll(async () => {
@@ -116,7 +116,7 @@ describe('AuthController (e2e)', () => {
     });
   });
 
-  describe('DELETE /auth/sessions/:sessionId', () => {
+  describe('/auth/sessions/:sessionId (DELETE)', () => {
     let verifiedAgent1: TestAgent; // Agent making the revoke request
     let verifiedAgent2: TestAgent; // Agent whose session will be revoked
     let unverifiedAgent: TestAgent;

@@ -6,7 +6,7 @@ import {SignUpDto} from '@modules/auth/api/dtos/signup.dto';
 
 import {getApp} from '../setup/e2e.setup';
 
-describe('AuthController (e2e)', () => {
+describe('AuthController - Logout', () => {
   let httpServer: any;
 
   beforeAll(async () => {

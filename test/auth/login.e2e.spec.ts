@@ -7,7 +7,7 @@ import {User} from '@modules/user/user.entity';
 
 import {getApp} from '../setup/e2e.setup';
 
-describe('AuthController (e2e)', () => {
+describe('AuthController - Login', () => {
   let httpServer: any;
 
   beforeAll(async () => {

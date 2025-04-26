@@ -16,7 +16,7 @@ import {
 import {getApp} from '../setup/e2e.setup';
 import {clearEmails, extractVerificationCode, findEmailByRecipient} from '../utils/email.util';
 
-describe('AuthController (e2e)', () => {
+describe('AuthController - Change email', () => {
   let mailhogApiUrl: string;
   let httpServer: any;
 
