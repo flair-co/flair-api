@@ -1,6 +1,6 @@
 import {Injectable, NotFoundException} from '@nestjs/common';
 import {InjectRepository} from '@nestjs/typeorm';
-import {Repository} from 'typeorm';
+import {Repository, SelectQueryBuilder} from 'typeorm';
 
 import {User} from '@modules/user/user.entity';
 
@@ -28,11 +28,10 @@ export class TransactionService {
     return transaction;
   }
 
-  async findAllByUserId(userId: User['id'], queryParams: TransactionQueryDto) {
-    const pagination = queryParams.pagination || {
-      pageIndex: DEFAULT_PAGE_INDEX,
-      pageSize: DEFAULT_PAGE_SIZE,
-    };
+  async findAllByUserId(
+    userId: User['id'],
+    {filter = {}, sort, pagination = this.getDefaultPaginationOptions()}: TransactionQueryDto,
+  ) {
     const query = this.transactionRepository
       .createQueryBuilder('transaction')
       .innerJoin('transaction.bankAccount', 'bankAccount')
@@ -41,20 +40,11 @@ export class TransactionService {
       .skip(pagination.pageIndex * pagination.pageSize)
       .take(pagination.pageSize);
 
-    const sort = queryParams.sort;
     if (sort) {
       query.orderBy(`transaction.${sort.by}`, sort.order);
     }
 
-    const filter = queryParams.filter || {};
-    if (filter.categories && filter.categories.length > 0) {
-      query.andWhere('transaction.category IN (:...categories)', {categories: filter.categories});
-    }
-    if (filter.startedAt) {
-      const from = new Date(filter.startedAt.from);
-      const to = new Date(filter.startedAt.to ?? from);
-      query.andWhere('transaction.startedAt BETWEEN :from AND :to', {from, to});
-    }
+    this.addFiltersToQuery(query, filter);
 
     const [transactions, total] = await query.getManyAndCount();
     return {transactions, total};
@@ -81,5 +71,34 @@ export class TransactionService {
 
     await this.transactionRepository.update({id: transaction.id}, updates);
     return this.transactionRepository.findBy({id: transaction.id});
+  }
+
+  private addFiltersToQuery(
+    query: SelectQueryBuilder<Transaction>,
+    filters: TransactionQueryDto['filter'] = {},
+  ) {
+    const {startedAt, banks = [], categories = []} = filters;
+    const filtersMapWithColumnName = {
+      bankAccount: banks,
+      category: categories,
+    };
+
+    if (startedAt) {
+      const {from, to: until = from} = startedAt;
+      query.andWhere('transaction.startedAt BETWEEN :fromDate AND :untilDate', {
+        fromDate: new Date(from),
+        untilDate: new Date(until),
+      });
+    }
+
+    for (const [columnName, filterValue] of Object.values(filtersMapWithColumnName)) {
+      if (filterValue && filterValue.length > 0) {
+        query.andWhere(`transaction.${columnName} IN (:...filterValue)`, {filterValue});
+      }
+    }
+  }
+
+  private getDefaultPaginationOptions() {
+    return {pageIndex: DEFAULT_PAGE_INDEX, pageSize: DEFAULT_PAGE_SIZE};
   }
 }

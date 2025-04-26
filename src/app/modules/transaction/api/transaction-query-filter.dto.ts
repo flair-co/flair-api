@@ -3,6 +3,8 @@ import {IsArray, IsDateString, IsEnum, IsOptional, ValidateNested} from 'class-v
 
 import {Category} from '@modules/transaction/transaction-categorizer/constants/category.enum';
 
+import {Bank} from '../transaction-mapper/constants/bank.enum';
+
 export class DateRangeDto {
   @IsDateString()
   from: Date;
@@ -16,7 +18,12 @@ export class TransactionQueryFilterDto {
   @IsOptional()
   @IsArray()
   @IsEnum(Category, {each: true})
-  categories?: Category[];
+  categories?: Array<Category>;
+
+  @IsOptional()
+  @IsArray()
+  @IsEnum(Bank, {each: true})
+  banks?: Array<Bank>;
 
   @IsOptional()
   @ValidateNested()
