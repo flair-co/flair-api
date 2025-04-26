@@ -1108,10 +1108,10 @@ describe('AuthController (e2e)', () => {
       };
       await request(httpServer).post('/auth/signup').send(userBCredentials).expect(201);
 
-      const signupEmailC = await findEmailByRecipient(userBCredentials.email, mailhogApiUrl);
-      const signupCodeC = extractVerificationCode(signupEmailC?.Content?.Body);
-      expect(signupCodeC).toBeDefined();
-      await request(httpServer).post('/auth/signup/verify').send({code: signupCodeC}).expect(200);
+      const signupEmailB = await findEmailByRecipient(userBCredentials.email, mailhogApiUrl);
+      const signupCodeB = extractVerificationCode(signupEmailB?.Content?.Body);
+      expect(signupCodeB).toBeDefined();
+      await request(httpServer).post('/auth/signup/verify').send({code: signupCodeB}).expect(200);
 
       const userBAgent = request.agent(httpServer);
       await userBAgent
