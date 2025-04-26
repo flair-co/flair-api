@@ -5,7 +5,7 @@ import TestAgent from 'supertest/lib/agent';
 import {SignUpDto} from '@modules/auth/api/dtos/signup.dto';
 import {User} from '@modules/user/user.entity';
 
-import {getApp} from '../setup/e2e.setup';
+import {getApp} from '../../setup/e2e.setup';
 
 describe('AuthController - Login', () => {
   let httpServer: any;

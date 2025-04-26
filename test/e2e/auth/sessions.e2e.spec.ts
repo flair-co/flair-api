@@ -9,8 +9,8 @@ import {
   UNVERIFIED_USER_PASSWORD,
   VERIFIED_USER_EMAIL,
   VERIFIED_USER_PASSWORD,
-} from '../setup/constants';
-import {getApp} from '../setup/e2e.setup';
+} from '../../setup/constants';
+import {getApp} from '../../setup/e2e.setup';
 
 describe('AuthController - Sessions', () => {
   let httpServer: any;
