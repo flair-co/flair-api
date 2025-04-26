@@ -28,6 +28,7 @@ export async function findEmailByRecipient(recipientEmail: string, apiUrl: strin
   let retries = 5;
   const delayMs = 50;
 
+  // Retry briefly to allow BullMQ to process the job and send email to MailHog
   while (retries > 0) {
     const response = await axios.get<MailHogResponse>(`${apiUrl}/api/v2/messages`);
     const email = response.data?.items?.find((msg) =>
@@ -39,7 +40,6 @@ export async function findEmailByRecipient(recipientEmail: string, apiUrl: strin
     retries--;
     if (retries > 0) await sleep(delayMs);
   }
-  return undefined;
 }
 
 export function extractVerificationCode(body: string | undefined) {
