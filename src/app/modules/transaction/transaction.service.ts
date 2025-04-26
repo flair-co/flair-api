@@ -91,9 +91,11 @@ export class TransactionService {
       });
     }
 
-    for (const [columnName, filterValue] of Object.values(filtersMapWithColumnName)) {
+    for (const [columnName, filterValue] of Object.entries(filtersMapWithColumnName)) {
       if (filterValue && filterValue.length > 0) {
-        query.andWhere(`transaction.${columnName} IN (:...filterValue)`, {filterValue});
+        query.andWhere(`transaction.${columnName} IN (:...${columnName})`, {
+          [columnName]: filterValue,
+        });
       }
     }
   }
