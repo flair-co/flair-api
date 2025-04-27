@@ -1,14 +1,19 @@
-<p>
-  <a href="https://coveralls.io/github/eduard-cc/flair-api?branch=main">
+<p align="center">
+  <a href="https://coveralls.io/github/eduard-cc/flair-api?branch=main" target="_blank">
     <img src="https://coveralls.io/repos/github/eduard-cc/flair-api/badge.svg?branch=main" alt="Coverage Status" />
   </a>
-  <a href="https://github.com/eduard-cc/flair-api/actions">
+  <a href="https://github.com/eduard-cc/flair-api/actions" target="_blank">
     <img src="https://github.com/eduard-cc/flair-api/actions/workflows/ci.yml/badge.svg" alt="Build Status" />
   </a>
-  <a href="https://nodejs.org/">
+  <a href="https://nodejs.org/" target="_blank">
     <img src="https://img.shields.io/badge/node.js-20.x-brightgreen" alt="Node.js Version" />
   </a>
 </p>
+
+## Flair
+
+Flair API is a backend service built with [NestJS](https://nestjs.com) for managing personal finances by allowing users to upload bank statements, view transactions, and categorize spending using AI.
+
 
 ## Prerequisites
 
