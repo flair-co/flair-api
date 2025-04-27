@@ -10,6 +10,13 @@
   </a>
 </p>
 
+## Prerequisites
+
+Make sure you have the following installed on your system:
+
+- [Node.js](https://nodejs.org/) (v20.x)
+- [Docker](https://www.docker.com/)
+
 ## Installation
 
 ```bash
@@ -26,7 +33,11 @@ The development environment uses variables from `.env.development`. To override 
 $ npm run start:dev
 ```
 
-This script starts the necessary Docker services, cleans any previous build output and launches the server in watch mode.
+This script starts the necessary Docker services, cleans any previous build output and starts the server in watch mode.
+
+### API docs
+
+For development, Swagger UI documentation is enabled. Navigate to http://localhost:3000/docs to interact with the API endpoints.
 
 ## Test
 
