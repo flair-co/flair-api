@@ -14,7 +14,6 @@
 
 Flair API is a backend service built with [NestJS](https://nestjs.com) for managing personal finances by allowing users to upload bank statements, view transactions, and categorize spending using AI.
 
-
 ## Prerequisites
 
 Make sure you have the following installed on your system:
