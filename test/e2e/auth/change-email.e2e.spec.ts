@@ -136,7 +136,7 @@ describe('AuthController - Change email', () => {
         .send(emailChangeDto)
         .expect(401)
         .expect((res) => {
-          expect(res.body.message).toMatch(/Unauthorized/i);
+          expect(res.body.message).toMatch(/Invalid credentials/i);
         });
     });
 

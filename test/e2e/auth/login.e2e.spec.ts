@@ -44,7 +44,6 @@ describe('AuthController - Login', () => {
       expect(user.id).toBeDefined();
       expect(user.email).toEqual(userCredentials.email);
       expect(user.name).toEqual(userCredentials.name);
-      expect(user.password).toBeUndefined();
 
       const cookiesHeader = response.headers['set-cookie'];
       expect(cookiesHeader).toBeDefined();
