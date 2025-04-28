@@ -16,14 +16,11 @@ export class AuthMethodService {
     private readonly authMethodRepository: Repository<AuthMethod>,
   ) {}
 
-  async findByProvider(
-    type: AuthMethodType,
-    providerId: NonNullable<AuthMethod['providerId']>,
-  ): Promise<AuthMethod | null> {
+  async findByProvider(type: AuthMethodType, providerId: NonNullable<AuthMethod['providerId']>) {
     return this.authMethodRepository.findOne({where: {type, providerId}, relations: ['user']});
   }
 
-  async findLocalByUserId(userId: string): Promise<AuthMethod | null> {
+  async findLocalByUserId(userId: string) {
     return this.authMethodRepository.findOneBy({userId, type: AuthMethodType.LOCAL});
   }
 
@@ -50,7 +47,7 @@ export class AuthMethodService {
     });
   }
 
-  async verifyLocalPassword(userId: User['id'], password: string): Promise<AuthMethod> {
+  async verifyLocalPassword(userId: User['id'], password: string) {
     const localMethod = await this.findLocalByUserId(userId);
 
     if (!localMethod || !localMethod.password) {
