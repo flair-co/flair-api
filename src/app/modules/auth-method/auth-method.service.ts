@@ -20,10 +20,6 @@ export class AuthMethodService {
     return this.authMethodRepository.findOne({where: {type, providerId}, relations: ['user']});
   }
 
-  async findLocalByUserId(userId: string) {
-    return this.authMethodRepository.findOneBy({userId, type: AuthMethodType.LOCAL});
-  }
-
   async createLocalMethod(userId: User['id'], password: string): Promise<AuthMethod> {
     const passwordHash = await argon2.hash(password);
     return await this.authMethodRepository.save({
@@ -48,7 +44,10 @@ export class AuthMethodService {
   }
 
   async verifyLocalPassword(userId: User['id'], password: string) {
-    const localMethod = await this.findLocalByUserId(userId);
+    const localMethod = await this.authMethodRepository.findOneBy({
+      userId,
+      type: AuthMethodType.LOCAL,
+    });
 
     if (!localMethod || !localMethod.password) {
       throw new UnauthorizedException('Local authentication method is not set up for this user.');
