@@ -1,4 +1,4 @@
-import {Exclude, Expose, Type} from 'class-transformer';
+import {Expose, Type} from 'class-transformer';
 import {Column, CreateDateColumn, Entity, Index, OneToMany, PrimaryGeneratedColumn} from 'typeorm';
 
 import {AuthMethod} from '@modules/auth-method/auth-method.entity';
@@ -33,6 +33,6 @@ export class User {
   bankAccounts: BankAccount[];
 
   @OneToMany(() => AuthMethod, (authMethod) => authMethod.user, {cascade: true})
-  @Exclude()
-  authenticationMethods: AuthMethod[];
+  @Expose()
+  authMethods: AuthMethod[];
 }

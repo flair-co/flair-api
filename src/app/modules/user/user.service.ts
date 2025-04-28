@@ -18,7 +18,7 @@ export class UserService {
   ) {}
 
   async findById(id: User['id']) {
-    const user = await this.userRepository.findOneBy({id});
+    const user = await this.userRepository.findOne({where: {id}, relations: ['authMethods']});
 
     if (!user) {
       throw new NotFoundException(`User not found.`);
