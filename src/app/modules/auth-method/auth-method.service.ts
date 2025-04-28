@@ -16,11 +16,14 @@ export class AuthMethodService {
     private readonly authMethodRepository: Repository<AuthMethod>,
   ) {}
 
-  async findByProvider(type: AuthMethodType, providerId: NonNullable<AuthMethod['providerId']>) {
+  async findByProvider(
+    type: AuthMethodType,
+    providerId: NonNullable<AuthMethod['providerId']>,
+  ): Promise<AuthMethod | null> {
     return this.authMethodRepository.findOne({where: {type, providerId}, relations: ['user']});
   }
 
-  async findLocalByUserId(userId: User['id']) {
+  async findLocalByUserId(userId: string): Promise<AuthMethod | null> {
     return this.authMethodRepository.findOneBy({userId, type: AuthMethodType.LOCAL});
   }
 
@@ -39,11 +42,15 @@ export class AuthMethodService {
     providerId: NonNullable<AuthMethod['providerId']>,
     type: Exclude<AuthMethodType, AuthMethodType.LOCAL>,
   ): Promise<AuthMethod> {
-    return await this.authMethodRepository.save({userId, type, providerId, password: null});
+    return await this.authMethodRepository.save({
+      userId,
+      type,
+      providerId,
+      password: null,
+    });
   }
 
-  /** Verifies a plaintext password against the stored hash for a local authentication method. */
-  async verifyLocalPassword(userId: User['id'], password: string) {
+  async verifyLocalPassword(userId: User['id'], password: string): Promise<AuthMethod> {
     const localMethod = await this.findLocalByUserId(userId);
 
     if (!localMethod || !localMethod.password) {
@@ -54,17 +61,15 @@ export class AuthMethodService {
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid credentials.');
     }
-  }
 
-  async updatePassword(id: User['id'], password: AuthMethod['password']) {
-    await this.authMethodRepository.update({id}, {password});
+    return localMethod;
   }
 
   async changePassword(user: User, dto: ChangePasswordDto) {
-    await this.verifyLocalPassword(user.id, dto.currentPassword);
+    const localMethod = await this.verifyLocalPassword(user.id, dto.currentPassword);
+    localMethod.password = await argon2.hash(dto.newPassword);
 
-    const hash = await argon2.hash(dto.newPassword);
-    await this.updatePassword(user.id, hash);
+    await this.authMethodRepository.save(localMethod);
     return {message: 'Password changed.'};
   }
 }
