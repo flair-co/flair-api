@@ -11,6 +11,7 @@ import {UserService} from '@modules/user/user.service';
 
 import {LogInDto} from '../api/dtos/login.dto';
 
+/** Implements the Passport strategy for local (email/password) authentication. */
 @Injectable()
 export class LocalStrategy extends PassportStrategy(Strategy) {
   constructor(

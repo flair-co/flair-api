@@ -7,12 +7,7 @@ import {AuthMethodService} from '@modules/auth-method/auth-method.service';
 import {AuthMethodType} from '@modules/auth-method/constants/auth-method.enum';
 import {UserService} from '@modules/user/user.service';
 
-/**
- * Implements the Passport strategy for Google OAuth 2.0 authentication.
- * Handles the verification of the user profile received from Google,
- * finds or creates the corresponding user profile and Google authentication method
- * in the local database, and returns the authenticated User object.
- */
+/** Implements the Passport strategy for Google OAuth 2.0 authentication. */
 @Injectable()
 export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
   constructor(
@@ -31,7 +26,8 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
   /**
    * Validates the user profile received from Google after successful authentication.
    * This method is automatically called by Passport during the OAuth callback phase.
-   * It attempts to find an existing user linked to the Google ID, or creates a new one.
+   * It attempts to find an existing user linked via the Google ID. If not found,
+   * finds/creates user and links Google method.
    */
   async validate(
     _accessToken: string,

@@ -17,6 +17,10 @@ export class SessionSerializer extends PassportSerializer {
     done(null, user.id);
   }
 
+  /**
+   * Called by Passport on requests that require an active session cookie
+   * Attaches the user to the request as `req.user`.
+   */
   async deserializeUser(id: User['id'], done: DeserializeDoneCallback) {
     try {
       const user = await this.userService.findById(id);
