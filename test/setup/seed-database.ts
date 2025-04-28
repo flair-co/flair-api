@@ -1,6 +1,7 @@
 import {INestApplication} from '@nestjs/common';
 import {getRepositoryToken} from '@nestjs/typeorm';
 import argon2 from 'argon2';
+import {UserSeed} from 'test/types/user-seed';
 import {Repository} from 'typeorm';
 
 import {AuthMethod} from '@modules/auth-method/auth-method.entity';
@@ -8,6 +9,8 @@ import {AuthMethodType} from '@modules/auth-method/constants/auth-method.enum';
 import {User} from '@modules/user/user.entity';
 
 import {
+  GOOGLE_ONLY_USER_EMAIL,
+  GOOGLE_ONLY_USER_PROVIDER_ID,
   PW_CHANGE_USER_EMAIL,
   PW_CHANGE_USER_PASSWORD,
   UNVERIFIED_USER_EMAIL,
@@ -16,52 +19,69 @@ import {
   VERIFIED_USER_PASSWORD,
 } from './constants';
 
-type UserSeedData = {
-  name: string;
-  email: string;
-  password: string;
-  isEmailVerified: boolean;
-};
-
 export async function seedDatabase(app: INestApplication) {
   const userRepository = app.get<Repository<User>>(getRepositoryToken(User));
   const authMethodRepository = app.get<Repository<AuthMethod>>(getRepositoryToken(AuthMethod));
 
-  const usersToSeed: UserSeedData[] = [
+  const usersToSeed: UserSeed[] = [
     {
       name: 'Verified User',
       email: VERIFIED_USER_EMAIL,
-      password: VERIFIED_USER_PASSWORD,
       isEmailVerified: true,
+      authMethods: [{type: AuthMethodType.LOCAL, password: VERIFIED_USER_PASSWORD}],
     },
     {
       name: 'Unverified User',
       email: UNVERIFIED_USER_EMAIL,
-      password: UNVERIFIED_USER_PASSWORD,
       isEmailVerified: false,
+      authMethods: [{type: AuthMethodType.LOCAL, password: UNVERIFIED_USER_PASSWORD}],
     },
     {
       name: 'Password Change User',
       email: PW_CHANGE_USER_EMAIL,
-      password: PW_CHANGE_USER_PASSWORD,
       isEmailVerified: true,
+      authMethods: [{type: AuthMethodType.LOCAL, password: PW_CHANGE_USER_PASSWORD}],
+    },
+    {
+      name: 'Google Only User',
+      email: GOOGLE_ONLY_USER_EMAIL,
+      isEmailVerified: true,
+      authMethods: [{type: AuthMethodType.GOOGLE, providerId: GOOGLE_ONLY_USER_PROVIDER_ID}],
     },
   ];
 
   for (const user of usersToSeed) {
-    const userProfile = userRepository.create({
+    const userEntity = userRepository.create({
       name: user.name,
       email: user.email,
       isEmailVerified: user.isEmailVerified,
     });
-    const savedUser = await userRepository.save(userProfile);
+    const savedUser = await userRepository.save(userEntity);
 
-    const hashedPassword = await argon2.hash(user.password);
-    const authMethod = authMethodRepository.create({
-      userId: savedUser.id,
-      type: AuthMethodType.LOCAL,
-      password: hashedPassword,
-    });
-    await authMethodRepository.save(authMethod);
+    for (const method of user.authMethods) {
+      let authMethodEntity: Partial<AuthMethod>;
+
+      switch (method.type) {
+        case AuthMethodType.LOCAL:
+          const hashedPassword = await argon2.hash(method.password);
+          authMethodEntity = {
+            userId: savedUser.id,
+            type: AuthMethodType.LOCAL,
+            password: hashedPassword,
+            providerId: null,
+          };
+          break;
+
+        case AuthMethodType.GOOGLE:
+          authMethodEntity = {
+            userId: savedUser.id,
+            type: AuthMethodType.GOOGLE,
+            providerId: method.providerId,
+            password: null,
+          };
+          break;
+      }
+      await authMethodRepository.save(authMethodEntity);
+    }
   }
 }
