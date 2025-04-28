@@ -2,7 +2,7 @@ import request from 'supertest';
 import TestAgent from 'supertest/lib/agent';
 
 import {SessionRevokeDto} from '@modules/auth/api/dtos/revoke-session.dto';
-import {SessionDto} from '@modules/auth/api/dtos/session.dto';
+import {SessionResponseDto} from '@modules/auth/api/dtos/session.dto';
 
 import {
   UNVERIFIED_USER_EMAIL,
@@ -50,7 +50,7 @@ describe('AuthController - Sessions', () => {
     it('should return all active sessions, marking the current one', async () => {
       const response = await verifiedAgent1.get('/auth/sessions').expect(200);
 
-      const sessions: SessionDto[] = response.body;
+      const sessions: SessionResponseDto[] = response.body;
       expect(Array.isArray(sessions)).toBe(true);
       expect(sessions.length).toBeGreaterThanOrEqual(2);
 
@@ -88,7 +88,7 @@ describe('AuthController - Sessions', () => {
 
       // Verify making the request with the second agent also works
       const response2 = await verifiedAgent2.get('/auth/sessions').expect(200);
-      const sessions2: SessionDto[] = response2.body;
+      const sessions2: SessionResponseDto[] = response2.body;
       expect(sessions2.length).toBeGreaterThanOrEqual(2);
       const currentSessions2 = sessions2.filter((s) => s.isCurrent === true);
       expect(currentSessions2).toHaveLength(1);
@@ -146,7 +146,7 @@ describe('AuthController - Sessions', () => {
 
       // Get sessions using agent 1 to identify IDs
       const response = await verifiedAgent1.get('/auth/sessions').expect(200);
-      const sessions: SessionDto[] = response.body;
+      const sessions: SessionResponseDto[] = response.body;
 
       const currentSession = sessions.find((s) => s.isCurrent);
       const nonCurrentSession = sessions.find((s) => !s.isCurrent);
@@ -174,7 +174,7 @@ describe('AuthController - Sessions', () => {
 
       // Verify the session is gone
       const responseAfter = await verifiedAgent1.get('/auth/sessions').expect(200);
-      const sessionsAfter: SessionDto[] = responseAfter.body;
+      const sessionsAfter: SessionResponseDto[] = responseAfter.body;
       const revokedSession = sessionsAfter.find((s) => s.id === sessionToRevokeId);
       expect(revokedSession).toBeUndefined();
       // Ensure the current session still exists

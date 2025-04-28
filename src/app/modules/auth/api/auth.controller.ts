@@ -31,7 +31,7 @@ import {EmailChangeDto} from './dtos/email-change.dto';
 import {EmailVerifyDto} from './dtos/email-verify.dto';
 import {LogInDto} from './dtos/login.dto';
 import {SessionRevokeParamsDto} from './dtos/revoke-session.dto';
-import {SessionDto} from './dtos/session.dto';
+import {SessionResponseDto} from './dtos/session.dto';
 import {SignUpDto} from './dtos/signup.dto';
 
 @ApiTags('Auth')
@@ -185,7 +185,7 @@ export class AuthController {
 
   @Get('sessions')
   @HttpCode(200)
-  @ApiResponse({status: 200, description: 'List of active sessions.', type: [SessionDto]})
+  @ApiResponse({status: 200, description: 'List of active sessions.', type: [SessionResponseDto]})
   @ApiResponse({status: 401, description: 'User is not logged in.'})
   @ApiResponse({status: 429, description: 'Too many requests. Try again later.'})
   @ApiOperation({summary: 'Retrieves all active sessions for the current user'})

@@ -8,7 +8,7 @@ import {ConfigurationService} from '@core/config/config.service';
 import {REDIS} from '@core/redis/redis.constants';
 import {User} from '@modules/user/user.entity';
 
-import {SessionDto} from '../api/dtos/session.dto';
+import {SessionResponseDto} from '../api/dtos/session.dto';
 import {AuthenticatedSession} from './authenticated-session.interface';
 
 @Injectable()
@@ -29,7 +29,7 @@ export class SessionService {
    * NOTE: This implementation does not scale well.
    */
   async getSessions(userId: User['id'], currentSessionId: string) {
-    const userSessions: SessionDto[] = [];
+    const userSessions: SessionResponseDto[] = [];
 
     const scanBatchSize = '250';
     let cursor = '0';
