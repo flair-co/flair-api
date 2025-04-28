@@ -1,5 +1,6 @@
 import {IsEmail, IsNotEmpty, IsString, Length} from 'class-validator';
 
+import {AuthMethod} from '@modules/auth-method/auth-method.entity';
 import {User} from '@modules/user/user.entity';
 
 export class SignUpDto {
@@ -16,5 +17,5 @@ export class SignUpDto {
   @IsNotEmpty()
   @IsString()
   @Length(8, 255)
-  password: User['password'];
+  password: NonNullable<AuthMethod['password']>;
 }

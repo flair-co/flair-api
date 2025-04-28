@@ -1,8 +1,8 @@
 import {Injectable} from '@nestjs/common';
 import argon2 from 'argon2';
-import {plainToInstance} from 'class-transformer';
 import {Request} from 'express';
 
+import {AuthMethodService} from '@modules/auth-method/auth-method.service';
 import {User} from '@modules/user/user.entity';
 import {UserService} from '@modules/user/user.service';
 
@@ -17,17 +17,18 @@ export class AuthService {
     private readonly emailVerifierService: EmailVerifierService,
     private readonly userService: UserService,
     private readonly sessionService: SessionService,
+    private readonly authMethodService: AuthMethodService,
   ) {}
 
   async signUp({name, email, password}: SignUpDto, request: Request) {
     await this.userService.validateEmailIsUnique(email);
 
-    const hash = await argon2.hash(password);
-    const user = await this.userService.save(name, email, hash);
+    const user = await this.userService.save(name, email, false);
+    await this.authMethodService.createLocalMethod(user.id, password);
 
     await this.emailVerifierService.sendWelcomeEmail(user);
     await this.logIn(user, request);
-    return plainToInstance(User, user);
+    return user;
   }
 
   async logOut(request: Request) {
@@ -53,10 +54,10 @@ export class AuthService {
   }
 
   async changePassword(user: User, dto: ChangePasswordDto) {
-    await this.userService.verifyPassword(user.password, dto.currentPassword);
+    await this.authMethodService.verifyLocalPassword(user.id, dto.currentPassword);
 
     const hash = await argon2.hash(dto.newPassword);
-    await this.userService.update(user.id, {password: hash});
+    await this.authMethodService.updatePassword(user.id, hash);
     return {message: 'Password changed.'};
   }
 }

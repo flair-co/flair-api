@@ -1,15 +1,15 @@
 import {IsNotEmpty, IsString, Length} from 'class-validator';
 
-import {User} from '@modules/user/user.entity';
+import {AuthMethod} from '@modules/auth-method/auth-method.entity';
 
 export class ChangePasswordDto {
   @IsNotEmpty()
   @IsString()
   @Length(8, 255)
-  currentPassword: User['password'];
+  currentPassword: NonNullable<AuthMethod['password']>;
 
   @IsNotEmpty()
   @IsString()
   @Length(8, 255)
-  newPassword: User['password'];
+  newPassword: NonNullable<AuthMethod['password']>;
 }

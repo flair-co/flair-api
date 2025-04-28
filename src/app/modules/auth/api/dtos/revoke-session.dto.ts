@@ -1,14 +1,4 @@
-import {IsNotEmpty, IsString, Length, MaxLength, MinLength} from 'class-validator';
-
-import {User} from '@modules/user/user.entity';
-
-export class SessionRevokeDto {
-  @IsNotEmpty()
-  @IsString()
-  @MinLength(8)
-  @MaxLength(255)
-  password: User['password'];
-}
+import {IsString, Length} from 'class-validator';
 
 export class SessionRevokeParamsDto {
   @IsString()

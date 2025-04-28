@@ -27,12 +27,7 @@ export class UserService {
   }
 
   async findByEmail(email: User['email']) {
-    const user = await this.userRepository.findOneBy({email});
-
-    if (!user) {
-      throw new NotFoundException(`User not found.`);
-    }
-    return user;
+    return this.userRepository.findOneBy({email});
   }
 
   async validateEmailIsUnique(email: User['email']) {
@@ -43,15 +38,19 @@ export class UserService {
     }
   }
 
-  async verifyPassword(hash: User['password'], password: User['password']) {
+  async verifyPassword(hash: string, password: string) {
     const isPasswordValid = await argon2.verify(hash, password);
     if (!isPasswordValid) {
       throw new UnauthorizedException();
     }
   }
 
-  async save(name: User['name'], email: User['email'], password: User['password']) {
-    return this.userRepository.save({name, email, password});
+  async save(
+    name: User['name'],
+    email: User['email'],
+    isEmailVerified: User['isEmailVerified'],
+  ): Promise<User> {
+    return this.userRepository.save({name, email, isEmailVerified});
   }
 
   async update(id: User['id'], updates: Partial<User>) {

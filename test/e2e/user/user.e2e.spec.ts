@@ -44,7 +44,6 @@ describe('UserController - /me', () => {
       expect(user.name).toEqual('Verified User');
       expect(user.isEmailVerified).toBe(true);
       expect(user.createdAt).toBeDefined();
-      expect(user.password).toBeUndefined();
       expect(user.bankAccounts).toBeUndefined();
     });
 
@@ -68,7 +67,6 @@ describe('UserController - /me', () => {
       expect(user.name).toEqual('Unverified User');
       expect(user.isEmailVerified).toBe(false);
       expect(user.createdAt).toBeDefined();
-      expect(user.password).toBeUndefined();
       expect(user.bankAccounts).toBeUndefined();
     });
 
@@ -112,7 +110,6 @@ describe('UserController - /me', () => {
       expect(updatedUser.name).toEqual(newName);
       expect(updatedUser.email).toEqual(VERIFIED_USER_EMAIL);
       expect(updatedUser.isEmailVerified).toBe(true);
-      expect(updatedUser.password).toBeUndefined();
 
       const getResponse = await verifiedAgent.get('/users/me').expect(200);
       expect(getResponse.body.name).toEqual(newName);

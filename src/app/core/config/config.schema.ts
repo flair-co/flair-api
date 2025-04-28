@@ -10,6 +10,7 @@ export type NodeEnv = (typeof ENV_VALUES)[number];
 
 export const configSchema = z.object({
   // --- General ---
+  API_BASE_URL: z.string().url(),
   WEB_BASE_URL: z.string().url(),
   NODE_ENV: z.enum(ENV_VALUES),
   PORT: portSchema,
@@ -36,6 +37,9 @@ export const configSchema = z.object({
 
   // --- APIs ---
   GEMINI_API_KEY: z.string().min(1),
+  GOOGLE_CLIENT_ID: z.string().min(1),
+  GOOGLE_CLIENT_SECRET: z.string().min(1),
+  GOOGLE_CALLBACK_PATH: z.string().min(1),
 
   // --- Email ---
   EMAIL_HOST: z.string().min(1),

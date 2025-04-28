@@ -6,6 +6,7 @@ import ms from 'ms';
 import {ConfigurationService} from '@core/config/config.service';
 import {EmailService} from '@core/email/email.service';
 import {REDIS} from '@core/redis/redis.constants';
+import {AuthMethodService} from '@modules/auth-method/auth-method.service';
 import {User} from '@modules/user/user.entity';
 import {UserService} from '@modules/user/user.service';
 
@@ -22,6 +23,7 @@ export class EmailVerifierService {
     private readonly configService: ConfigurationService,
     private readonly emailService: EmailService,
     private readonly userService: UserService,
+    private readonly authMethodService: AuthMethodService,
   ) {
     this.REDIS_KEY = this.configService.get('EMAIL_VERIFICATION_REDIS_KEY');
     this.WEB_BASE_URL = this.configService.get('WEB_BASE_URL');
@@ -34,17 +36,19 @@ export class EmailVerifierService {
   async verify(code: string) {
     const email = await this.getEmailByCode(code);
 
-    const user = await this.userService.findByEmail(email).catch(() => {
+    const user = await this.userService.findByEmail(email);
+
+    if (!user) {
       throw new BadRequestException('Invalid or expired verification code.');
-    });
+    }
 
     if (user.isEmailVerified) {
       throw new BadRequestException('Email is already verified.');
     }
 
-    const updatedUser = await this.userService.update(user.id, {isEmailVerified: true});
+    const verifiedUser = await this.userService.update(user.id, {isEmailVerified: true});
     await this.removeCode(code);
-    return updatedUser;
+    return verifiedUser;
   }
 
   async sendWelcomeEmail(user: User) {
@@ -78,7 +82,8 @@ export class EmailVerifierService {
   }
 
   async requestEmailChange(user: User, {newEmail, password}: EmailChangeDto) {
-    await this.userService.verifyPassword(user.password, password);
+    await this.authMethodService.verifyLocalPassword(user.id, password);
+
     await this.userService.validateEmailIsUnique(newEmail);
 
     const code = await this.createCode(newEmail);

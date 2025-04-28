@@ -7,7 +7,6 @@ import {IResult, UAParser} from 'ua-parser-js';
 import {ConfigurationService} from '@core/config/config.service';
 import {REDIS} from '@core/redis/redis.constants';
 import {User} from '@modules/user/user.entity';
-import {UserService} from '@modules/user/user.service';
 
 import {SessionDto} from '../api/dtos/session.dto';
 import {AuthenticatedSession} from './authenticated-session.interface';
@@ -19,7 +18,6 @@ export class SessionService {
   constructor(
     @Inject(REDIS) private readonly redisClient: Redis,
     private readonly configService: ConfigurationService,
-    private readonly userService: UserService,
   ) {
     this.REDIS_KEY = this.configService.get('SESSION_REDIS_KEY');
   }
@@ -92,17 +90,10 @@ export class SessionService {
   }
 
   /** Revokes a user's active session. */
-  async revokeSession(
-    currentUser: User,
-    password: User['password'],
-    currentSessionId: string,
-    sessionIdToRevoke: string,
-  ) {
+  async revokeSession(currentUser: User, currentSessionId: string, sessionIdToRevoke: string) {
     if (sessionIdToRevoke === currentSessionId) {
       throw new ConflictException('Cannot revoke the current session. Log out instead.');
     }
-
-    await this.userService.verifyPassword(currentUser.password, password);
 
     const sessionKey = `${this.REDIS_KEY}:${sessionIdToRevoke}`;
     const sessionDataString = await this.redisClient.get(sessionKey);
@@ -170,9 +161,7 @@ export class SessionService {
 
     try {
       const geoData = await geoip.lookup(ip);
-      if (!geoData) {
-        return 'Unknown';
-      }
+      if (!geoData) return 'Unknown';
 
       const parts = [geoData.city, geoData.region, geoData.country].filter(Boolean);
 

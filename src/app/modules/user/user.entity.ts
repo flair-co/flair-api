@@ -1,6 +1,7 @@
 import {Exclude, Expose, Type} from 'class-transformer';
 import {Column, CreateDateColumn, Entity, Index, OneToMany, PrimaryGeneratedColumn} from 'typeorm';
 
+import {AuthMethod} from '@modules/auth-method/auth-method.entity';
 import {BankAccount} from '@modules/bank-account/bank-account.entity';
 
 @Entity()
@@ -22,10 +23,6 @@ export class User {
   @Expose()
   isEmailVerified: boolean;
 
-  @Column({type: 'varchar', length: 255})
-  @Exclude()
-  password: string;
-
   @CreateDateColumn({type: 'timestamp'})
   @Expose()
   createdAt: Date;
@@ -34,4 +31,8 @@ export class User {
   @Expose()
   @Type(() => BankAccount)
   bankAccounts: BankAccount[];
+
+  @OneToMany(() => AuthMethod, (authMethod) => authMethod.user, {cascade: true})
+  @Exclude()
+  authenticationMethods: AuthMethod[];
 }

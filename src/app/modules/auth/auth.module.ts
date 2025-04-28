@@ -4,6 +4,7 @@ import {PassportModule} from '@nestjs/passport';
 
 import {EmailModule} from '@core/email/email.module';
 import {EmailService} from '@core/email/email.service';
+import {AuthMethodModule} from '@modules/auth-method/auth-method.module';
 import {UserModule} from '@modules/user/user.module';
 
 import {AuthController} from './api/auth.controller';
@@ -12,16 +13,18 @@ import {AuthService} from './services/auth.service';
 import {EmailVerifierService} from './services/email-verifier.service';
 import {SessionSerializer} from './services/session.serializer';
 import {SessionService} from './services/session.service';
+import {GoogleStrategy} from './strategies/google.strategy';
 import {LocalStrategy} from './strategies/local.strategy';
 
 @Module({
-  imports: [UserModule, EmailModule, PassportModule.register({session: true})],
+  imports: [UserModule, EmailModule, AuthMethodModule, PassportModule.register({session: true})],
   providers: [
     AuthService,
     SessionService,
     EmailVerifierService,
     SessionSerializer,
     LocalStrategy,
+    GoogleStrategy,
     EmailService,
     {provide: APP_GUARD, useClass: AuthGuard},
   ],

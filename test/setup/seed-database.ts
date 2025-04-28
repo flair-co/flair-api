@@ -3,6 +3,8 @@ import {getRepositoryToken} from '@nestjs/typeorm';
 import argon2 from 'argon2';
 import {Repository} from 'typeorm';
 
+import {AuthMethod} from '@modules/auth-method/auth-method.entity';
+import {AuthMethodType} from '@modules/auth-method/constants/auth-method.enum';
 import {User} from '@modules/user/user.entity';
 
 import {
@@ -23,6 +25,7 @@ type UserSeedData = {
 
 export async function seedDatabase(app: INestApplication) {
   const userRepository = app.get<Repository<User>>(getRepositoryToken(User));
+  const authMethodRepository = app.get<Repository<AuthMethod>>(getRepositoryToken(AuthMethod));
 
   const usersToSeed: UserSeedData[] = [
     {
@@ -45,16 +48,20 @@ export async function seedDatabase(app: INestApplication) {
     },
   ];
 
-  const users = await Promise.all(
-    usersToSeed.map(async (user) => {
-      const hashedPassword = await argon2.hash(user.password);
-      return userRepository.create({
-        name: user.name,
-        email: user.email,
-        password: hashedPassword,
-        isEmailVerified: user.isEmailVerified,
-      });
-    }),
-  );
-  await userRepository.save(users);
+  for (const user of usersToSeed) {
+    const userProfile = userRepository.create({
+      name: user.name,
+      email: user.email,
+      isEmailVerified: user.isEmailVerified,
+    });
+    const savedUser = await userRepository.save(userProfile);
+
+    const hashedPassword = await argon2.hash(user.password);
+    const authMethod = authMethodRepository.create({
+      userId: savedUser.id,
+      type: AuthMethodType.LOCAL,
+      password: hashedPassword,
+    });
+    await authMethodRepository.save(authMethod);
+  }
 }

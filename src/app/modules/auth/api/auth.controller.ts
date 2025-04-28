@@ -10,10 +10,12 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
+import {AuthGuard} from '@nestjs/passport';
 import {ApiOperation, ApiResponse, ApiTags} from '@nestjs/swagger';
 import {Throttle, minutes} from '@nestjs/throttler';
 import {Request, Response} from 'express';
 
+import {ConfigurationService} from '@core/config/config.service';
 import {User} from '@modules/user/user.entity';
 
 import {CurrentUser} from '../decorators/current-user.decorator';
@@ -27,7 +29,7 @@ import {ChangePasswordDto} from './dtos/change-password.dto';
 import {EmailChangeDto} from './dtos/email-change.dto';
 import {EmailVerifyDto} from './dtos/email-verify.dto';
 import {LogInDto} from './dtos/login.dto';
-import {SessionRevokeDto, SessionRevokeParamsDto} from './dtos/revoke-session.dto';
+import {SessionRevokeParamsDto} from './dtos/revoke-session.dto';
 import {SessionDto} from './dtos/session.dto';
 import {SignUpDto} from './dtos/signup.dto';
 
@@ -38,6 +40,7 @@ export class AuthController {
     private readonly emailVerifierService: EmailVerifierService,
     private readonly authService: AuthService,
     private readonly sessionService: SessionService,
+    private readonly configService: ConfigurationService,
   ) {}
 
   @Public()
@@ -81,19 +84,30 @@ export class AuthController {
     return this.authService.logOut(request);
   }
 
-  @Post('change-password')
-  @HttpCode(200)
-  @Throttle({default: {limit: 6, ttl: minutes(1)}})
-  @ApiResponse({status: 200, description: 'Password changed.'})
-  @ApiResponse({status: 400, description: 'Validation of the request body failed.'})
+  @Public()
+  @Get('google')
+  @UseGuards(AuthGuard('google'))
+  @ApiOperation({summary: 'Initiates Google OAuth login flow'})
+  @ApiResponse({status: 302, description: 'Redirects to Google for authentication.'})
+  async google() {}
+
+  @Public()
+  @Get('google/callback')
+  @UseGuards(AuthGuard('google'))
+  @ApiOperation({summary: 'Handles Google OAuth callback'})
   @ApiResponse({
-    status: 401,
-    description: 'User is not logged in or current password is incorrect.',
+    status: 302,
+    description: 'Starts a session and redirects to the client application.',
   })
-  @ApiResponse({status: 429, description: 'Too many requests. Try again later.'})
-  @ApiOperation({summary: 'Changes the password for the current user'})
-  async changePassword(@CurrentUser() user: User, @Body() dto: ChangePasswordDto) {
-    return this.authService.changePassword(user, dto);
+  @ApiResponse({status: 401, description: 'Google authentication failed.'})
+  async googleCallback(
+    @CurrentUser() user: User,
+    @Req() request: Request,
+    @Res() response: Response,
+  ) {
+    await this.authService.logIn(user, request);
+    const webBaseUrl = this.configService.get('WEB_BASE_URL');
+    response.redirect(webBaseUrl);
   }
 
   @Post('signup/resend')
@@ -152,6 +166,21 @@ export class AuthController {
     return this.emailVerifierService.verifyEmailChange(user, dto.code);
   }
 
+  @Post('change-password')
+  @HttpCode(200)
+  @Throttle({default: {limit: 6, ttl: minutes(1)}})
+  @ApiResponse({status: 200, description: 'Password changed.'})
+  @ApiResponse({status: 400, description: 'Validation of the request body failed.'})
+  @ApiResponse({
+    status: 401,
+    description: 'User is not logged in or current password is incorrect.',
+  })
+  @ApiResponse({status: 429, description: 'Too many requests. Try again later.'})
+  @ApiOperation({summary: 'Changes the password for the current user'})
+  async changePassword(@CurrentUser() user: User, @Body() dto: ChangePasswordDto) {
+    return this.authService.changePassword(user, dto);
+  }
+
   @Get('sessions')
   @HttpCode(200)
   @ApiResponse({status: 200, description: 'List of active sessions.', type: [SessionDto]})
@@ -175,13 +204,7 @@ export class AuthController {
     @CurrentUser() user: User,
     @Req() request: Request,
     @Param() params: SessionRevokeParamsDto,
-    @Body() dto: SessionRevokeDto,
   ) {
-    return this.sessionService.revokeSession(
-      user,
-      dto.password,
-      request.session.id,
-      params.sessionId,
-    );
+    return this.sessionService.revokeSession(user, request.session.id, params.sessionId);
   }
 }
