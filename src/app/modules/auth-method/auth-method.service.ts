@@ -3,6 +3,7 @@ import {InjectRepository} from '@nestjs/typeorm';
 import argon2 from 'argon2';
 import {Repository} from 'typeorm';
 
+import {ChangePasswordDto} from '@modules/auth/api/dtos/change-password.dto';
 import {User} from '@modules/user/user.entity';
 
 import {AuthMethod} from './auth-method.entity';
@@ -57,5 +58,13 @@ export class AuthMethodService {
 
   async updatePassword(id: User['id'], password: AuthMethod['password']) {
     await this.authMethodRepository.update({id}, {password});
+  }
+
+  async changePassword(user: User, dto: ChangePasswordDto) {
+    await this.verifyLocalPassword(user.id, dto.currentPassword);
+
+    const hash = await argon2.hash(dto.newPassword);
+    await this.updatePassword(user.id, hash);
+    return {message: 'Password changed.'};
   }
 }

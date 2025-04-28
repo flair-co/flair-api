@@ -1,12 +1,10 @@
 import {Injectable} from '@nestjs/common';
-import argon2 from 'argon2';
 import {Request} from 'express';
 
 import {AuthMethodService} from '@modules/auth-method/auth-method.service';
 import {User} from '@modules/user/user.entity';
 import {UserService} from '@modules/user/user.service';
 
-import {ChangePasswordDto} from '../api/dtos/change-password.dto';
 import {SignUpDto} from '../api/dtos/signup.dto';
 import {EmailVerifierService} from './email-verifier.service';
 import {SessionService} from './session.service';
@@ -51,13 +49,5 @@ export class AuthService {
     });
     await this.sessionService.initializeSessionMetadata(request);
     return {message: 'User logged in.'};
-  }
-
-  async changePassword(user: User, dto: ChangePasswordDto) {
-    await this.authMethodService.verifyLocalPassword(user.id, dto.currentPassword);
-
-    const hash = await argon2.hash(dto.newPassword);
-    await this.authMethodService.updatePassword(user.id, hash);
-    return {message: 'Password changed.'};
   }
 }

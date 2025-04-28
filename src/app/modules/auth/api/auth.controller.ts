@@ -16,6 +16,7 @@ import {Throttle, minutes} from '@nestjs/throttler';
 import {Request, Response} from 'express';
 
 import {ConfigurationService} from '@core/config/config.service';
+import {AuthMethodService} from '@modules/auth-method/auth-method.service';
 import {User} from '@modules/user/user.entity';
 
 import {CurrentUser} from '../decorators/current-user.decorator';
@@ -41,6 +42,7 @@ export class AuthController {
     private readonly authService: AuthService,
     private readonly sessionService: SessionService,
     private readonly configService: ConfigurationService,
+    private readonly authMethodService: AuthMethodService,
   ) {}
 
   @Public()
@@ -178,7 +180,7 @@ export class AuthController {
   @ApiResponse({status: 429, description: 'Too many requests. Try again later.'})
   @ApiOperation({summary: 'Changes the password for the current user'})
   async changePassword(@CurrentUser() user: User, @Body() dto: ChangePasswordDto) {
-    return this.authService.changePassword(user, dto);
+    return this.authMethodService.changePassword(user, dto);
   }
 
   @Get('sessions')
