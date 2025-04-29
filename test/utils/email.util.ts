@@ -17,7 +17,6 @@ export async function findEmailByRecipient(recipientEmail: string, apiUrl: strin
     );
 
     if (email) return email;
-
     retries--;
     if (retries > 0) await sleep(delayMs);
   }
