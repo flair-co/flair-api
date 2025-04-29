@@ -19,7 +19,7 @@ export class AuthService {
   ) {}
 
   async signUp({name, email, password}: SignUpDto, request: Request) {
-    await this.userService.validateEmailIsUnique(email);
+    await this.userService.verifyEmailIsUnique(email);
 
     const user = await this.userService.save(name, email, false);
     await this.authMethodService.createLocalMethod(user.id, password);

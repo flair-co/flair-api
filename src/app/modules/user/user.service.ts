@@ -30,7 +30,7 @@ export class UserService {
     return this.userRepository.findOneBy({email});
   }
 
-  async validateEmailIsUnique(email: User['email']) {
+  async verifyEmailIsUnique(email: User['email']) {
     const emailExists = await this.userRepository.existsBy({email});
 
     if (emailExists) {

@@ -3,9 +3,11 @@ import {
   Controller,
   Delete,
   Get,
+  Head,
   HttpCode,
   Param,
   Post,
+  Query,
   Req,
   Res,
   UseGuards,
@@ -18,6 +20,7 @@ import {Request, Response} from 'express';
 import {ConfigurationService} from '@core/config/config.service';
 import {AuthMethodService} from '@modules/auth-method/auth-method.service';
 import {User} from '@modules/user/user.entity';
+import {UserService} from '@modules/user/user.service';
 
 import {CurrentUser} from '../decorators/current-user.decorator';
 import {Public} from '../decorators/public.decorator';
@@ -28,6 +31,7 @@ import {EmailVerifierService} from '../services/email-verifier.service';
 import {SessionService} from '../services/session.service';
 import {ChangePasswordDto} from './dtos/change-password.dto';
 import {EmailChangeDto} from './dtos/email-change.dto';
+import {EmailCheckDto} from './dtos/email-check.dto';
 import {EmailVerifyDto} from './dtos/email-verify.dto';
 import {LogInDto} from './dtos/login.dto';
 import {SessionRevokeParamsDto} from './dtos/revoke-session.dto';
@@ -43,6 +47,7 @@ export class AuthController {
     private readonly sessionService: SessionService,
     private readonly configService: ConfigurationService,
     private readonly authMethodService: AuthMethodService,
+    private readonly userService: UserService,
   ) {}
 
   @Public()
@@ -142,17 +147,27 @@ export class AuthController {
     return {message: 'Email verified.'};
   }
 
+  @Head('change-email/check')
+  @HttpCode(204)
+  @ApiOperation({summary: 'Checks if an email address is available for use'})
+  @ApiResponse({status: 204, description: 'Email address is available.'})
+  @ApiResponse({status: 400, description: 'Invalid email format provided.'})
+  @ApiResponse({status: 409, description: 'Email address is already in use.'})
+  async checkEmailAvailability(@Query() query: EmailCheckDto): Promise<void> {
+    return this.userService.verifyEmailIsUnique(query.email);
+  }
+
   @Post('change-email/request')
   @HttpCode(200)
   @Throttle({default: {limit: 6, ttl: minutes(1)}})
   @ApiResponse({status: 200, description: 'Verification email sent.'})
   @ApiResponse({status: 400, description: 'Validation of the request body failed.'})
-  @ApiResponse({status: 401, description: 'User is not logged in or password is incorrect.'})
+  @ApiResponse({status: 401, description: 'User is not logged in.'})
   @ApiResponse({status: 409, description: 'This email is already in use.'})
   @ApiResponse({status: 429, description: 'Too many requests. Try again later.'})
   @ApiOperation({summary: "Requests a change to the user's email"})
   async requestEmailChange(@CurrentUser() user: User, @Body() dto: EmailChangeDto) {
-    return this.emailVerifierService.requestEmailChange(user, dto);
+    return this.emailVerifierService.requestEmailChange(user, dto.newEmail);
   }
 
   @Post('change-email/verify')

@@ -2,9 +2,9 @@ import {IsEmail, IsNotEmpty, Length} from 'class-validator';
 
 import {User} from '@modules/user/user.entity';
 
-export class EmailChangeDto {
+export class EmailCheckDto {
   @IsNotEmpty()
   @IsEmail()
   @Length(1, 255)
-  newEmail: User['email'];
+  email: User['email'];
 }

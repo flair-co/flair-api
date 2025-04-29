@@ -6,11 +6,8 @@ import ms from 'ms';
 import {ConfigurationService} from '@core/config/config.service';
 import {EmailService} from '@core/email/email.service';
 import {REDIS} from '@core/redis/redis.constants';
-import {AuthMethodService} from '@modules/auth-method/auth-method.service';
 import {User} from '@modules/user/user.entity';
 import {UserService} from '@modules/user/user.service';
-
-import {EmailChangeDto} from '../api/dtos/email-change.dto';
 
 @Injectable()
 export class EmailVerifierService {
@@ -23,7 +20,6 @@ export class EmailVerifierService {
     private readonly configService: ConfigurationService,
     private readonly emailService: EmailService,
     private readonly userService: UserService,
-    private readonly authMethodService: AuthMethodService,
   ) {
     this.REDIS_KEY = this.configService.get('EMAIL_VERIFICATION_REDIS_KEY');
     this.WEB_BASE_URL = this.configService.get('WEB_BASE_URL');
@@ -81,10 +77,8 @@ export class EmailVerifierService {
     return {message: 'Verification email sent.'};
   }
 
-  async requestEmailChange(user: User, {newEmail, password}: EmailChangeDto) {
-    await this.authMethodService.verifyLocalPassword(user.id, password);
-
-    await this.userService.validateEmailIsUnique(newEmail);
+  async requestEmailChange(user: User, newEmail: User['email']) {
+    await this.userService.verifyEmailIsUnique(newEmail);
 
     const code = await this.createCode(newEmail);
 
@@ -100,7 +94,7 @@ export class EmailVerifierService {
   async verifyEmailChange(user: User, code: string) {
     const newEmail = await this.getEmailByCode(code);
 
-    await this.userService.validateEmailIsUnique(newEmail);
+    await this.userService.verifyEmailIsUnique(newEmail);
     const updatedUser = await this.userService.update(user.id, {email: newEmail});
 
     await this.removeCode(code);
