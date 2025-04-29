@@ -1,9 +1,11 @@
 import {faker} from '@faker-js/faker';
+import {Server} from 'net';
 import request from 'supertest';
 
 import {ChangePasswordDto} from '@modules/auth/api/dtos/change-password.dto';
 
 import {
+  GOOGLE_ONLY_USER_EMAIL,
   PW_CHANGE_USER_EMAIL,
   PW_CHANGE_USER_PASSWORD,
   UNVERIFIED_USER_EMAIL,
@@ -12,9 +14,10 @@ import {
   VERIFIED_USER_PASSWORD,
 } from '../../setup/constants';
 import {getApp} from '../../setup/e2e.setup';
+import {createSession} from '../../utils/create-session.util';
 
 describe('AuthController - Change password', () => {
-  let httpServer: any;
+  let httpServer: Server;
 
   beforeAll(() => {
     httpServer = getApp().getHttpServer();
@@ -186,6 +189,30 @@ describe('AuthController - Change password', () => {
       };
 
       await request(httpServer).post('/auth/change-password').send(changePasswordDto).expect(401);
+    });
+
+    it('should return 401 Unauthorized when a Google-only user attempts to change password', async () => {
+      const agent = await createSession(httpServer, GOOGLE_ONLY_USER_EMAIL);
+
+      await agent
+        .get('/users/me')
+        .expect(200)
+        .expect((res) => {
+          expect(res.body.email).toEqual(GOOGLE_ONLY_USER_EMAIL);
+        });
+
+      const changePasswordDto: ChangePasswordDto = {
+        currentPassword: 'does-not-matter',
+        newPassword: faker.internet.password({length: 12}),
+      };
+
+      await agent
+        .post('/auth/change-password')
+        .send(changePasswordDto)
+        .expect(401)
+        .expect((res) => {
+          expect(res.body.message).toMatch(/Local authentication method is not set up/i);
+        });
     });
   });
 });
