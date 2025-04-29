@@ -61,7 +61,7 @@ export class AuthController {
   @ApiResponse({status: 429, description: 'Too many requests. Try again later.'})
   @ApiOperation({summary: 'Registers a new user'})
   async signUp(@Body() dto: SignUpDto, @Req() request: Request) {
-    return this.authService.signUp(dto, request);
+    return await this.authService.signUp(dto, request);
   }
 
   @Public()
@@ -88,7 +88,7 @@ export class AuthController {
   @ApiOperation({summary: 'Logs out the current user and destroys the session'})
   async logOut(@Req() request: Request, @Res({passthrough: true}) res: Response) {
     res.clearCookie('session');
-    return this.authService.logOut(request);
+    return await this.authService.logOut(request);
   }
 
   @Public()
@@ -127,7 +127,7 @@ export class AuthController {
   @ApiResponse({status: 429, description: 'Too many requests. Try again later.'})
   @ApiOperation({summary: 'Resends the email verification code to the current user'})
   async sendVerifyEmail(@CurrentUser() user: User) {
-    return this.emailVerifierService.sendVerifyEmail(user);
+    return await this.emailVerifierService.sendVerifyEmail(user);
   }
 
   @Public()
@@ -154,7 +154,7 @@ export class AuthController {
   @ApiResponse({status: 400, description: 'Invalid email format provided.'})
   @ApiResponse({status: 409, description: 'Email address is already in use.'})
   async checkEmailAvailability(@Query() query: EmailCheckDto): Promise<void> {
-    return this.userService.verifyEmailIsUnique(query.email);
+    return await this.userService.verifyEmailIsUnique(query.email);
   }
 
   @Post('change-email/request')
@@ -167,7 +167,7 @@ export class AuthController {
   @ApiResponse({status: 429, description: 'Too many requests. Try again later.'})
   @ApiOperation({summary: "Requests a change to the user's email"})
   async requestEmailChange(@CurrentUser() user: User, @Body() dto: EmailChangeDto) {
-    return this.emailVerifierService.requestEmailChange(user, dto.newEmail);
+    return await this.emailVerifierService.requestEmailChange(user, dto.newEmail);
   }
 
   @Post('change-email/verify')
@@ -180,7 +180,7 @@ export class AuthController {
   @ApiResponse({status: 429, description: 'Too many requests. Try again later.'})
   @ApiOperation({summary: 'Verifies the new email using a code'})
   async verifyEmailChange(@CurrentUser() user: User, @Body() dto: EmailVerifyDto) {
-    return this.emailVerifierService.verifyEmailChange(user, dto.code);
+    return await this.emailVerifierService.verifyEmailChange(user, dto.code);
   }
 
   @Post('change-password')
@@ -196,7 +196,7 @@ export class AuthController {
   @ApiResponse({status: 429, description: 'Too many requests. Try again later.'})
   @ApiOperation({summary: 'Changes the password for the current user'})
   async changePassword(@CurrentUser() user: User, @Body() dto: ChangePasswordDto) {
-    return this.authMethodService.changePassword(user, dto);
+    return await this.authMethodService.changePassword(user, dto);
   }
 
   @Get('sessions')
@@ -206,7 +206,7 @@ export class AuthController {
   @ApiResponse({status: 429, description: 'Too many requests. Try again later.'})
   @ApiOperation({summary: 'Retrieves all active sessions for the current user'})
   async getSessions(@CurrentUser() user: User, @Req() request: Request) {
-    return this.sessionService.getSessions(user.id, request.session.id);
+    return await this.sessionService.getSessions(user.id, request.session.id);
   }
 
   @Delete('sessions/:sessionId')
@@ -223,6 +223,6 @@ export class AuthController {
     @Req() request: Request,
     @Param() params: SessionRevokeParamsDto,
   ) {
-    return this.sessionService.revokeSession(user, request.session.id, params.sessionId);
+    return await this.sessionService.revokeSession(user, request.session.id, params.sessionId);
   }
 }
