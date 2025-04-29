@@ -1,3 +1,4 @@
+import {Server} from 'net';
 import request from 'supertest';
 import TestAgent from 'supertest/lib/agent';
 
@@ -12,7 +13,7 @@ import {
 import {getApp} from '../../setup/e2e.setup';
 
 describe('AuthController - Sessions', () => {
-  let httpServer: any;
+  let httpServer: Server;
 
   beforeAll(async () => {
     httpServer = getApp().getHttpServer();

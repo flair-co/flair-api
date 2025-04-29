@@ -2,6 +2,7 @@ import {INestApplication} from '@nestjs/common';
 import {Test, TestingModule} from '@nestjs/testing';
 import {getRepositoryToken} from '@nestjs/typeorm';
 import session from 'express-session';
+import {Server} from 'net';
 import passport from 'passport';
 import request from 'supertest';
 import TestAgent from 'supertest/lib/agent';
@@ -33,7 +34,7 @@ describe('AuthController - Google OAuth', () => {
 
   describe('/auth/google/callback (GET)', () => {
     let mockApp: INestApplication;
-    let httpServer: any;
+    let httpServer: Server;
     let agent: TestAgent;
     let userService: UserService;
     let authMethodRepo: Repository<AuthMethod>;
