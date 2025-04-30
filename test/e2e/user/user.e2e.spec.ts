@@ -42,7 +42,7 @@ describe('UserController - /me', () => {
       expect(user).toBeDefined();
       expect(user.id).toBeDefined();
       expect(user.email).toEqual(VERIFIED_USER_EMAIL);
-      expect(user.name).toEqual('Verified User');
+      expect(user.name).toEqual('Verified user');
       expect(user.isEmailVerified).toBe(true);
       expect(user.createdAt).toBeDefined();
       expect(user.bankAccounts).toBeUndefined();
@@ -65,7 +65,7 @@ describe('UserController - /me', () => {
       expect(user).toBeDefined();
       expect(user.id).toBeDefined();
       expect(user.email).toEqual(UNVERIFIED_USER_EMAIL);
-      expect(user.name).toEqual('Unverified User');
+      expect(user.name).toEqual('Unverified user');
       expect(user.isEmailVerified).toBe(false);
       expect(user.createdAt).toBeDefined();
       expect(user.bankAccounts).toBeUndefined();

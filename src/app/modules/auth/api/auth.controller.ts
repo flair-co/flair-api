@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -6,6 +7,7 @@ import {
   Head,
   HttpCode,
   Param,
+  ParseEnumPipe,
   Post,
   Query,
   Req,
@@ -13,12 +15,13 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import {AuthGuard} from '@nestjs/passport';
-import {ApiOperation, ApiResponse, ApiTags} from '@nestjs/swagger';
+import {ApiOperation, ApiParam, ApiResponse, ApiTags} from '@nestjs/swagger';
 import {Throttle, minutes} from '@nestjs/throttler';
 import {Request, Response} from 'express';
 
 import {ConfigurationService} from '@core/config/config.service';
 import {AuthMethodService} from '@modules/auth-method/auth-method.service';
+import {AuthMethodType} from '@modules/auth-method/constants/auth-method.enum';
 import {User} from '@modules/user/user.entity';
 import {UserService} from '@modules/user/user.service';
 
@@ -146,6 +149,41 @@ export class AuthController {
       await this.authService.logIn(user, request);
     }
     return {message: 'Email verified.'};
+  }
+
+  @Delete('methods/:methodType')
+  @HttpCode(200)
+  @Throttle({default: {limit: 6, ttl: minutes(1)}})
+  @ApiParam({
+    name: 'methodType',
+    required: true,
+    description: 'The type of method to disconnect.',
+    enum: AuthMethodType,
+    example: AuthMethodType.GOOGLE,
+  })
+  @ApiResponse({status: 200, description: 'OAuth method successfully disconnected.'})
+  @ApiResponse({status: 400, description: 'Invalid or unsupported method type provided in URL.'})
+  @ApiResponse({status: 401, description: 'User is not authenticated.'})
+  @ApiResponse({
+    status: 404,
+    description: 'The specified OAuth connection was not found for this user.',
+  })
+  @ApiResponse({status: 409, description: 'Cannot disconnect the only sign-in method.'})
+  @ApiResponse({status: 429, description: 'Too many requests. Try again later.'})
+  @ApiOperation({
+    summary: 'Disconnects an OAuth sign-in method (e.g., Google) for the current user.',
+  })
+  async disconnectOAuthMethod(
+    @CurrentUser() user: User,
+    @Param(
+      'methodType',
+      new ParseEnumPipe(AuthMethodType, {
+        exceptionFactory: () => new BadRequestException('Invalid method type specified.'),
+      }),
+    )
+    methodType: AuthMethodType,
+  ) {
+    return await this.authMethodService.disconnectOAuthMethod(user.id, methodType);
   }
 
   @Head('change-email/check')

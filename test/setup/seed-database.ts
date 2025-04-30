@@ -9,6 +9,9 @@ import {AuthMethodType} from '@modules/auth-method/constants/auth-method.enum';
 import {User} from '@modules/user/user.entity';
 
 import {
+  GOOGLE_AND_LOCAL_USER_EMAIL,
+  GOOGLE_AND_LOCAL_USER_PASSWORD,
+  GOOGLE_AND_LOCAL_USER_PROVIDER_ID,
   GOOGLE_ONLY_USER_EMAIL,
   GOOGLE_ONLY_USER_PROVIDER_ID,
   PW_CHANGE_USER_EMAIL,
@@ -25,28 +28,37 @@ export async function seedDatabase(app: INestApplication) {
 
   const usersToSeed: UserSeed[] = [
     {
-      name: 'Verified User',
+      name: 'Verified user',
       email: VERIFIED_USER_EMAIL,
       isEmailVerified: true,
       authMethods: [{type: AuthMethodType.LOCAL, password: VERIFIED_USER_PASSWORD}],
     },
     {
-      name: 'Unverified User',
+      name: 'Unverified user',
       email: UNVERIFIED_USER_EMAIL,
       isEmailVerified: false,
       authMethods: [{type: AuthMethodType.LOCAL, password: UNVERIFIED_USER_PASSWORD}],
     },
     {
-      name: 'Password Change User',
+      name: 'Password change user',
       email: PW_CHANGE_USER_EMAIL,
       isEmailVerified: true,
       authMethods: [{type: AuthMethodType.LOCAL, password: PW_CHANGE_USER_PASSWORD}],
     },
     {
-      name: 'Google Only User',
+      name: 'Google only user',
       email: GOOGLE_ONLY_USER_EMAIL,
       isEmailVerified: true,
       authMethods: [{type: AuthMethodType.GOOGLE, providerId: GOOGLE_ONLY_USER_PROVIDER_ID}],
+    },
+    {
+      name: 'Google and local User',
+      email: GOOGLE_AND_LOCAL_USER_EMAIL,
+      isEmailVerified: true,
+      authMethods: [
+        {type: AuthMethodType.GOOGLE, providerId: GOOGLE_AND_LOCAL_USER_PROVIDER_ID},
+        {type: AuthMethodType.LOCAL, password: GOOGLE_AND_LOCAL_USER_PASSWORD},
+      ],
     },
   ];
 

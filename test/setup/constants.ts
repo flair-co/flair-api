@@ -9,3 +9,7 @@ export const PW_CHANGE_USER_PASSWORD = 'pwchange';
 
 export const GOOGLE_ONLY_USER_EMAIL = 'google@test.com';
 export const GOOGLE_ONLY_USER_PROVIDER_ID = '109876543210987654321';
+
+export const GOOGLE_AND_LOCAL_USER_EMAIL = 'google-and-local@test.com';
+export const GOOGLE_AND_LOCAL_USER_PROVIDER_ID = '114729835061728395012';
+export const GOOGLE_AND_LOCAL_USER_PASSWORD = 'google-and-local';
