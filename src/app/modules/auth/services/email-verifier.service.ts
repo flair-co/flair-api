@@ -81,12 +81,13 @@ export class EmailVerifierService {
     await this.userService.verifyEmailIsUnique(newEmail);
 
     const code = await this.createCode(newEmail);
+    const verificationUrl = await this.createUrl(code);
 
     await this.emailService.send({
       to: newEmail,
       subject: `${code} is your verification code`,
       template: 'verify-new-email',
-      context: {name: user.name, code},
+      context: {name: user.name, verificationUrl},
     });
     return {message: 'Verification email sent.'};
   }
