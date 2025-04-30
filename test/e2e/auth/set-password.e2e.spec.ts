@@ -13,7 +13,7 @@ import {
 import {getApp} from '../../setup/e2e.setup';
 import {createSession} from '../../utils/create-session.util';
 
-describe('AuthController - Change password', () => {
+describe('AuthController - Set password', () => {
   let httpServer: Server;
 
   beforeAll(() => {
