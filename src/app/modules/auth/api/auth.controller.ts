@@ -34,7 +34,7 @@ import {EmailChangeDto} from './dtos/email-change.dto';
 import {EmailCheckDto} from './dtos/email-check.dto';
 import {EmailVerifyDto} from './dtos/email-verify.dto';
 import {LogInDto} from './dtos/login.dto';
-import {SessionRevokeParamsDto} from './dtos/revoke-session.dto';
+import {SessionRevokeDto} from './dtos/revoke-session.dto';
 import {SessionResponseDto} from './dtos/session.dto';
 import {SignUpDto} from './dtos/signup.dto';
 
@@ -153,7 +153,7 @@ export class AuthController {
   @ApiResponse({status: 204, description: 'Email address is available.'})
   @ApiResponse({status: 400, description: 'Invalid email format provided.'})
   @ApiResponse({status: 409, description: 'Email address is already in use.'})
-  async checkEmailAvailability(@Query() query: EmailCheckDto): Promise<void> {
+  async checkEmailAvailability(@Query() query: EmailCheckDto) {
     return await this.userService.verifyEmailIsUnique(query.email);
   }
 
@@ -221,8 +221,8 @@ export class AuthController {
   async revokeSession(
     @CurrentUser() user: User,
     @Req() request: Request,
-    @Param() params: SessionRevokeParamsDto,
+    @Param() dto: SessionRevokeDto,
   ) {
-    return await this.sessionService.revokeSession(user, request.session.id, params.sessionId);
+    return await this.sessionService.revokeSession(user, request.session.id, dto.sessionId);
   }
 }
