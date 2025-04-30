@@ -28,6 +28,22 @@ export function extractVerificationCode(body: string | undefined) {
   return match ? match[1] : null;
 }
 
+export function extractVerificationUrl(body: string | undefined): string | null {
+  if (!body) return null;
+
+  const decodedBody = body.replace(/=3D/g, '=');
+  const match = decodedBody.match(/href="([^"]+)"/i);
+  return match ? match[1] : null;
+}
+
+export function extractVerificationCodeFromUrl(url: string): string | null {
+  try {
+    return new URL(url).searchParams.get('code');
+  } catch (error) {
+    return null;
+  }
+}
+
 export function sleep(ms: number = 250) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
