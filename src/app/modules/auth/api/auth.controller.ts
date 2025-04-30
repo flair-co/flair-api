@@ -36,6 +36,7 @@ import {EmailVerifyDto} from './dtos/email-verify.dto';
 import {LogInDto} from './dtos/login.dto';
 import {SessionRevokeDto} from './dtos/revoke-session.dto';
 import {SessionResponseDto} from './dtos/session.dto';
+import {SetPasswordDto} from './dtos/set-password.dto';
 import {SignUpDto} from './dtos/signup.dto';
 
 @ApiTags('Auth')
@@ -183,6 +184,19 @@ export class AuthController {
     return await this.emailVerifierService.verifyEmailChange(user, dto.code);
   }
 
+  @Post('set-password')
+  @HttpCode(200)
+  @Throttle({default: {limit: 6, ttl: minutes(1)}})
+  @ApiResponse({status: 200, description: 'Password set.'})
+  @ApiResponse({status: 400, description: 'Validation of the request body failed.'})
+  @ApiResponse({status: 401, description: 'User is not logged in.'})
+  @ApiResponse({status: 409, description: 'User already has a password set.'})
+  @ApiResponse({status: 429, description: 'Too many requests. Try again later.'})
+  @ApiOperation({summary: 'Sets a password for the current user.'})
+  async setPassword(@CurrentUser() user: User, @Body() dto: SetPasswordDto) {
+    return await this.authMethodService.setPassword(user.id, dto.newPassword);
+  }
+
   @Post('change-password')
   @HttpCode(200)
   @Throttle({default: {limit: 6, ttl: minutes(1)}})
@@ -196,7 +210,7 @@ export class AuthController {
   @ApiResponse({status: 429, description: 'Too many requests. Try again later.'})
   @ApiOperation({summary: 'Changes the password for the current user'})
   async changePassword(@CurrentUser() user: User, @Body() dto: ChangePasswordDto) {
-    return await this.authMethodService.changePassword(user, dto);
+    return await this.authMethodService.changePassword(user.id, dto);
   }
 
   @Get('sessions')

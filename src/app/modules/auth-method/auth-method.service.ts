@@ -1,4 +1,4 @@
-import {Injectable, UnauthorizedException} from '@nestjs/common';
+import {ConflictException, Injectable, UnauthorizedException} from '@nestjs/common';
 import {InjectRepository} from '@nestjs/typeorm';
 import argon2 from 'argon2';
 import {Repository} from 'typeorm';
@@ -18,6 +18,10 @@ export class AuthMethodService {
 
   async findByProvider(type: AuthMethodType, providerId: NonNullable<AuthMethod['providerId']>) {
     return this.authMethodRepository.findOne({where: {type, providerId}, relations: ['user']});
+  }
+
+  async findLocalMethodByUserId(userId: User['id']) {
+    return await this.authMethodRepository.findOneBy({userId, type: AuthMethodType.LOCAL});
   }
 
   async createLocalMethod(userId: User['id'], password: string): Promise<AuthMethod> {
@@ -44,10 +48,7 @@ export class AuthMethodService {
   }
 
   async verifyLocalPassword(userId: User['id'], password: string) {
-    const localMethod = await this.authMethodRepository.findOneBy({
-      userId,
-      type: AuthMethodType.LOCAL,
-    });
+    const localMethod = await this.findLocalMethodByUserId(userId);
 
     if (!localMethod || !localMethod.password) {
       throw new UnauthorizedException('Local authentication method is not set up for this user.');
@@ -61,11 +62,21 @@ export class AuthMethodService {
     return localMethod;
   }
 
-  async changePassword(user: User, dto: ChangePasswordDto) {
-    const localMethod = await this.verifyLocalPassword(user.id, dto.currentPassword);
+  async changePassword(userId: User['id'], dto: ChangePasswordDto) {
+    const localMethod = await this.verifyLocalPassword(userId, dto.currentPassword);
     localMethod.password = await argon2.hash(dto.newPassword);
 
     await this.authMethodRepository.save(localMethod);
     return {message: 'Password changed.'};
+  }
+
+  async setPassword(userId: User['id'], newPassword: NonNullable<AuthMethod['password']>) {
+    const existingLocalMethod = await this.findLocalMethodByUserId(userId);
+    if (existingLocalMethod) {
+      throw new ConflictException('User already has a password set.');
+    }
+
+    await this.createLocalMethod(userId, newPassword);
+    return {message: 'Password set.'};
   }
 }
