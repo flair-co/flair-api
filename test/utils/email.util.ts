@@ -22,21 +22,20 @@ export async function findEmailByRecipient(recipientEmail: string, apiUrl: strin
   }
 }
 
-export function extractVerificationCode(body: string | undefined) {
+export function extractVerificationCode(body?: string) {
   if (!body) return null;
   const match = body.match(/following code:\s*(\d{6})/i);
   return match ? match[1] : null;
 }
 
-export function extractVerificationUrl(body: string | undefined): string | null {
+export function extractVerificationUrl(body?: string) {
   if (!body) return null;
-
   const decodedBody = body.replace(/=3D/g, '=');
   const match = decodedBody.match(/href="([^"]+)"/i);
   return match ? match[1] : null;
 }
 
-export function extractVerificationCodeFromUrl(url: string): string | null {
+export function extractVerificationCodeFromUrl(url: string) {
   try {
     return new URL(url).searchParams.get('code');
   } catch (error) {
