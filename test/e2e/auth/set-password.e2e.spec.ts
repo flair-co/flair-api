@@ -3,7 +3,7 @@ import {Server} from 'net';
 import request from 'supertest';
 
 import {AuthMethodType} from '@modules/auth-method/constants/auth-method.enum';
-import {SetPasswordDto} from '@modules/auth/api/dtos/set-password.dto';
+import {PasswordSetDto} from '@modules/auth/api/dtos/password-set-dto';
 
 import {
   GOOGLE_ONLY_USER_EMAIL,
@@ -25,7 +25,7 @@ describe('AuthController - Set password', () => {
       const agent = await createSession(httpServer, GOOGLE_ONLY_USER_EMAIL);
 
       const newPassword = faker.internet.password({length: 12});
-      const setPasswordDto: SetPasswordDto = {newPassword: newPassword};
+      const setPasswordDto: PasswordSetDto = {password: newPassword};
 
       await agent
         .post('/auth/set-password')
@@ -63,7 +63,9 @@ describe('AuthController - Set password', () => {
         .send({email: VERIFIED_USER_EMAIL, password: VERIFIED_USER_PASSWORD})
         .expect(200);
 
-      const setPasswordDto: SetPasswordDto = {newPassword: faker.internet.password({length: 12})};
+      const setPasswordDto: PasswordSetDto = {
+        password: faker.internet.password({length: 12}),
+      };
 
       await agent
         .post('/auth/set-password')
@@ -75,14 +77,16 @@ describe('AuthController - Set password', () => {
     });
 
     it('should fail with 401 Unauthorized if user is not logged in', async () => {
-      const setPasswordDto: SetPasswordDto = {newPassword: faker.internet.password({length: 12})};
+      const setPasswordDto: PasswordSetDto = {
+        password: faker.internet.password({length: 12}),
+      };
 
       await request(httpServer).post('/auth/set-password').send(setPasswordDto).expect(401);
     });
 
     it('should fail with 400 Bad Request if new password is too short', async () => {
       const agent = await createSession(httpServer, GOOGLE_ONLY_USER_EMAIL);
-      const setPasswordDto: SetPasswordDto = {newPassword: 'short'};
+      const setPasswordDto: PasswordSetDto = {password: 'short'};
 
       await agent
         .post('/auth/set-password')
@@ -91,7 +95,7 @@ describe('AuthController - Set password', () => {
         .expect((res) => {
           expect(res.body.message).toEqual(
             expect.arrayContaining([
-              expect.stringMatching(/newPassword must be longer than or equal to 8 characters/i),
+              expect.stringMatching(/password must be longer than or equal to 8 characters/i),
             ]),
           );
         });
@@ -99,7 +103,7 @@ describe('AuthController - Set password', () => {
 
     it('should fail with 400 Bad Request if new password is missing', async () => {
       const agent = await createSession(httpServer, GOOGLE_ONLY_USER_EMAIL);
-      const setPasswordDto: Partial<SetPasswordDto> = {};
+      const setPasswordDto: Partial<PasswordSetDto> = {};
 
       await agent
         .post('/auth/set-password')
@@ -107,7 +111,7 @@ describe('AuthController - Set password', () => {
         .expect(400)
         .expect((res) => {
           expect(res.body.message).toEqual(
-            expect.arrayContaining([expect.stringMatching(/newPassword should not be empty/i)]),
+            expect.arrayContaining([expect.stringMatching(/password should not be empty/i)]),
           );
         });
     });

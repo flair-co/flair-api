@@ -8,7 +8,7 @@ import {ConfigurationService} from '@core/config/config.service';
 import {REDIS} from '@core/redis/redis.constants';
 import {User} from '@modules/user/user.entity';
 
-import {SessionResponseDto} from '../api/dtos/session.dto';
+import {SessionResponseDto} from '../api/dtos/session-response.dto';
 import {AuthenticatedSession} from './authenticated-session.interface';
 
 @Injectable()

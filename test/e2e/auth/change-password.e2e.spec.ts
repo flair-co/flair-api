@@ -2,7 +2,7 @@ import {faker} from '@faker-js/faker';
 import {Server} from 'net';
 import request from 'supertest';
 
-import {ChangePasswordDto} from '@modules/auth/api/dtos/change-password.dto';
+import {PasswordChangeDto} from '@modules/auth/api/dtos/password-change.dto';
 
 import {
   GOOGLE_ONLY_USER_EMAIL,
@@ -35,7 +35,7 @@ describe('AuthController - Change password', () => {
         .expect(200);
 
       const newPassword = faker.internet.password({length: 12});
-      const changePasswordDto: ChangePasswordDto = {
+      const changePasswordDto: PasswordChangeDto = {
         currentPassword: PW_CHANGE_USER_PASSWORD,
         newPassword: newPassword,
       };
@@ -73,7 +73,7 @@ describe('AuthController - Change password', () => {
         })
         .expect(200);
 
-      const changePasswordDto: ChangePasswordDto = {
+      const changePasswordDto: PasswordChangeDto = {
         currentPassword: 'wrong-current-password',
         newPassword: faker.internet.password({length: 12}),
       };
@@ -89,7 +89,7 @@ describe('AuthController - Change password', () => {
         .expect(200);
 
       const newPassword = faker.internet.password({length: 12});
-      const changePasswordDto: ChangePasswordDto = {
+      const changePasswordDto: PasswordChangeDto = {
         currentPassword: UNVERIFIED_USER_PASSWORD,
         newPassword: newPassword,
       };
@@ -113,7 +113,7 @@ describe('AuthController - Change password', () => {
         })
         .expect(200);
 
-      const changePasswordDto: ChangePasswordDto = {
+      const changePasswordDto: PasswordChangeDto = {
         currentPassword: VERIFIED_USER_PASSWORD,
         newPassword: 'short',
       };
@@ -125,7 +125,7 @@ describe('AuthController - Change password', () => {
         .expect((res) => {
           expect(res.body.message).toEqual(
             expect.arrayContaining([
-              expect.stringMatching(/newPassword must be longer than or equal to 8 characters/i),
+              expect.stringMatching(/password must be longer than or equal to 8 characters/i),
             ]),
           );
         });
@@ -141,7 +141,7 @@ describe('AuthController - Change password', () => {
         })
         .expect(200);
 
-      const changePasswordDto: Partial<ChangePasswordDto> = {
+      const changePasswordDto: Partial<PasswordChangeDto> = {
         newPassword: faker.internet.password({length: 12}),
       };
 
@@ -166,7 +166,7 @@ describe('AuthController - Change password', () => {
         })
         .expect(200);
 
-      const changePasswordDto: Partial<ChangePasswordDto> = {
+      const changePasswordDto: Partial<PasswordChangeDto> = {
         currentPassword: VERIFIED_USER_PASSWORD,
       };
 
@@ -183,7 +183,7 @@ describe('AuthController - Change password', () => {
 
     it('should fail with 401 Unauthorized if user is not logged in', async () => {
       const newPassword = faker.internet.password({length: 12});
-      const changePasswordDto: ChangePasswordDto = {
+      const changePasswordDto: PasswordChangeDto = {
         currentPassword: VERIFIED_USER_PASSWORD,
         newPassword: newPassword,
       };
@@ -201,7 +201,7 @@ describe('AuthController - Change password', () => {
           expect(res.body.email).toEqual(GOOGLE_ONLY_USER_EMAIL);
         });
 
-      const changePasswordDto: ChangePasswordDto = {
+      const changePasswordDto: PasswordChangeDto = {
         currentPassword: 'does-not-matter',
         newPassword: faker.internet.password({length: 12}),
       };

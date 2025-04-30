@@ -2,7 +2,7 @@ import {Server} from 'net';
 import request from 'supertest';
 import TestAgent from 'supertest/lib/agent';
 
-import {SessionResponseDto} from '@modules/auth/api/dtos/session.dto';
+import {SessionResponseDto} from '@modules/auth/api/dtos/session-response.dto';
 
 import {
   UNVERIFIED_USER_EMAIL,

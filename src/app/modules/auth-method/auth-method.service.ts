@@ -9,7 +9,7 @@ import {InjectRepository} from '@nestjs/typeorm';
 import argon2 from 'argon2';
 import {Repository} from 'typeorm';
 
-import {ChangePasswordDto} from '@modules/auth/api/dtos/change-password.dto';
+import {PasswordChangeDto} from '@modules/auth/api/dtos/password-change.dto';
 import {User} from '@modules/user/user.entity';
 
 import {AuthMethod} from './auth-method.entity';
@@ -75,7 +75,7 @@ export class AuthMethodService {
     return localMethod;
   }
 
-  async changePassword(userId: User['id'], dto: ChangePasswordDto) {
+  async changePassword(userId: User['id'], dto: PasswordChangeDto) {
     const localMethod = await this.verifyLocalPassword(userId, dto.currentPassword);
     localMethod.password = await argon2.hash(dto.newPassword);
 
@@ -83,13 +83,13 @@ export class AuthMethodService {
     return {message: 'Password changed.'};
   }
 
-  async setPassword(userId: User['id'], newPassword: NonNullable<AuthMethod['password']>) {
+  async setPassword(userId: User['id'], password: NonNullable<AuthMethod['password']>) {
     const existingLocalMethod = await this.findLocalMethodByUserId(userId);
     if (existingLocalMethod) {
       throw new ConflictException('User already has a password set.');
     }
 
-    await this.createLocalMethod(userId, newPassword);
+    await this.createLocalMethod(userId, password);
     return {message: 'Password set.'};
   }
 

@@ -32,14 +32,14 @@ import {LocalLogInGuard} from '../guards/local-login.guard';
 import {AuthService} from '../services/auth.service';
 import {EmailVerifierService} from '../services/email-verifier.service';
 import {SessionService} from '../services/session.service';
-import {ChangePasswordDto} from './dtos/change-password.dto';
 import {EmailChangeDto} from './dtos/email-change.dto';
 import {EmailCheckDto} from './dtos/email-check.dto';
 import {EmailVerifyDto} from './dtos/email-verify.dto';
 import {LogInDto} from './dtos/login.dto';
-import {SessionRevokeDto} from './dtos/revoke-session.dto';
-import {SessionResponseDto} from './dtos/session.dto';
-import {SetPasswordDto} from './dtos/set-password.dto';
+import {PasswordChangeDto} from './dtos/password-change.dto';
+import {PasswordSetDto} from './dtos/password-set-dto';
+import {SessionResponseDto} from './dtos/session-response.dto';
+import {SessionRevokeDto} from './dtos/session-revoke.dto';
 import {SignUpDto} from './dtos/signup.dto';
 
 @ApiTags('Auth')
@@ -231,8 +231,8 @@ export class AuthController {
   @ApiResponse({status: 409, description: 'User already has a password set.'})
   @ApiResponse({status: 429, description: 'Too many requests. Try again later.'})
   @ApiOperation({summary: 'Sets a password for the current user.'})
-  async setPassword(@CurrentUser() user: User, @Body() dto: SetPasswordDto) {
-    return await this.authMethodService.setPassword(user.id, dto.newPassword);
+  async setPassword(@CurrentUser() user: User, @Body() dto: PasswordSetDto) {
+    return await this.authMethodService.setPassword(user.id, dto.password);
   }
 
   @Post('change-password')
@@ -247,7 +247,7 @@ export class AuthController {
   })
   @ApiResponse({status: 429, description: 'Too many requests. Try again later.'})
   @ApiOperation({summary: 'Changes the password for the current user'})
-  async changePassword(@CurrentUser() user: User, @Body() dto: ChangePasswordDto) {
+  async changePassword(@CurrentUser() user: User, @Body() dto: PasswordChangeDto) {
     return await this.authMethodService.changePassword(user.id, dto);
   }
 
