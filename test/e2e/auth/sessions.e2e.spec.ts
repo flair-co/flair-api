@@ -5,6 +5,8 @@ import TestAgent from 'supertest/lib/agent';
 import {SessionResponseDto} from '@modules/auth/api/dtos/session-response.dto';
 
 import {
+  GOOGLE_AND_LOCAL_USER_EMAIL,
+  GOOGLE_AND_LOCAL_USER_PASSWORD,
   UNVERIFIED_USER_EMAIL,
   UNVERIFIED_USER_PASSWORD,
   VERIFIED_USER_EMAIL,
@@ -25,21 +27,18 @@ describe('AuthController - Sessions', () => {
     let unverifiedAgent: TestAgent;
 
     beforeEach(async () => {
-      // Login verified user - Session 1
       verifiedAgent1 = request.agent(httpServer);
       await verifiedAgent1
         .post('/auth/login')
         .send({email: VERIFIED_USER_EMAIL, password: VERIFIED_USER_PASSWORD})
         .expect(200);
 
-      // Login verified user - Session 2
       verifiedAgent2 = request.agent(httpServer);
       await verifiedAgent2
         .post('/auth/login')
         .send({email: VERIFIED_USER_EMAIL, password: VERIFIED_USER_PASSWORD})
         .expect(200);
 
-      // Login unverified user
       unverifiedAgent = request.agent(httpServer);
       await unverifiedAgent
         .post('/auth/login')
@@ -115,6 +114,110 @@ describe('AuthController - Sessions', () => {
     });
   });
 
+  describe('/auth/sessions (DELETE)', () => {
+    let verifiedAgent1: TestAgent;
+    let verifiedAgent2: TestAgent;
+    let verifiedAgent3: TestAgent;
+    let unverifiedAgent: TestAgent;
+    let currentSessionIdAgent1: string | null = null;
+
+    beforeEach(async () => {
+      verifiedAgent1 = request.agent(httpServer);
+      await verifiedAgent1
+        .post('/auth/login')
+        .send({email: VERIFIED_USER_EMAIL, password: VERIFIED_USER_PASSWORD})
+        .expect(200);
+
+      verifiedAgent2 = request.agent(httpServer);
+      await verifiedAgent2
+        .post('/auth/login')
+        .send({email: VERIFIED_USER_EMAIL, password: VERIFIED_USER_PASSWORD})
+        .expect(200);
+
+      verifiedAgent3 = request.agent(httpServer);
+      await verifiedAgent3
+        .post('/auth/login')
+        .send({email: VERIFIED_USER_EMAIL, password: VERIFIED_USER_PASSWORD})
+        .expect(200);
+
+      unverifiedAgent = request.agent(httpServer);
+      await unverifiedAgent
+        .post('/auth/login')
+        .send({email: UNVERIFIED_USER_EMAIL, password: UNVERIFIED_USER_PASSWORD})
+        .expect(200);
+
+      // Get current session ID for agent 1
+      const response = await verifiedAgent1.get('/auth/sessions').expect(200);
+      const sessions: SessionResponseDto[] = response.body;
+      const currentSession = sessions.find((s) => s.isCurrent);
+      expect(currentSession).toBeDefined();
+      currentSessionIdAgent1 = currentSession!.id;
+    });
+
+    it('should revoke all other sessions for the authenticated user', async () => {
+      const initialResponse = await verifiedAgent1.get('/auth/sessions').expect(200);
+      const initialSessions: SessionResponseDto[] = initialResponse.body;
+      expect(initialSessions.length).toBeGreaterThanOrEqual(3);
+
+      await verifiedAgent1
+        .delete('/auth/sessions')
+        .expect(200)
+        .expect((res) => {
+          expect(res.body.message).toMatch(/Successfully revoked \d+ session\(s\)/);
+          const match = res.body.message.match(/revoked (\d+) session/);
+          expect(match).toBeTruthy();
+          expect(parseInt(match[1], 10)).toBeGreaterThanOrEqual(2);
+        });
+
+      // Verify only agent 1's session remains
+      const finalResponse = await verifiedAgent1.get('/auth/sessions').expect(200);
+      const finalSessions: SessionResponseDto[] = finalResponse.body;
+      expect(finalSessions).toHaveLength(1);
+      expect(finalSessions[0].isCurrent).toBe(true);
+      expect(finalSessions[0].id).toEqual(currentSessionIdAgent1);
+
+      await verifiedAgent2.get('/users/me').expect(401);
+      await verifiedAgent3.get('/users/me').expect(401);
+    });
+
+    it('should return success message and not change session count when only the current session exists', async () => {
+      const agent = request.agent(httpServer);
+      await agent
+        .post('/auth/login')
+        .send({email: GOOGLE_AND_LOCAL_USER_EMAIL, password: GOOGLE_AND_LOCAL_USER_PASSWORD})
+        .expect(200);
+
+      const initialResponse = await agent.get('/auth/sessions').expect(200);
+      expect(initialResponse.body).toHaveLength(1);
+      expect(initialResponse.body[0].isCurrent).toBe(true);
+      const currentId = initialResponse.body[0].id;
+
+      await agent
+        .delete('/auth/sessions')
+        .expect(200)
+        .expect((res) => {
+          expect(res.body.message).toMatch(/No other sessions to revoke/i);
+        });
+
+      const finalResponse = await agent.get('/auth/sessions').expect(200);
+      expect(finalResponse.body).toHaveLength(1);
+      expect(finalResponse.body[0].id).toEqual(currentId);
+    });
+
+    it('should fail with 403 Forbidden if the user is not email-verified', async () => {
+      await unverifiedAgent
+        .delete('/auth/sessions')
+        .expect(403)
+        .expect((res) => {
+          expect(res.body.message).toMatch(/Email not verified/i);
+        });
+    });
+
+    it('should fail with 401 Unauthorized if the user is not logged in', async () => {
+      await request(httpServer).delete('/auth/sessions').expect(401);
+    });
+  });
+
   describe('/auth/sessions/:sessionId (DELETE)', () => {
     let verifiedAgent1: TestAgent; // Agent making the revoke request
     let verifiedAgent2: TestAgent; // Agent whose session will be revoked
@@ -137,7 +240,6 @@ describe('AuthController - Sessions', () => {
         .send({email: VERIFIED_USER_EMAIL, password: VERIFIED_USER_PASSWORD})
         .expect(200);
 
-      // Login unverified user
       unverifiedAgent = request.agent(httpServer);
       await unverifiedAgent
         .post('/auth/login')
