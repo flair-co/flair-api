@@ -8,7 +8,6 @@ import {UAParser} from 'ua-parser-js';
 
 import {ConfigurationService} from '@core/config/config.service';
 import {REDIS} from '@core/redis/redis.constants';
-import {UserService} from '@modules/user/user.service';
 
 import {AuthenticatedSession} from './authenticated-session.interface';
 import {SessionService} from './session.service';
@@ -36,22 +35,12 @@ const mockConfigService = {
   get: jest.fn(),
 };
 
-const mockUserService = {
-  verifyPassword: jest.fn(),
-  findById: jest.fn(),
-  findByEmail: jest.fn(),
-  validateEmailIsUnique: jest.fn(),
-  save: jest.fn(),
-  update: jest.fn(),
-};
-
 type MockSession = Session & AuthenticatedSession;
 
 describe('SessionService', () => {
   let service: SessionService;
   let redisClient: jest.Mocked<Redis>;
   let configService: jest.Mocked<ConfigurationService>;
-  let userService: jest.Mocked<UserService>;
 
   const SESSION_KEY_PREFIX = 'test_sessions';
   const MOCK_USER_ID = 'user-123';
@@ -73,17 +62,12 @@ describe('SessionService', () => {
           provide: ConfigurationService,
           useValue: mockConfigService,
         },
-        {
-          provide: UserService,
-          useValue: mockUserService,
-        },
       ],
     }).compile();
 
     service = module.get<SessionService>(SessionService);
     redisClient = module.get(REDIS);
     configService = module.get(ConfigurationService);
-    userService = module.get(UserService);
 
     configService.get.mockReturnValue(SESSION_KEY_PREFIX);
     (service as any).REDIS_KEY = SESSION_KEY_PREFIX;
@@ -310,7 +294,6 @@ describe('SessionService', () => {
     };
 
     it('should successfully revoke a session', async () => {
-      userService.verifyPassword.mockResolvedValueOnce(undefined); // Simulate successful verification
       redisClient.get.mockResolvedValueOnce(JSON.stringify(mockSessionData));
       redisClient.del.mockResolvedValueOnce(1); // Simulate successful deletion
 
@@ -334,7 +317,6 @@ describe('SessionService', () => {
     });
 
     it('should throw NotFoundException if session to revoke is not found in Redis', async () => {
-      userService.verifyPassword.mockResolvedValueOnce(undefined);
       redisClient.get.mockResolvedValueOnce(null); // Simulate session not found
       await expect(
         service.revokeSession(MOCK_USER_ID, MOCK_CURRENT_SESSION_ID, sessionIdToRevoke),
@@ -348,7 +330,6 @@ describe('SessionService', () => {
         ...mockSessionData,
         passport: {user: 'different-user-id'},
       };
-      userService.verifyPassword.mockResolvedValueOnce(undefined);
       redisClient.get.mockResolvedValueOnce(JSON.stringify(differentUserSessionData));
       await expect(
         service.revokeSession(MOCK_USER_ID, MOCK_CURRENT_SESSION_ID, sessionIdToRevoke),
