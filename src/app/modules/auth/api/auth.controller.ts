@@ -100,6 +100,7 @@ export class AuthController {
   @UseGuards(AuthGuard('google'))
   @ApiOperation({summary: 'Initiates Google OAuth login flow'})
   @ApiResponse({status: 302, description: 'Redirects to Google for authentication.'})
+  @ApiResponse({status: 429, description: 'Too many requests. Try again later.'})
   async google() {}
 
   @Public()
@@ -111,6 +112,7 @@ export class AuthController {
     description: 'Starts a session and redirects to the client application.',
   })
   @ApiResponse({status: 401, description: 'Google authentication failed.'})
+  @ApiResponse({status: 429, description: 'Too many requests. Try again later.'})
   async googleCallback(
     @CurrentUser() user: User,
     @Req() request: Request,
@@ -191,6 +193,7 @@ export class AuthController {
   @ApiResponse({status: 204, description: 'Email address is available.'})
   @ApiResponse({status: 400, description: 'Invalid email format provided.'})
   @ApiResponse({status: 409, description: 'Email address is already in use.'})
+  @ApiResponse({status: 429, description: 'Too many requests. Try again later.'})
   @ApiOperation({summary: 'Checks if an email address is available for use.'})
   async checkEmailAvailability(@Query() query: EmailCheckDto) {
     return await this.userService.verifyEmailIsUnique(query.email);
