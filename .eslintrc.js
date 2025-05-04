@@ -25,5 +25,6 @@ module.exports = {
       },
     ],
     'no-console': 'off',
+    'prettier/prettier': ['error', { useTabs: true }],
   },
 };
