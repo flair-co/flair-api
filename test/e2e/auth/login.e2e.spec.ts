@@ -38,7 +38,7 @@ describe('AuthController - Login', () => {
 		});
 
 		it('should log in with correct credentials and establish session', async () => {
-			const response = await agent.get('/users/me').expect(200);
+			const response = await agent.get('/accounts/me').expect(200);
 
 			const user: Account = response.body;
 			expect(user).toBeDefined();

@@ -24,7 +24,7 @@ describe('Account controller - /me', () => {
 		httpServer = app.getHttpServer();
 	});
 
-	describe('/users/me (GET)', () => {
+	describe('/accounts/me (GET)', () => {
 		it('should return the current VERIFIED authenticated user', async () => {
 			const agent = request.agent(httpServer);
 
@@ -36,7 +36,7 @@ describe('Account controller - /me', () => {
 				})
 				.expect(200);
 
-			const response = await agent.get('/users/me').expect(200);
+			const response = await agent.get('/accounts/me').expect(200);
 
 			const account: Account = response.body;
 			expect(account).toBeDefined();
@@ -60,7 +60,7 @@ describe('Account controller - /me', () => {
 				})
 				.expect(200);
 
-			const response = await agent.get('/users/me').expect(200);
+			const response = await agent.get('/accounts/me').expect(200);
 
 			const account: Account = response.body;
 			expect(account).toBeDefined();
@@ -74,11 +74,11 @@ describe('Account controller - /me', () => {
 		});
 
 		it('should return 401 Unauthorized if the user is not authenticated', async () => {
-			await request(httpServer).get('/users/me').expect(401);
+			await request(httpServer).get('/accounts/me').expect(401);
 		});
 	});
 
-	describe('/users/me (PATCH)', () => {
+	describe('/accounts/me (PATCH)', () => {
 		let verifiedAgent: TestAgent;
 		let unverifiedAgent: TestAgent;
 
@@ -106,7 +106,7 @@ describe('Account controller - /me', () => {
 			const newName = faker.person.fullName();
 			const updateDto: AccountUpdateDto = {name: newName};
 
-			const patchResponse = await verifiedAgent.patch('/users/me').send(updateDto).expect(200);
+			const patchResponse = await verifiedAgent.patch('/accounts/me').send(updateDto).expect(200);
 
 			const updatedAccount: Account = patchResponse.body;
 			expect(updatedAccount).toBeDefined();
@@ -115,7 +115,7 @@ describe('Account controller - /me', () => {
 			expect(updatedAccount.isEmailVerified).toBe(true);
 			expect(updatedAccount.password).toBeUndefined();
 
-			const getResponse = await verifiedAgent.get('/users/me').expect(200);
+			const getResponse = await verifiedAgent.get('/accounts/me').expect(200);
 			expect(getResponse.body.name).toEqual(newName);
 		});
 
@@ -123,7 +123,7 @@ describe('Account controller - /me', () => {
 			const updateDto: AccountUpdateDto = {name: 'Valid name Again'};
 
 			await verifiedAgent
-				.patch('/users/me')
+				.patch('/accounts/me')
 				.send(updateDto)
 				.expect(200)
 				.expect((res) => {
@@ -136,7 +136,7 @@ describe('Account controller - /me', () => {
 			const updateDto: AccountUpdateDto = {name: faker.person.fullName()};
 
 			await unverifiedAgent
-				.patch('/users/me')
+				.patch('/accounts/me')
 				.send(updateDto)
 				.expect(403)
 				.expect((res) => {
@@ -146,12 +146,12 @@ describe('Account controller - /me', () => {
 
 		it('should return 401 Unauthorized if the user is not authenticated', async () => {
 			const updateDto: AccountUpdateDto = {name: 'Attempt Update'};
-			await request(httpServer).patch('/users/me').send(updateDto).expect(401);
+			await request(httpServer).patch('/accounts/me').send(updateDto).expect(401);
 		});
 
 		it('should return 400 Bad Request if name is missing', async () => {
 			await verifiedAgent
-				.patch('/users/me')
+				.patch('/accounts/me')
 				.send({})
 				.expect(400)
 				.expect((res) => {
@@ -164,7 +164,7 @@ describe('Account controller - /me', () => {
 		it('should return 400 Bad Request if name is empty', async () => {
 			const updateDto: AccountUpdateDto = {name: ''};
 			await verifiedAgent
-				.patch('/users/me')
+				.patch('/accounts/me')
 				.send(updateDto)
 				.expect(400)
 				.expect((res) => {
@@ -180,7 +180,7 @@ describe('Account controller - /me', () => {
 			const longName = 'a'.repeat(256);
 			const updateDto: AccountUpdateDto = {name: longName};
 			await verifiedAgent
-				.patch('/users/me')
+				.patch('/accounts/me')
 				.send(updateDto)
 				.expect(400)
 				.expect((res) => {
@@ -195,7 +195,7 @@ describe('Account controller - /me', () => {
 		it('should return 400 Bad Request if name is not a string', async () => {
 			const updateDto: AccountUpdateDto = {name: 12345 as unknown as string};
 			await verifiedAgent
-				.patch('/users/me')
+				.patch('/accounts/me')
 				.send(updateDto)
 				.expect(400)
 				.expect((res) => {

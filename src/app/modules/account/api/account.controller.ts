@@ -12,8 +12,8 @@ type IdealUserContext = {
 	account: {accountId: Account['id']}; // just {id: Account['id']} -> no reason to store all the account info
 };
 
-@ApiTags('Users')
-@Controller('users')
+@ApiTags('Accounts')
+@Controller('accounts')
 export class AccountController {
 	constructor(private readonly accountService: AccountService) {}
 

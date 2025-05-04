@@ -55,7 +55,7 @@ describe('AuthController - Change email', () => {
 				.post('/auth/login')
 				.send({email: VERIFIED_USER_EMAIL, password: VERIFIED_USER_PASSWORD})
 				.expect(200);
-			const meResponse = await verifiedAgent.get('/users/me').expect(200);
+			const meResponse = await verifiedAgent.get('/accounts/me').expect(200);
 			verifiedName = meResponse.body.name;
 
 			unverifiedAgent = request.agent(httpServer);
@@ -268,7 +268,7 @@ describe('AuthController - Change email', () => {
 			expect(updatedUser.email).toEqual(newEmailAddress);
 			expect(updatedUser.isEmailVerified).toBe(true);
 
-			const meResponse = await verifiedAgent.get('/users/me').expect(200);
+			const meResponse = await verifiedAgent.get('/accounts/me').expect(200);
 			expect(meResponse.body.email).toEqual(newEmailAddress);
 
 			initialUserEmail = newEmailAddress;

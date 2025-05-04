@@ -298,7 +298,7 @@ describe('AuthController - Signup', () => {
 			const agent = request.agent(httpServer);
 			await agent.post('/auth/login').send(userCredentials).expect(200);
 
-			const meResponse = await agent.get('/users/me').expect(200);
+			const meResponse = await agent.get('/accounts/me').expect(200);
 			expect(meResponse.body.isEmailVerified).toBe(true);
 		});
 
@@ -313,7 +313,7 @@ describe('AuthController - Signup', () => {
 					expect(res.body.message).toEqual('Email verified.');
 				});
 
-			const userRes = await agent.get('/users/me').expect(200);
+			const userRes = await agent.get('/accounts/me').expect(200);
 			expect(userRes.body.isEmailVerified).toBe(true);
 		});
 
@@ -339,7 +339,7 @@ describe('AuthController - Signup', () => {
 					expect(res.body.message).toEqual('Email verified.');
 				});
 
-			const meResponse = await agent.get('/users/me').expect(200);
+			const meResponse = await agent.get('/accounts/me').expect(200);
 			expect(meResponse.body.isEmailVerified).toBe(true);
 		});
 

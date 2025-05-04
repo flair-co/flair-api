@@ -176,8 +176,8 @@ describe('AuthController - Sessions', () => {
 			expect(finalSessions[0].isCurrent).toBe(true);
 			expect(finalSessions[0].id).toEqual(currentSessionIdAgent1);
 
-			await verifiedAgent2.get('/users/me').expect(401);
-			await verifiedAgent3.get('/users/me').expect(401);
+			await verifiedAgent2.get('/accounts/me').expect(401);
+			await verifiedAgent3.get('/accounts/me').expect(401);
 		});
 
 		it('should return success message and not change session count when only the current session exists', async () => {

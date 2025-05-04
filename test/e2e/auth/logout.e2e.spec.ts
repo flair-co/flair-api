@@ -38,7 +38,7 @@ describe('AuthController - Logout', () => {
 		});
 
 		it('should log out an authenticated user', async () => {
-			await agent.get('/users/me').expect(200);
+			await agent.get('/accounts/me').expect(200);
 
 			const response = await agent
 				.post('/auth/logout')
@@ -59,7 +59,7 @@ describe('AuthController - Logout', () => {
 			expect(sessionCookie).toMatch(/Max-Age=0|Expires=.*1970/);
 			expect(sessionCookie).toMatch(/Path=\//);
 
-			await agent.get('/users/me').expect(401);
+			await agent.get('/accounts/me').expect(401);
 		});
 
 		it('should fail with 401 Unauthorized if user is not logged in', () => {
