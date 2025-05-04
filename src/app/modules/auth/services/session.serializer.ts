@@ -5,7 +5,7 @@ import {Account} from '@modules/account/account.entity';
 import {AccountService} from '@modules/account/account.service';
 
 type SerializeDoneCallback = (err: Error | null, id: Account['id']) => void;
-type DeserializeDoneCallback = (err: Error | null, user: Account | null) => void;
+type DeserializeDoneCallback = (err: Error | null, account: Account | null) => void;
 
 @Injectable()
 export class SessionSerializer extends PassportSerializer {

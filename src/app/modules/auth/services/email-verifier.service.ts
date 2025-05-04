@@ -106,10 +106,10 @@ export class EmailVerifierService {
 		const newEmail = await this.getEmailByCode(code);
 
 		await this.accountService.validateEmailIsUnique(newEmail);
-		const updatedUser = await this.accountService.update(account.id, {email: newEmail});
+		const updatedAccount = await this.accountService.update(account.id, {email: newEmail});
 
 		await this.removeCode(code);
-		return updatedUser;
+		return updatedAccount;
 	}
 
 	async createUrl(code: string, email: Account['email']) {

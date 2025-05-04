@@ -23,13 +23,13 @@ export class SessionService {
 	}
 
 	/**
-	 * Gets metadata of all active sessions for a user.
+	 * Gets metadata of all active sessions for an account.
 	 * Uses the Redis SCAN command to iterate through session keys in batches.
 	 *
 	 * NOTE: This implementation does not scale well.
 	 */
 	async getSessions(accountId: Account['id'], currentSessionId: string) {
-		const userSessions: SessionResponseDto[] = [];
+		const sessions: SessionResponseDto[] = [];
 
 		const scanBatchSize = '250';
 		let cursor = '0';
@@ -55,7 +55,7 @@ export class SessionService {
 					if (sessionData?.passport?.user !== accountId) continue;
 					const sessionId = key.substring(prefix.length);
 
-					userSessions.push({
+					sessions.push({
 						id: sessionId,
 						ip: sessionData.metadata?.ip ?? 'Unknown',
 						userAgent: sessionData.metadata?.userAgent ?? 'Unknown',
@@ -72,17 +72,17 @@ export class SessionService {
 			if (cursor === '0') break;
 		}
 
-		userSessions.sort((a, b) => {
+		sessions.sort((a, b) => {
 			const isCurrentSortOrder = Number(b.isCurrent) - Number(a.isCurrent);
 			if (isCurrentSortOrder !== 0) return isCurrentSortOrder;
 
 			return new Date(b.lastSeenAt).getTime() - new Date(a.lastSeenAt).getTime();
 		});
 
-		return userSessions;
+		return sessions;
 	}
 
-	/** Revokes a user's active session. */
+	/** Revokes an account's active session. */
 	async revokeSession(accountId: Account['id'], currentSessionId: string, sessionIdToRevoke: string) {
 		if (sessionIdToRevoke === currentSessionId) {
 			throw new ConflictException('Cannot revoke the current session. Log out instead.');

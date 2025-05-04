@@ -43,7 +43,7 @@ describe('SessionService', () => {
 	let configService: jest.Mocked<ConfigurationService>;
 
 	const SESSION_KEY_PREFIX = 'test_sessions';
-	const MOCK_USER_ID = 'user-123';
+	const MOCK_ACCOUNT_ID = 'user-123';
 	const MOCK_CURRENT_SESSION_ID = 'session-abc';
 	const MOCK_SESSION_ID = 'mock-session-id-xyz';
 
@@ -101,15 +101,15 @@ describe('SessionService', () => {
 		it('should return an empty array if no sessions found in redis', async () => {
 			redisClient.scan.mockResolvedValueOnce(['0', []]);
 
-			const sessions = await service.getSessions(MOCK_USER_ID, MOCK_CURRENT_SESSION_ID);
+			const sessions = await service.getSessions(MOCK_ACCOUNT_ID, MOCK_CURRENT_SESSION_ID);
 
 			expect(sessions).toEqual([]);
 			expect(redisClient.scan).toHaveBeenCalledWith('0', 'MATCH', `${SESSION_KEY_PREFIX}:*`, 'COUNT', '250');
 			expect(redisClient.mget).not.toHaveBeenCalled();
 		});
 
-		it('should return formatted sessions for the given user, sorting correctly', async () => {
-			const otherUserId = 'other-user-456';
+		it('should return formatted sessions for the given account, sorting correctly', async () => {
+			const otherAccountId = 'other-user-456';
 			const sessionKey1 = `${SESSION_KEY_PREFIX}:session-1`;
 			const sessionKey2 = `${SESSION_KEY_PREFIX}:session-2`;
 			const sessionKey3 = `${SESSION_KEY_PREFIX}:${MOCK_CURRENT_SESSION_ID}`;
@@ -117,7 +117,7 @@ describe('SessionService', () => {
 
 			const mockSessionData1: Partial<AuthenticatedSession> & {id?: string} = {
 				id: 'session-1',
-				passport: {user: MOCK_USER_ID},
+				passport: {user: MOCK_ACCOUNT_ID},
 				metadata: {
 					ip: '1.1.1.1',
 					userAgent: 'UA1',
@@ -131,7 +131,7 @@ describe('SessionService', () => {
 			};
 			const mockSessionData2: Partial<AuthenticatedSession> & {id?: string} = {
 				id: 'session-2',
-				passport: {user: otherUserId},
+				passport: {user: otherAccountId},
 				metadata: {
 					ip: '2.2.2.2',
 					userAgent: 'UA2',
@@ -145,7 +145,7 @@ describe('SessionService', () => {
 			};
 			const mockSessionData3: Partial<AuthenticatedSession> & {id?: string} = {
 				id: MOCK_CURRENT_SESSION_ID,
-				passport: {user: MOCK_USER_ID},
+				passport: {user: MOCK_ACCOUNT_ID},
 				metadata: {
 					ip: '3.3.3.3',
 					userAgent: 'UA3',
@@ -159,7 +159,7 @@ describe('SessionService', () => {
 			};
 			const mockSessionData4: Partial<AuthenticatedSession> & {id?: string} = {
 				id: 'session-4',
-				passport: {user: MOCK_USER_ID},
+				passport: {user: MOCK_ACCOUNT_ID},
 				metadata: {
 					ip: '4.4.4.4',
 					userAgent: 'UA4',
@@ -182,7 +182,7 @@ describe('SessionService', () => {
 				.mockResolvedValueOnce([JSON.stringify(mockSessionData1), JSON.stringify(mockSessionData2)])
 				.mockResolvedValueOnce([JSON.stringify(mockSessionData3), JSON.stringify(mockSessionData4)]);
 
-			const sessions = await service.getSessions(MOCK_USER_ID, MOCK_CURRENT_SESSION_ID);
+			const sessions = await service.getSessions(MOCK_ACCOUNT_ID, MOCK_CURRENT_SESSION_ID);
 
 			expect(redisClient.scan).toHaveBeenCalledTimes(2);
 			expect(redisClient.mget).toHaveBeenCalledTimes(2);
@@ -215,14 +215,14 @@ describe('SessionService', () => {
 			const sessionKey1 = `${SESSION_KEY_PREFIX}:session-1`;
 			const mockSessionData1: Partial<AuthenticatedSession> & {id?: string} = {
 				id: 'session-1',
-				passport: {user: MOCK_USER_ID},
+				passport: {user: MOCK_ACCOUNT_ID},
 				cookie: {originalMaxAge: 360000} as any,
 			};
 
 			redisClient.scan.mockResolvedValueOnce(['0', [sessionKey1]]);
 			redisClient.mget.mockResolvedValueOnce([JSON.stringify(mockSessionData1)]);
 
-			const sessions = await service.getSessions(MOCK_USER_ID, MOCK_CURRENT_SESSION_ID);
+			const sessions = await service.getSessions(MOCK_ACCOUNT_ID, MOCK_CURRENT_SESSION_ID);
 
 			expect(sessions).toHaveLength(1);
 			expect(sessions[0]).toEqual({
@@ -243,7 +243,7 @@ describe('SessionService', () => {
 			const sessionKey2 = `${SESSION_KEY_PREFIX}:session-2`; // Will return null from mget
 			const mockSessionData1: Partial<AuthenticatedSession> & {id?: string} = {
 				id: 'session-1',
-				passport: {user: MOCK_USER_ID},
+				passport: {user: MOCK_ACCOUNT_ID},
 				metadata: {
 					ip: '1.1.1.1',
 					userAgent: 'UA1',
@@ -259,7 +259,7 @@ describe('SessionService', () => {
 			redisClient.scan.mockResolvedValueOnce(['0', [sessionKey1, sessionKey2]]);
 			redisClient.mget.mockResolvedValueOnce([JSON.stringify(mockSessionData1), null]); // Simulate one key missing in Redis
 
-			const sessions = await service.getSessions(MOCK_USER_ID, MOCK_CURRENT_SESSION_ID);
+			const sessions = await service.getSessions(MOCK_ACCOUNT_ID, MOCK_CURRENT_SESSION_ID);
 
 			expect(sessions).toHaveLength(1);
 			expect(sessions[0].id).toBe('session-1');
@@ -271,7 +271,7 @@ describe('SessionService', () => {
 		const sessionKeyToRevoke = `${SESSION_KEY_PREFIX}:${sessionIdToRevoke}`;
 		const mockSessionData: Partial<AuthenticatedSession> & {id?: string} = {
 			id: sessionIdToRevoke,
-			passport: {user: MOCK_USER_ID},
+			passport: {user: MOCK_ACCOUNT_ID},
 			metadata: {
 				ip: '1.1.1.1',
 				userAgent: 'UA1',
@@ -288,7 +288,7 @@ describe('SessionService', () => {
 			redisClient.get.mockResolvedValueOnce(JSON.stringify(mockSessionData));
 			redisClient.del.mockResolvedValueOnce(1); // Simulate successful deletion
 
-			const result = await service.revokeSession(MOCK_USER_ID, MOCK_CURRENT_SESSION_ID, sessionIdToRevoke);
+			const result = await service.revokeSession(MOCK_ACCOUNT_ID, MOCK_CURRENT_SESSION_ID, sessionIdToRevoke);
 
 			expect(redisClient.get).toHaveBeenCalledWith(sessionKeyToRevoke);
 			expect(redisClient.del).toHaveBeenCalledWith(sessionKeyToRevoke);
@@ -297,7 +297,7 @@ describe('SessionService', () => {
 
 		it('should throw ConflictException if attempting to revoke the current session', async () => {
 			await expect(
-				service.revokeSession(MOCK_USER_ID, MOCK_CURRENT_SESSION_ID, MOCK_CURRENT_SESSION_ID),
+				service.revokeSession(MOCK_ACCOUNT_ID, MOCK_CURRENT_SESSION_ID, MOCK_CURRENT_SESSION_ID),
 			).rejects.toThrow(ConflictException);
 			expect(redisClient.get).not.toHaveBeenCalled();
 			expect(redisClient.del).not.toHaveBeenCalled();
@@ -306,20 +306,20 @@ describe('SessionService', () => {
 		it('should throw NotFoundException if session to revoke is not found in Redis', async () => {
 			redisClient.get.mockResolvedValueOnce(null); // Simulate session not found
 			await expect(
-				service.revokeSession(MOCK_USER_ID, MOCK_CURRENT_SESSION_ID, sessionIdToRevoke),
+				service.revokeSession(MOCK_ACCOUNT_ID, MOCK_CURRENT_SESSION_ID, sessionIdToRevoke),
 			).rejects.toThrow(new NotFoundException(`Session not found or expired.`));
 			expect(redisClient.get).toHaveBeenCalledWith(sessionKeyToRevoke);
 			expect(redisClient.del).not.toHaveBeenCalled();
 		});
 
-		it('should throw NotFoundException if session belongs to a different user', async () => {
-			const differentUserSessionData: Partial<AuthenticatedSession> & {id?: string} = {
+		it('should throw NotFoundException if session belongs to a different account', async () => {
+			const differentAccountSessionData: Partial<AuthenticatedSession> & {id?: string} = {
 				...mockSessionData,
 				passport: {user: 'different-user-id'},
 			};
-			redisClient.get.mockResolvedValueOnce(JSON.stringify(differentUserSessionData));
+			redisClient.get.mockResolvedValueOnce(JSON.stringify(differentAccountSessionData));
 			await expect(
-				service.revokeSession(MOCK_USER_ID, MOCK_CURRENT_SESSION_ID, sessionIdToRevoke),
+				service.revokeSession(MOCK_ACCOUNT_ID, MOCK_CURRENT_SESSION_ID, sessionIdToRevoke),
 			).rejects.toThrow(new NotFoundException(`Session not found or expired.`));
 			expect(redisClient.get).toHaveBeenCalledWith(sessionKeyToRevoke);
 			expect(redisClient.del).not.toHaveBeenCalled();
@@ -333,7 +333,7 @@ describe('SessionService', () => {
 		beforeEach(() => {
 			const tempMockSession: any = {
 				id: MOCK_SESSION_ID,
-				passport: {user: MOCK_USER_ID},
+				passport: {user: MOCK_ACCOUNT_ID},
 			};
 
 			tempMockSession.regenerate = jest.fn((callback) => {
@@ -466,7 +466,7 @@ describe('SessionService', () => {
 		beforeEach(() => {
 			const tempMockSession: any = {
 				id: MOCK_SESSION_ID,
-				passport: {user: MOCK_USER_ID},
+				passport: {user: MOCK_ACCOUNT_ID},
 				metadata: {
 					ip: '1.1.1.1',
 					userAgent: 'UA1',

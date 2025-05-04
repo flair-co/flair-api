@@ -24,12 +24,12 @@ export class LocalStrategy extends PassportStrategy(Strategy) {
 			throw new BadRequestException(formattedErrors);
 		}
 
-		const user = await this.accountService.findByEmail(credentials.email);
-		if (!user) {
+		const account = await this.accountService.findByEmail(credentials.email);
+		if (!account) {
 			throw new UnauthorizedException();
 		}
 
-		await this.accountService.verifyPassword(user.password, credentials.password);
-		return user;
+		await this.accountService.verifyPassword(account.password, credentials.password);
+		return account;
 	}
 }

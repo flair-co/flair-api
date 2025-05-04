@@ -5,12 +5,12 @@ import TestAgent from 'supertest/lib/agent';
 import {SessionResponseDto} from '@modules/auth/api/dtos/session-response.dto';
 
 import {
-	PW_CHANGE_USER_EMAIL,
-	PW_CHANGE_USER_PASSWORD,
-	UNVERIFIED_USER_EMAIL,
-	UNVERIFIED_USER_PASSWORD,
-	VERIFIED_USER_EMAIL,
-	VERIFIED_USER_PASSWORD,
+	PW_CHANGE_ACCOUNT_EMAIL,
+	PW_CHANGE_ACCOUNT_PASSWORD,
+	UNVERIFIED_ACCOUNT_EMAIL,
+	UNVERIFIED_ACCOUNT_PASSWORD,
+	VERIFIED_ACCOUNT_EMAIL,
+	VERIFIED_ACCOUNT_PASSWORD,
 } from '../../setup/constants';
 import {getApp} from '../../setup/e2e.setup';
 
@@ -30,19 +30,19 @@ describe('AuthController - Sessions', () => {
 			verifiedAgent1 = request.agent(httpServer);
 			await verifiedAgent1
 				.post('/auth/login')
-				.send({email: VERIFIED_USER_EMAIL, password: VERIFIED_USER_PASSWORD})
+				.send({email: VERIFIED_ACCOUNT_EMAIL, password: VERIFIED_ACCOUNT_PASSWORD})
 				.expect(200);
 
 			verifiedAgent2 = request.agent(httpServer);
 			await verifiedAgent2
 				.post('/auth/login')
-				.send({email: VERIFIED_USER_EMAIL, password: VERIFIED_USER_PASSWORD})
+				.send({email: VERIFIED_ACCOUNT_EMAIL, password: VERIFIED_ACCOUNT_PASSWORD})
 				.expect(200);
 
 			unverifiedAgent = request.agent(httpServer);
 			await unverifiedAgent
 				.post('/auth/login')
-				.send({email: UNVERIFIED_USER_EMAIL, password: UNVERIFIED_USER_PASSWORD})
+				.send({email: UNVERIFIED_ACCOUNT_EMAIL, password: UNVERIFIED_ACCOUNT_PASSWORD})
 				.expect(200);
 		});
 
@@ -95,7 +95,7 @@ describe('AuthController - Sessions', () => {
 			expect(currentSessions2[0].id).not.toEqual(currentSession.id);
 		});
 
-		it('should return 403 Forbidden for an unverified user', async () => {
+		it('should return 403 Forbidden for an unverified account', async () => {
 			await unverifiedAgent
 				.get('/auth/sessions')
 				.expect(403)
@@ -125,25 +125,25 @@ describe('AuthController - Sessions', () => {
 			verifiedAgent1 = request.agent(httpServer);
 			await verifiedAgent1
 				.post('/auth/login')
-				.send({email: VERIFIED_USER_EMAIL, password: VERIFIED_USER_PASSWORD})
+				.send({email: VERIFIED_ACCOUNT_EMAIL, password: VERIFIED_ACCOUNT_PASSWORD})
 				.expect(200);
 
 			verifiedAgent2 = request.agent(httpServer);
 			await verifiedAgent2
 				.post('/auth/login')
-				.send({email: VERIFIED_USER_EMAIL, password: VERIFIED_USER_PASSWORD})
+				.send({email: VERIFIED_ACCOUNT_EMAIL, password: VERIFIED_ACCOUNT_PASSWORD})
 				.expect(200);
 
 			verifiedAgent3 = request.agent(httpServer);
 			await verifiedAgent3
 				.post('/auth/login')
-				.send({email: VERIFIED_USER_EMAIL, password: VERIFIED_USER_PASSWORD})
+				.send({email: VERIFIED_ACCOUNT_EMAIL, password: VERIFIED_ACCOUNT_PASSWORD})
 				.expect(200);
 
 			unverifiedAgent = request.agent(httpServer);
 			await unverifiedAgent
 				.post('/auth/login')
-				.send({email: UNVERIFIED_USER_EMAIL, password: UNVERIFIED_USER_PASSWORD})
+				.send({email: UNVERIFIED_ACCOUNT_EMAIL, password: UNVERIFIED_ACCOUNT_PASSWORD})
 				.expect(200);
 
 			// Get current session ID for agent 1
@@ -154,7 +154,7 @@ describe('AuthController - Sessions', () => {
 			currentSessionIdAgent1 = currentSession!.id;
 		});
 
-		it('should revoke all other sessions for the authenticated user', async () => {
+		it('should revoke all other sessions for the authenticated account', async () => {
 			const initialResponse = await verifiedAgent1.get('/auth/sessions').expect(200);
 			const initialSessions: SessionResponseDto[] = initialResponse.body;
 			expect(initialSessions.length).toBeGreaterThanOrEqual(3);
@@ -184,7 +184,7 @@ describe('AuthController - Sessions', () => {
 			const agent = request.agent(httpServer);
 			await agent
 				.post('/auth/login')
-				.send({email: PW_CHANGE_USER_EMAIL, password: PW_CHANGE_USER_PASSWORD})
+				.send({email: PW_CHANGE_ACCOUNT_EMAIL, password: PW_CHANGE_ACCOUNT_PASSWORD})
 				.expect(200);
 
 			const initialResponse = await agent.get('/auth/sessions').expect(200);
@@ -204,7 +204,7 @@ describe('AuthController - Sessions', () => {
 			expect(finalResponse.body[0].id).toEqual(currentId);
 		});
 
-		it('should fail with 403 Forbidden if the user is not email-verified', async () => {
+		it('should fail with 403 Forbidden if the account is not email-verified', async () => {
 			await unverifiedAgent
 				.delete('/auth/sessions')
 				.expect(403)
@@ -226,24 +226,24 @@ describe('AuthController - Sessions', () => {
 		let currentSessionId: string | null = null;
 
 		beforeEach(async () => {
-			// Login verified user - Session 1
+			// Login verified account - Session 1
 			verifiedAgent1 = request.agent(httpServer);
 			await verifiedAgent1
 				.post('/auth/login')
-				.send({email: VERIFIED_USER_EMAIL, password: VERIFIED_USER_PASSWORD})
+				.send({email: VERIFIED_ACCOUNT_EMAIL, password: VERIFIED_ACCOUNT_PASSWORD})
 				.expect(200);
 
-			// Login verified user - Session 2
+			// Login verified account - Session 2
 			verifiedAgent2 = request.agent(httpServer);
 			await verifiedAgent2
 				.post('/auth/login')
-				.send({email: VERIFIED_USER_EMAIL, password: VERIFIED_USER_PASSWORD})
+				.send({email: VERIFIED_ACCOUNT_EMAIL, password: VERIFIED_ACCOUNT_PASSWORD})
 				.expect(200);
 
 			unverifiedAgent = request.agent(httpServer);
 			await unverifiedAgent
 				.post('/auth/login')
-				.send({email: UNVERIFIED_USER_EMAIL, password: UNVERIFIED_USER_PASSWORD})
+				.send({email: UNVERIFIED_ACCOUNT_EMAIL, password: UNVERIFIED_ACCOUNT_PASSWORD})
 				.expect(200);
 
 			// Get sessions using agent 1 to identify IDs
@@ -261,7 +261,7 @@ describe('AuthController - Sessions', () => {
 			sessionToRevokeId = nonCurrentSession!.id;
 		});
 
-		it('should revoke another session for the authenticated user', async () => {
+		it('should revoke another session for the authenticated account', async () => {
 			expect(sessionToRevokeId).toBeDefined();
 
 			await verifiedAgent1
@@ -332,7 +332,7 @@ describe('AuthController - Sessions', () => {
 				});
 		});
 
-		it('should fail with 403 Forbidden if the user is not email-verified', async () => {
+		it('should fail with 403 Forbidden if the account is not email-verified', async () => {
 			await unverifiedAgent
 				.delete(`/auth/sessions/${sessionToRevokeId}`)
 				.expect(403)

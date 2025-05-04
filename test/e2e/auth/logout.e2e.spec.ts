@@ -16,28 +16,25 @@ describe('AuthController - Logout', () => {
 
 	describe('/auth/logout (POST)', () => {
 		let agent: TestAgent;
-		let userCredentials: SignUpDto;
+		let accountCredentials: SignUpDto;
 
 		beforeEach(async () => {
-			userCredentials = {
+			accountCredentials = {
 				name: faker.person.fullName(),
 				email: faker.internet.email(),
 				password: faker.internet.password({length: 10}),
 			};
 
-			await request(httpServer).post('/auth/signup').send(userCredentials).expect(201);
+			await request(httpServer).post('/auth/signup').send(accountCredentials).expect(201);
 
 			agent = request.agent(httpServer);
 			await agent
 				.post('/auth/login')
-				.send({
-					email: userCredentials.email,
-					password: userCredentials.password,
-				})
+				.send({email: accountCredentials.email, password: accountCredentials.password})
 				.expect(200);
 		});
 
-		it('should log out an authenticated user', async () => {
+		it('should log out an authenticated account', async () => {
 			await agent.get('/accounts/me').expect(200);
 
 			const response = await agent

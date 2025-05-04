@@ -10,10 +10,10 @@ import {EmailVerifyDto} from '@modules/auth/api/dtos/email-verify.dto';
 import {SignUpDto} from '@modules/auth/api/dtos/signup.dto';
 
 import {
-	UNVERIFIED_USER_EMAIL,
-	UNVERIFIED_USER_PASSWORD,
-	VERIFIED_USER_EMAIL,
-	VERIFIED_USER_PASSWORD,
+	UNVERIFIED_ACCOUNT_EMAIL,
+	UNVERIFIED_ACCOUNT_PASSWORD,
+	VERIFIED_ACCOUNT_EMAIL,
+	VERIFIED_ACCOUNT_PASSWORD,
 } from '../../setup/constants';
 import {getApp} from '../../setup/e2e.setup';
 import {clearEmails, extractVerificationCode, findEmailByRecipient} from '../../utils/email.util';
@@ -37,23 +37,23 @@ describe('AuthController - Change email', () => {
 		let verifiedAgent: TestAgent;
 		let verifiedName: string;
 		let unverifiedAgent: TestAgent;
-		let conflictUserEmail: string;
+		let conflictAccountEmail: string;
 
 		beforeAll(async () => {
-			conflictUserEmail = faker.internet.email();
-			const conflictUserDto: SignUpDto = {
+			conflictAccountEmail = faker.internet.email();
+			const conflictAccountDto: SignUpDto = {
 				name: faker.person.fullName(),
-				email: conflictUserEmail,
+				email: conflictAccountEmail,
 				password: faker.internet.password({length: 10}),
 			};
-			await request(httpServer).post('/auth/signup').send(conflictUserDto).expect(201);
+			await request(httpServer).post('/auth/signup').send(conflictAccountDto).expect(201);
 		});
 
 		beforeEach(async () => {
 			verifiedAgent = request.agent(httpServer);
 			await verifiedAgent
 				.post('/auth/login')
-				.send({email: VERIFIED_USER_EMAIL, password: VERIFIED_USER_PASSWORD})
+				.send({email: VERIFIED_ACCOUNT_EMAIL, password: VERIFIED_ACCOUNT_PASSWORD})
 				.expect(200);
 			const meResponse = await verifiedAgent.get('/accounts/me').expect(200);
 			verifiedName = meResponse.body.name;
@@ -61,17 +61,17 @@ describe('AuthController - Change email', () => {
 			unverifiedAgent = request.agent(httpServer);
 			await unverifiedAgent
 				.post('/auth/login')
-				.send({email: UNVERIFIED_USER_EMAIL, password: UNVERIFIED_USER_PASSWORD})
+				.send({email: UNVERIFIED_ACCOUNT_EMAIL, password: UNVERIFIED_ACCOUNT_PASSWORD})
 				.expect(200);
 
 			await clearEmails(mailhogApiUrl);
 		});
 
-		it('should send a verification email to the new email address for a verified user', async () => {
+		it('should send a verification email to the new email address for a verified account', async () => {
 			const newEmail = faker.internet.email();
 			const emailChangeDto: EmailChangeDto = {
 				newEmail: newEmail,
-				password: VERIFIED_USER_PASSWORD,
+				password: VERIFIED_ACCOUNT_PASSWORD,
 			};
 
 			await verifiedAgent
@@ -99,7 +99,7 @@ describe('AuthController - Change email', () => {
 		it('should fail with 401 Unauthorized if the user is not logged in', async () => {
 			const emailChangeDto: EmailChangeDto = {
 				newEmail: faker.internet.email(),
-				password: VERIFIED_USER_PASSWORD,
+				password: VERIFIED_ACCOUNT_PASSWORD,
 			};
 
 			await request(httpServer)
@@ -111,10 +111,10 @@ describe('AuthController - Change email', () => {
 				});
 		});
 
-		it('should fail with 403 Forbidden if the user email is not verified', async () => {
+		it('should fail with 403 Forbidden if the account email is not verified', async () => {
 			const emailChangeDto: EmailChangeDto = {
 				newEmail: faker.internet.email(),
-				password: UNVERIFIED_USER_PASSWORD,
+				password: UNVERIFIED_ACCOUNT_PASSWORD,
 			};
 
 			await unverifiedAgent
@@ -143,8 +143,8 @@ describe('AuthController - Change email', () => {
 
 		it('should fail with 409 Conflict if the new email is already in use', async () => {
 			const emailChangeDto: EmailChangeDto = {
-				newEmail: conflictUserEmail,
-				password: VERIFIED_USER_PASSWORD,
+				newEmail: conflictAccountEmail,
+				password: VERIFIED_ACCOUNT_PASSWORD,
 			};
 
 			await verifiedAgent
@@ -159,7 +159,7 @@ describe('AuthController - Change email', () => {
 		it('should fail with 400 Bad Request if newEmail is not a valid email format', async () => {
 			const emailChangeDto = {
 				newEmail: 'not-an-email',
-				password: VERIFIED_USER_PASSWORD,
+				password: VERIFIED_ACCOUNT_PASSWORD,
 			};
 
 			await verifiedAgent
@@ -175,7 +175,7 @@ describe('AuthController - Change email', () => {
 
 		it('should fail with 400 Bad Request if newEmail is missing', async () => {
 			const emailChangeDto = {
-				password: VERIFIED_USER_PASSWORD,
+				password: VERIFIED_ACCOUNT_PASSWORD,
 			};
 
 			await verifiedAgent
@@ -229,7 +229,7 @@ describe('AuthController - Change email', () => {
 		let verifiedAgent: TestAgent;
 		let verificationCode: string | null;
 		let newEmailAddress: string;
-		let initialUserEmail: string = VERIFIED_USER_EMAIL;
+		let initialAccountEmail: string = VERIFIED_ACCOUNT_EMAIL;
 
 		const requestChangeAndGetCode = async (agent: TestAgent, password: string) => {
 			const requestedNewEmail = faker.internet.email();
@@ -245,10 +245,10 @@ describe('AuthController - Change email', () => {
 			verifiedAgent = request.agent(httpServer);
 			await verifiedAgent
 				.post('/auth/login')
-				.send({email: initialUserEmail, password: VERIFIED_USER_PASSWORD})
+				.send({email: initialAccountEmail, password: VERIFIED_ACCOUNT_PASSWORD})
 				.expect(200);
 
-			const result = await requestChangeAndGetCode(verifiedAgent, VERIFIED_USER_PASSWORD);
+			const result = await requestChangeAndGetCode(verifiedAgent, VERIFIED_ACCOUNT_PASSWORD);
 			verificationCode = result.code;
 			newEmailAddress = result.newEmail;
 			expect(verificationCode).toBeDefined();
@@ -257,21 +257,21 @@ describe('AuthController - Change email', () => {
 			await clearEmails(mailhogApiUrl);
 		});
 
-		it('should change the email with a valid code for an authenticated, verified user', async () => {
+		it('should change the email with a valid code for an authenticated, verified account', async () => {
 			const response = await verifiedAgent
 				.post('/auth/change-email/verify')
 				.send({code: verificationCode})
 				.expect(200);
 
-			const updatedUser: Account = response.body;
-			expect(updatedUser).toBeDefined();
-			expect(updatedUser.email).toEqual(newEmailAddress);
-			expect(updatedUser.isEmailVerified).toBe(true);
+			const updatedAccount: Account = response.body;
+			expect(updatedAccount).toBeDefined();
+			expect(updatedAccount.email).toEqual(newEmailAddress);
+			expect(updatedAccount.isEmailVerified).toBe(true);
 
 			const meResponse = await verifiedAgent.get('/accounts/me').expect(200);
 			expect(meResponse.body.email).toEqual(newEmailAddress);
 
-			initialUserEmail = newEmailAddress;
+			initialAccountEmail = newEmailAddress;
 		});
 
 		it('should fail with 401 Unauthorized if the user is not logged in', async () => {
@@ -284,11 +284,11 @@ describe('AuthController - Change email', () => {
 				});
 		});
 
-		it('should fail with 403 Forbidden if the logged in user is not email-verified', async () => {
+		it('should fail with 403 Forbidden if the logged in account is not email-verified', async () => {
 			const unverifiedAgent = request.agent(httpServer);
 			await unverifiedAgent
 				.post('/auth/login')
-				.send({email: UNVERIFIED_USER_EMAIL, password: UNVERIFIED_USER_PASSWORD})
+				.send({email: UNVERIFIED_ACCOUNT_EMAIL, password: UNVERIFIED_ACCOUNT_PASSWORD})
 				.expect(200);
 
 			await unverifiedAgent
@@ -313,12 +313,12 @@ describe('AuthController - Change email', () => {
 		it('should fail with 400 Bad Request if the code has already been used', async () => {
 			await verifiedAgent.post('/auth/change-email/verify').send({code: verificationCode}).expect(200);
 
-			initialUserEmail = newEmailAddress;
+			initialAccountEmail = newEmailAddress;
 
 			const agentWithNewEmail = request.agent(httpServer);
 			await agentWithNewEmail
 				.post('/auth/login')
-				.send({email: newEmailAddress, password: VERIFIED_USER_PASSWORD})
+				.send({email: newEmailAddress, password: VERIFIED_ACCOUNT_PASSWORD})
 				.expect(200);
 
 			await agentWithNewEmail
@@ -367,51 +367,51 @@ describe('AuthController - Change email', () => {
 		});
 
 		it('should fail with 409 Conflict if the email associated with the code is now taken (race condition)', async () => {
-			// 1. User A requests change to targetEmail (done in beforeEach)
+			// 1. Account A requests change to targetEmail (done in beforeEach)
 			const codeForA = verificationCode;
 			const targetEmail = newEmailAddress;
 			expect(codeForA).toBeDefined();
 
-			// 2. Create, verify and log in User B
-			const userBCredentials: SignUpDto = {
+			// 2. Create, verify and log in Account B
+			const accountBCredentials: SignUpDto = {
 				name: faker.person.fullName(),
 				email: faker.internet.email(),
 				password: faker.internet.password({length: 10}),
 			};
-			await request(httpServer).post('/auth/signup').send(userBCredentials).expect(201);
+			await request(httpServer).post('/auth/signup').send(accountBCredentials).expect(201);
 
-			const signupEmailB = await findEmailByRecipient(userBCredentials.email, mailhogApiUrl);
+			const signupEmailB = await findEmailByRecipient(accountBCredentials.email, mailhogApiUrl);
 			const signupCodeB = extractVerificationCode(signupEmailB?.Content?.Body);
 			expect(signupCodeB).toBeDefined();
 
 			const emailVerifyDto: EmailVerifyDto = {
 				code: signupCodeB!,
-				email: userBCredentials.email,
+				email: accountBCredentials.email,
 			};
 			await request(httpServer).post('/auth/signup/verify').send(emailVerifyDto).expect(200);
 
-			const userBAgent = request.agent(httpServer);
-			await userBAgent
+			const accountBAgent = request.agent(httpServer);
+			await accountBAgent
 				.post('/auth/login')
-				.send({email: userBCredentials.email, password: userBCredentials.password})
+				.send({email: accountBCredentials.email, password: accountBCredentials.password})
 				.expect(200);
 
-			// 3. User B requests change to the same targetEmail and gets their own code
+			// 3. Account B requests change to the same targetEmail and gets their own code
 			const changeDtoForB: EmailChangeDto = {
 				newEmail: targetEmail,
-				password: userBCredentials.password,
+				password: accountBCredentials.password,
 			};
-			await userBAgent.post('/auth/change-email/request').send(changeDtoForB).expect(200);
+			await accountBAgent.post('/auth/change-email/request').send(changeDtoForB).expect(200);
 
 			const emailForB = await findEmailByRecipient(targetEmail, mailhogApiUrl);
 			const codeForB = extractVerificationCode(emailForB?.Content?.Body);
 			expect(codeForB).toBeDefined();
 			expect(codeForB).not.toEqual(codeForA);
 
-			// 4. User B successfully verifies their code, taking the targetEmail address
-			await userBAgent.post('/auth/change-email/verify').send({code: codeForB}).expect(200);
+			// 4. Account B successfully verifies their code, taking the targetEmail address
+			await accountBAgent.post('/auth/change-email/verify').send({code: codeForB}).expect(200);
 
-			// 5. User A now tries to verify their original code for the now-taken email, expect conflict
+			// 5. Account A now tries to verify their original code for the now-taken email, expect conflict
 			await verifiedAgent
 				.post('/auth/change-email/verify')
 				.send({code: codeForA})
@@ -420,7 +420,7 @@ describe('AuthController - Change email', () => {
 					expect(res.body.message).toMatch(/email is already in use/i);
 				});
 
-			initialUserEmail = VERIFIED_USER_EMAIL;
+			initialAccountEmail = VERIFIED_ACCOUNT_EMAIL;
 		});
 	});
 });

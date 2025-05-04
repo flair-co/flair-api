@@ -8,10 +8,10 @@ import {Account} from '@modules/account/account.entity';
 import {AccountUpdateDto} from '@modules/account/api/account-update.dto';
 
 import {
-	UNVERIFIED_USER_EMAIL,
-	UNVERIFIED_USER_PASSWORD,
-	VERIFIED_USER_EMAIL,
-	VERIFIED_USER_PASSWORD,
+	UNVERIFIED_ACCOUNT_EMAIL,
+	UNVERIFIED_ACCOUNT_PASSWORD,
+	VERIFIED_ACCOUNT_EMAIL,
+	VERIFIED_ACCOUNT_PASSWORD,
 } from '../../setup/constants';
 import {getApp} from '../../setup/e2e.setup';
 
@@ -25,14 +25,14 @@ describe('Account controller - /me', () => {
 	});
 
 	describe('/accounts/me (GET)', () => {
-		it('should return the current VERIFIED authenticated user', async () => {
+		it('should return the current VERIFIED authenticated account', async () => {
 			const agent = request.agent(httpServer);
 
 			await agent
 				.post('/auth/login')
 				.send({
-					email: VERIFIED_USER_EMAIL,
-					password: VERIFIED_USER_PASSWORD,
+					email: VERIFIED_ACCOUNT_EMAIL,
+					password: VERIFIED_ACCOUNT_PASSWORD,
 				})
 				.expect(200);
 
@@ -41,22 +41,22 @@ describe('Account controller - /me', () => {
 			const account: Account = response.body;
 			expect(account).toBeDefined();
 			expect(account.id).toBeDefined();
-			expect(account.email).toEqual(VERIFIED_USER_EMAIL);
-			expect(account.name).toEqual('Verified User');
+			expect(account.email).toEqual(VERIFIED_ACCOUNT_EMAIL);
+			expect(account.name).toEqual('Verified Account');
 			expect(account.isEmailVerified).toBe(true);
 			expect(account.createdAt).toBeDefined();
 			expect(account.password).toBeUndefined();
 			expect(account.bankAccounts).toBeUndefined();
 		});
 
-		it('should return the current UNVERIFIED authenticated user', async () => {
+		it('should return the current UNVERIFIED authenticated account', async () => {
 			const agent = request.agent(httpServer);
 
 			await agent
 				.post('/auth/login')
 				.send({
-					email: UNVERIFIED_USER_EMAIL,
-					password: UNVERIFIED_USER_PASSWORD,
+					email: UNVERIFIED_ACCOUNT_EMAIL,
+					password: UNVERIFIED_ACCOUNT_PASSWORD,
 				})
 				.expect(200);
 
@@ -65,8 +65,8 @@ describe('Account controller - /me', () => {
 			const account: Account = response.body;
 			expect(account).toBeDefined();
 			expect(account.id).toBeDefined();
-			expect(account.email).toEqual(UNVERIFIED_USER_EMAIL);
-			expect(account.name).toEqual('Unverified User');
+			expect(account.email).toEqual(UNVERIFIED_ACCOUNT_EMAIL);
+			expect(account.name).toEqual('Unverified Account');
 			expect(account.isEmailVerified).toBe(false);
 			expect(account.createdAt).toBeDefined();
 			expect(account.password).toBeUndefined();
@@ -87,8 +87,8 @@ describe('Account controller - /me', () => {
 			await verifiedAgent
 				.post('/auth/login')
 				.send({
-					email: VERIFIED_USER_EMAIL,
-					password: VERIFIED_USER_PASSWORD,
+					email: VERIFIED_ACCOUNT_EMAIL,
+					password: VERIFIED_ACCOUNT_PASSWORD,
 				})
 				.expect(200);
 
@@ -96,13 +96,13 @@ describe('Account controller - /me', () => {
 			await unverifiedAgent
 				.post('/auth/login')
 				.send({
-					email: UNVERIFIED_USER_EMAIL,
-					password: UNVERIFIED_USER_PASSWORD,
+					email: UNVERIFIED_ACCOUNT_EMAIL,
+					password: UNVERIFIED_ACCOUNT_PASSWORD,
 				})
 				.expect(200);
 		});
 
-		it('should update the name for an authenticated VERIFIED user', async () => {
+		it('should update the name for an authenticated VERIFIED account', async () => {
 			const newName = faker.person.fullName();
 			const updateDto: AccountUpdateDto = {name: newName};
 
@@ -111,7 +111,7 @@ describe('Account controller - /me', () => {
 			const updatedAccount: Account = patchResponse.body;
 			expect(updatedAccount).toBeDefined();
 			expect(updatedAccount.name).toEqual(newName);
-			expect(updatedAccount.email).toEqual(VERIFIED_USER_EMAIL);
+			expect(updatedAccount.email).toEqual(VERIFIED_ACCOUNT_EMAIL);
 			expect(updatedAccount.isEmailVerified).toBe(true);
 			expect(updatedAccount.password).toBeUndefined();
 
@@ -119,7 +119,7 @@ describe('Account controller - /me', () => {
 			expect(getResponse.body.name).toEqual(newName);
 		});
 
-		it('should strip disallowed fields and update the name for an authenticated VERIFIED user', async () => {
+		it('should strip disallowed fields and update the name for an authenticated VERIFIED account', async () => {
 			const updateDto: AccountUpdateDto = {name: 'Valid name Again'};
 
 			await verifiedAgent
@@ -128,11 +128,11 @@ describe('Account controller - /me', () => {
 				.expect(200)
 				.expect((res) => {
 					expect(res.body.name).toEqual('Valid name Again');
-					expect(res.body.email).toEqual(VERIFIED_USER_EMAIL);
+					expect(res.body.email).toEqual(VERIFIED_ACCOUNT_EMAIL);
 				});
 		});
 
-		it('should return 403 Forbidden for an UNVERIFIED user', async () => {
+		it('should return 403 Forbidden for an UNVERIFIED account', async () => {
 			const updateDto: AccountUpdateDto = {name: faker.person.fullName()};
 
 			await unverifiedAgent

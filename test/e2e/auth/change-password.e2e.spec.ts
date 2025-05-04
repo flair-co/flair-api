@@ -5,12 +5,12 @@ import request from 'supertest';
 import {ChangePasswordDto} from '@modules/auth/api/dtos/change-password.dto';
 
 import {
-	PW_CHANGE_USER_EMAIL,
-	PW_CHANGE_USER_PASSWORD,
-	UNVERIFIED_USER_EMAIL,
-	UNVERIFIED_USER_PASSWORD,
-	VERIFIED_USER_EMAIL,
-	VERIFIED_USER_PASSWORD,
+	PW_CHANGE_ACCOUNT_EMAIL,
+	PW_CHANGE_ACCOUNT_PASSWORD,
+	UNVERIFIED_ACCOUNT_EMAIL,
+	UNVERIFIED_ACCOUNT_PASSWORD,
+	VERIFIED_ACCOUNT_EMAIL,
+	VERIFIED_ACCOUNT_PASSWORD,
 } from '../../setup/constants';
 import {getApp} from '../../setup/e2e.setup';
 
@@ -22,19 +22,19 @@ describe('AuthController - Change password', () => {
 	});
 
 	describe('/auth/change-password (POST)', () => {
-		it('should change password for logged-in user and allow login with new password', async () => {
+		it('should change password for authenticated account and allow login with new password', async () => {
 			const agent = request.agent(httpServer);
 			await agent
 				.post('/auth/login')
 				.send({
-					email: PW_CHANGE_USER_EMAIL,
-					password: PW_CHANGE_USER_PASSWORD,
+					email: PW_CHANGE_ACCOUNT_EMAIL,
+					password: PW_CHANGE_ACCOUNT_PASSWORD,
 				})
 				.expect(200);
 
 			const newPassword = faker.internet.password({length: 12});
 			const changePasswordDto: ChangePasswordDto = {
-				currentPassword: PW_CHANGE_USER_PASSWORD,
+				currentPassword: PW_CHANGE_ACCOUNT_PASSWORD,
 				newPassword: newPassword,
 			};
 
@@ -51,13 +51,13 @@ describe('AuthController - Change password', () => {
 			// Old password fails login
 			await request(httpServer)
 				.post('/auth/login')
-				.send({email: PW_CHANGE_USER_EMAIL, password: PW_CHANGE_USER_PASSWORD})
+				.send({email: PW_CHANGE_ACCOUNT_EMAIL, password: PW_CHANGE_ACCOUNT_PASSWORD})
 				.expect(401);
 
 			// New password succeeds login
 			await request(httpServer)
 				.post('/auth/login')
-				.send({email: PW_CHANGE_USER_EMAIL, password: newPassword})
+				.send({email: PW_CHANGE_ACCOUNT_EMAIL, password: newPassword})
 				.expect(200);
 		});
 
@@ -66,8 +66,8 @@ describe('AuthController - Change password', () => {
 			await agent
 				.post('/auth/login')
 				.send({
-					email: VERIFIED_USER_EMAIL,
-					password: VERIFIED_USER_PASSWORD,
+					email: VERIFIED_ACCOUNT_EMAIL,
+					password: VERIFIED_ACCOUNT_PASSWORD,
 				})
 				.expect(200);
 
@@ -79,16 +79,16 @@ describe('AuthController - Change password', () => {
 			await agent.post('/auth/change-password').send(changePasswordDto).expect(401);
 		});
 
-		it('should fail with 403 Forbidden when unverified user tries to change password', async () => {
+		it('should fail with 403 Forbidden when unverified account tries to change password', async () => {
 			const unverifiedAgent = request.agent(httpServer);
 			await unverifiedAgent
 				.post('/auth/login')
-				.send({email: UNVERIFIED_USER_EMAIL, password: UNVERIFIED_USER_PASSWORD})
+				.send({email: UNVERIFIED_ACCOUNT_EMAIL, password: UNVERIFIED_ACCOUNT_PASSWORD})
 				.expect(200);
 
 			const newPassword = faker.internet.password({length: 12});
 			const changePasswordDto: ChangePasswordDto = {
-				currentPassword: UNVERIFIED_USER_PASSWORD,
+				currentPassword: UNVERIFIED_ACCOUNT_PASSWORD,
 				newPassword: newPassword,
 			};
 
@@ -106,13 +106,13 @@ describe('AuthController - Change password', () => {
 			await agent
 				.post('/auth/login')
 				.send({
-					email: VERIFIED_USER_EMAIL,
-					password: VERIFIED_USER_PASSWORD,
+					email: VERIFIED_ACCOUNT_EMAIL,
+					password: VERIFIED_ACCOUNT_PASSWORD,
 				})
 				.expect(200);
 
 			const changePasswordDto: ChangePasswordDto = {
-				currentPassword: VERIFIED_USER_PASSWORD,
+				currentPassword: VERIFIED_ACCOUNT_PASSWORD,
 				newPassword: 'short',
 			};
 
@@ -134,8 +134,8 @@ describe('AuthController - Change password', () => {
 			await agent
 				.post('/auth/login')
 				.send({
-					email: VERIFIED_USER_EMAIL,
-					password: VERIFIED_USER_PASSWORD,
+					email: VERIFIED_ACCOUNT_EMAIL,
+					password: VERIFIED_ACCOUNT_PASSWORD,
 				})
 				.expect(200);
 
@@ -159,13 +159,13 @@ describe('AuthController - Change password', () => {
 			await agent
 				.post('/auth/login')
 				.send({
-					email: VERIFIED_USER_EMAIL,
-					password: VERIFIED_USER_PASSWORD,
+					email: VERIFIED_ACCOUNT_EMAIL,
+					password: VERIFIED_ACCOUNT_PASSWORD,
 				})
 				.expect(200);
 
 			const changePasswordDto: Partial<ChangePasswordDto> = {
-				currentPassword: VERIFIED_USER_PASSWORD,
+				currentPassword: VERIFIED_ACCOUNT_PASSWORD,
 			};
 
 			await agent
@@ -182,7 +182,7 @@ describe('AuthController - Change password', () => {
 		it('should fail with 401 Unauthorized if user is not logged in', async () => {
 			const newPassword = faker.internet.password({length: 12});
 			const changePasswordDto: ChangePasswordDto = {
-				currentPassword: VERIFIED_USER_PASSWORD,
+				currentPassword: VERIFIED_ACCOUNT_PASSWORD,
 				newPassword: newPassword,
 			};
 
