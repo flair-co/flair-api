@@ -2,7 +2,7 @@ import {faker} from '@faker-js/faker';
 import {Server} from 'node:net';
 import request from 'supertest';
 
-import {PASSWORD_CHANGE_SUCCESS} from '@modules/auth/api/constants/api-messages.constants';
+import {EMAIL_NOT_VERIFIED, PASSWORD_CHANGE_SUCCESS} from '@modules/auth/api/constants/api-messages.constants';
 import {PasswordChangeDto} from '@modules/auth/api/dtos/password-change.dto';
 
 import {
@@ -98,7 +98,7 @@ describe('AuthController - Change password', () => {
 				.send(changePasswordDto)
 				.expect(403)
 				.expect((res) => {
-					expect(res.body.message).toMatch(/Email not verified/i);
+					expect(res.body.message).toBe(EMAIL_NOT_VERIFIED);
 				});
 		});
 
