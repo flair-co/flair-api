@@ -42,7 +42,7 @@ describe('AuthController - Change email', () => {
 	describe('/auth/change-email/check (HEAD)', () => {
 		let verifiedAgent: TestAgent;
 		let unverifiedAgent: TestAgent;
-		let existingEmail: string; // Email already used by another account
+		let existingEmail: string;
 
 		beforeAll(async () => {
 			// Create an account to test conflict
