@@ -50,7 +50,7 @@ export class PasswordResetService {
 		await this.emailService.send({
 			to: account.email,
 			subject: 'Reset your password',
-			template: 'password-reset',
+			template: 'reset-password',
 			context: {name: account.name, resetUrl},
 		});
 		return {message: PASSWORD_RESET_CONFIRMATION};
