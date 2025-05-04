@@ -112,7 +112,7 @@ export class EmailVerifierService {
     return updatedUser;
   }
 
-  async createUrl(code: string, email: User['email']): Promise<string> {
+  async createUrl(code: string, email: User['email']) {
     const url = new URL('/verify', this.WEB_BASE_URL);
     url.search = new URLSearchParams({email, code}).toString();
     return url.toString();
