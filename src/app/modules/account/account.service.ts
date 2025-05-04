@@ -9,24 +9,24 @@ import {Account} from './account.entity';
 export class AccountService {
 	constructor(
 		@InjectRepository(Account)
-		private readonly userRepository: Repository<Account>,
+		private readonly accountRepository: Repository<Account>,
 	) {}
 
 	async findById(id: Account['id']) {
-		const user = await this.userRepository.findOneBy({id});
+		const account = await this.accountRepository.findOneBy({id});
 
-		if (!user) {
-			throw new NotFoundException(`User not found.`);
+		if (!account) {
+			throw new NotFoundException(`Account not found.`);
 		}
-		return user;
+		return account;
 	}
 
 	async findByEmail(email: Account['email']) {
-		return await this.userRepository.findOneBy({email});
+		return await this.accountRepository.findOneBy({email});
 	}
 
 	async validateEmailIsUnique(email: Account['email']) {
-		const emailExists = await this.userRepository.existsBy({email});
+		const emailExists = await this.accountRepository.existsBy({email});
 
 		if (emailExists) {
 			throw new ConflictException(`This email is already in use.`);
@@ -41,11 +41,11 @@ export class AccountService {
 	}
 
 	async save(fullName: Account['fullName'], email: Account['email'], password: Account['password']) {
-		return this.userRepository.save({fullName, email, password});
+		return this.accountRepository.save({fullName, email, password});
 	}
 
 	async update(id: Account['id'], updates: Partial<Account>) {
-		await this.userRepository.update({id}, updates);
+		await this.accountRepository.update({id}, updates);
 		return this.findById(id);
 	}
 }

@@ -1,8 +1,8 @@
 import {Body, Controller, Get, Param, ParseUUIDPipe, Patch, Query} from '@nestjs/common';
 import {ApiTags} from '@nestjs/swagger';
 
+import {Account} from '@modules/account/account.entity';
 import {CurrentUser} from '@modules/auth/decorators/current-user.decorator';
-import {Account} from '@modules/user/account.entity';
 
 import {Transaction} from '../transaction.entity';
 import {TransactionService} from '../transaction.service';
@@ -16,7 +16,7 @@ export class TransactionController {
 
 	@Get()
 	findAll(@CurrentUser() user: Account, @Query() queryParams: TransactionQueryDto) {
-		return this.transactionService.findAllByUserId(user.id, queryParams);
+		return this.transactionService.findAllByAccountId(user.id, queryParams);
 	}
 
 	@Get(':id')

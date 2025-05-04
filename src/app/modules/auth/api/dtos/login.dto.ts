@@ -1,6 +1,6 @@
 import {IsEmail, IsNotEmpty, IsString, Length, MaxLength, MinLength} from 'class-validator';
 
-import {Account} from '@modules/user/account.entity';
+import {Account} from '@modules/account/account.entity';
 
 export class LogInDto {
 	@IsNotEmpty()

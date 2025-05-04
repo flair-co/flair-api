@@ -1,10 +1,10 @@
 import {Exclude, Expose, Type} from 'class-transformer';
 import {Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn} from 'typeorm';
 
+import {Account} from '@modules/account/account.entity';
 import {BankStatement} from '@modules/bank-statement/bank-statement.entity';
 import {Bank} from '@modules/transaction/transaction-mapper/constants/bank.enum';
 import {Transaction} from '@modules/transaction/transaction.entity';
-import {Account} from '@modules/user/account.entity';
 
 @Entity('bank_accounts')
 export class BankAccount {

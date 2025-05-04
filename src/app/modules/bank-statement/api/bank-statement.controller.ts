@@ -16,10 +16,10 @@ import {FileInterceptor} from '@nestjs/platform-express';
 import {ApiResponse, ApiTags} from '@nestjs/swagger';
 import {Response} from 'express';
 
+import {Account} from '@modules/account/account.entity';
 import {CurrentUser} from '@modules/auth/decorators/current-user.decorator';
 import {BankAccount} from '@modules/bank-account/bank-account.entity';
 import {PaginationDto} from '@modules/bank-statement/api/pagination.dto';
-import {Account} from '@modules/user/account.entity';
 
 import {BankStatement} from '../bank-statement.entity';
 import {BankStatementService} from '../bank-statement.service';
@@ -48,7 +48,7 @@ export class BankStatementController {
 	}
 
 	@Get()
-	async getAllByAccountIdAndUserId(
+	async getAllByAccountAndBankAccountId(
 		@CurrentUser() user: Account,
 		@Param('bankAccountId', new ParseUUIDPipe({version: '4'})) bankAccountId: BankAccount['id'],
 		@Query() paginationDto: PaginationDto,
@@ -56,7 +56,7 @@ export class BankStatementController {
 		bankStatements: BankStatement[];
 		total: number;
 	}> {
-		return this.bankStatementService.findAllByBankAccountIdAndUserId(bankAccountId, user.id, paginationDto);
+		return this.bankStatementService.findAllByBankAccountIdAndAccountId(bankAccountId, user.id, paginationDto);
 	}
 
 	@Delete(':bankStatementId')
@@ -65,7 +65,7 @@ export class BankStatementController {
 		@Param('bankStatementId', new ParseUUIDPipe({version: '4'}))
 		bankStatementId: BankStatement['id'],
 	): Promise<void> {
-		return this.bankStatementService.deleteByIdAndUserId(bankStatementId, user.id);
+		return this.bankStatementService.deleteByIdAndAccountId(bankStatementId, user.id);
 	}
 
 	@Get(':bankStatementId/file')
@@ -75,7 +75,7 @@ export class BankStatementController {
 		bankStatementId: BankStatement['id'],
 		@Res({passthrough: true}) res: Response,
 	): Promise<StreamableFile> {
-		const file = await this.bankStatementService.findFileByIdAndUserId(bankStatementId, user.id);
+		const file = await this.bankStatementService.findFileByIdAndAccountId(bankStatementId, user.id);
 
 		res.set({
 			'Content-Type': file.type,

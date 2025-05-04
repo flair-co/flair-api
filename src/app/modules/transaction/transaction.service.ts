@@ -2,7 +2,7 @@ import {Injectable, NotFoundException} from '@nestjs/common';
 import {InjectRepository} from '@nestjs/typeorm';
 import {Repository} from 'typeorm';
 
-import {Account} from '@modules/user/account.entity';
+import {Account} from '@modules/account/account.entity';
 
 import {DEFAULT_PAGE_INDEX, DEFAULT_PAGE_SIZE} from './api/transaction-query-pagination.dto';
 import {TransactionQueryDto} from './api/transaction-query.dto';
@@ -16,9 +16,9 @@ export class TransactionService {
 		private readonly transactionRepository: Repository<Transaction>,
 	) {}
 
-	async findById(userId: Account['id'], id: Transaction['id']) {
+	async findById(accountId: Account['id'], id: Transaction['id']) {
 		const transaction = await this.transactionRepository.findOne({
-			where: {id, bankAccount: {account: {id: userId}}},
+			where: {id, bankAccount: {account: {id: accountId}}},
 			relations: ['bankAccount'],
 		});
 
@@ -28,7 +28,7 @@ export class TransactionService {
 		return transaction;
 	}
 
-	async findAllByUserId(userId: Account['id'], queryParams: TransactionQueryDto) {
+	async findAllByAccountId(accountId: Account['id'], queryParams: TransactionQueryDto) {
 		const pagination = queryParams.pagination || {
 			pageIndex: DEFAULT_PAGE_INDEX,
 			pageSize: DEFAULT_PAGE_SIZE,
@@ -36,8 +36,8 @@ export class TransactionService {
 		const query = this.transactionRepository
 			.createQueryBuilder('transaction')
 			.innerJoin('transaction.bankAccount', 'bankAccount')
-			.innerJoin('bankAccount.user', 'user')
-			.where('user.id = :userId', {userId})
+			.innerJoin('bankAccount.account', 'account')
+			.where('account.id = :accountId', {accountId})
 			.skip(pagination.pageIndex * pagination.pageSize)
 			.take(pagination.pageSize);
 
@@ -75,8 +75,8 @@ export class TransactionService {
 		return this.transactionRepository.delete(ids);
 	}
 
-	async update(userId: Account['id'], id: Transaction['id'], dto: TransactionUpdateDto) {
-		const transaction = await this.findById(userId, id);
+	async update(accountId: Account['id'], id: Transaction['id'], dto: TransactionUpdateDto) {
+		const transaction = await this.findById(accountId, id);
 
 		const updates: Partial<Transaction> = {};
 		if (dto.category) {

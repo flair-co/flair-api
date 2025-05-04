@@ -9,12 +9,12 @@ import {QueueModule} from '@core/queue/queue.module';
 import {RateLimitModule} from '@core/rate-limit/rate-limit.module';
 import {RedisModule} from '@core/redis/redis.module';
 import {SessionModule} from '@core/session/session.module';
+import {AccountModule} from '@modules/account/account.module';
 import {AuthModule} from '@modules/auth/auth.module';
 import {BankStatementModule} from '@modules/bank-statement/bank-statement.module';
 import {FileParserModule} from '@modules/file/file-parser/file-parser.module';
 import {TransactionCategorizerModule} from '@modules/transaction/transaction-categorizer/transaction-categorizer.module';
 import {TransactionModule} from '@modules/transaction/transaction.module';
-import {UserModule} from '@modules/user/user.module';
 
 @Module({
 	imports: [
@@ -29,7 +29,7 @@ import {UserModule} from '@modules/user/user.module';
 		FileParserModule,
 		TransactionModule,
 		TransactionCategorizerModule,
-		UserModule,
+		AccountModule,
 		BankStatementModule,
 	],
 	providers: [

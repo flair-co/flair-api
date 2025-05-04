@@ -1,8 +1,8 @@
 import {Body, Controller, Get, Param, ParseUUIDPipe, Post} from '@nestjs/common';
 import {ApiTags} from '@nestjs/swagger';
 
+import {Account} from '@modules/account/account.entity';
 import {CurrentUser} from '@modules/auth/decorators/current-user.decorator';
-import {Account} from '@modules/user/account.entity';
 
 import {BankAccount} from '../bank-account.entity';
 import {BankAccountService} from '../bank-account.service';
@@ -20,7 +20,7 @@ export class BankAccountController {
 
 	@Get()
 	getAllBankAccounts(@CurrentUser() user: Account) {
-		return this.bankAccountService.findAllByUserId(user.id);
+		return this.bankAccountService.findAllByAccountId(user.id);
 	}
 
 	@Get(':id')

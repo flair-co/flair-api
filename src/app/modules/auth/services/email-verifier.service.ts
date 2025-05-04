@@ -37,22 +37,22 @@ export class EmailVerifierService {
 			throw new BadRequestException('Invalid or expired verification code.');
 		}
 
-		const user = await this.accountService.findByEmail(email);
-		if (!user) {
+		const account = await this.accountService.findByEmail(email);
+		if (!account) {
 			throw new BadRequestException('Invalid or expired verification code.');
 		}
 
-		if (user.isEmailVerified) {
+		if (account.isEmailVerified) {
 			throw new BadRequestException('Email is already verified.');
 		}
 
-		const updatedUser = await this.accountService.update(user.id, {isEmailVerified: true});
+		const updatedAccount = await this.accountService.update(account.id, {isEmailVerified: true});
 		await this.removeCode(code);
-		return updatedUser;
+		return updatedAccount;
 	}
 
-	async sendWelcomeEmail(user: Account) {
-		const {email, fullName} = user;
+	async sendWelcomeEmail(account: Account) {
+		const {email, fullName} = account;
 
 		const code = await this.createCode(email);
 		const verificationUrl = await this.createUrl(code, email);
@@ -65,8 +65,8 @@ export class EmailVerifierService {
 		});
 	}
 
-	async sendVerifyEmail(user: Account) {
-		const {email, fullName, isEmailVerified} = user;
+	async sendVerifyEmail(account: Account) {
+		const {email, fullName, isEmailVerified} = account;
 
 		if (isEmailVerified) {
 			throw new BadRequestException('Email is already verified.');
@@ -85,10 +85,10 @@ export class EmailVerifierService {
 		return {message: 'Verification email sent.'};
 	}
 
-	async requestEmailChange(user: Account, dto: EmailChangeDto) {
+	async requestEmailChange(account: Account, dto: EmailChangeDto) {
 		const {newEmail, password} = dto;
 
-		await this.accountService.verifyPassword(user.password, password);
+		await this.accountService.verifyPassword(account.password, password);
 		await this.accountService.validateEmailIsUnique(newEmail);
 
 		const code = await this.createCode(newEmail);
@@ -97,16 +97,16 @@ export class EmailVerifierService {
 			to: newEmail,
 			subject: `${code} is your verification code`,
 			template: 'verify-new-email',
-			context: {fullName: user.fullName, code},
+			context: {fullName: account.fullName, code},
 		});
 		return {message: 'Verification email sent.'};
 	}
 
-	async verifyEmailChange(user: Account, code: string) {
+	async verifyEmailChange(account: Account, code: string) {
 		const newEmail = await this.getEmailByCode(code);
 
 		await this.accountService.validateEmailIsUnique(newEmail);
-		const updatedUser = await this.accountService.update(user.id, {email: newEmail});
+		const updatedUser = await this.accountService.update(account.id, {email: newEmail});
 
 		await this.removeCode(code);
 		return updatedUser;

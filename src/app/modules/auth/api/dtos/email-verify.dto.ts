@@ -1,7 +1,7 @@
 import {ApiProperty} from '@nestjs/swagger';
 import {IsEmail, IsNotEmpty, Length, Matches} from 'class-validator';
 
-import {Account} from '@modules/user/account.entity';
+import {Account} from '@modules/account/account.entity';
 
 export class EmailVerifyDto {
 	@ApiProperty({example: '123456'})

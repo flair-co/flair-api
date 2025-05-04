@@ -6,7 +6,7 @@ import {IResult, UAParser} from 'ua-parser-js';
 
 import {ConfigurationService} from '@core/config/config.service';
 import {REDIS} from '@core/redis/redis.constants';
-import {Account} from '@modules/user/account.entity';
+import {Account} from '@modules/account/account.entity';
 
 import {SessionResponseDto} from '../api/dtos/session-response.dto';
 import {AuthenticatedSession} from './authenticated-session.interface';
@@ -28,7 +28,7 @@ export class SessionService {
 	 *
 	 * NOTE: This implementation does not scale well.
 	 */
-	async getSessions(userId: Account['id'], currentSessionId: string) {
+	async getSessions(accountId: Account['id'], currentSessionId: string) {
 		const userSessions: SessionResponseDto[] = [];
 
 		const scanBatchSize = '250';
@@ -52,7 +52,7 @@ export class SessionService {
 
 					const sessionData: AuthenticatedSession = JSON.parse(sessionDataString);
 
-					if (sessionData?.passport?.user !== userId) continue;
+					if (sessionData?.passport?.user !== accountId) continue;
 					const sessionId = key.substring(prefix.length);
 
 					userSessions.push({
@@ -83,7 +83,7 @@ export class SessionService {
 	}
 
 	/** Revokes a user's active session. */
-	async revokeSession(userId: Account['id'], currentSessionId: string, sessionIdToRevoke: string) {
+	async revokeSession(accountId: Account['id'], currentSessionId: string, sessionIdToRevoke: string) {
 		if (sessionIdToRevoke === currentSessionId) {
 			throw new ConflictException('Cannot revoke the current session. Log out instead.');
 		}
@@ -95,7 +95,7 @@ export class SessionService {
 		}
 
 		const sessionData: AuthenticatedSession = JSON.parse(sessionDataString);
-		if (sessionData?.passport?.user !== userId) {
+		if (sessionData?.passport?.user !== accountId) {
 			throw new NotFoundException('Session not found or expired.');
 		}
 
@@ -104,8 +104,8 @@ export class SessionService {
 	}
 
 	/** Revokes all sessions except the current one. */
-	async revokeAllOtherSessions(userId: Account['id'], currentSessionId: string) {
-		const allSessions = await this.getSessions(userId, currentSessionId);
+	async revokeAllOtherSessions(accountId: Account['id'], currentSessionId: string) {
+		const allSessions = await this.getSessions(accountId, currentSessionId);
 
 		const sessionsToRevoke = allSessions.filter((session) => !session.isCurrent);
 		if (sessionsToRevoke.length === 0) {

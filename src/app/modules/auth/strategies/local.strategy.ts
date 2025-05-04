@@ -4,14 +4,14 @@ import {plainToClass} from 'class-transformer';
 import {validate} from 'class-validator';
 import {Strategy} from 'passport-local';
 
-import {Account} from '@modules/user/account.entity';
-import {UserService} from '@modules/user/user.service';
+import {Account} from '@modules/account/account.entity';
+import {AccountService} from '@modules/account/account.service';
 
 import {LogInDto} from '../api/dtos/login.dto';
 
 @Injectable()
 export class LocalStrategy extends PassportStrategy(Strategy) {
-	constructor(private readonly userService: UserService) {
+	constructor(private readonly accountService: AccountService) {
 		super({usernameField: 'email'});
 	}
 
@@ -24,12 +24,12 @@ export class LocalStrategy extends PassportStrategy(Strategy) {
 			throw new BadRequestException(formattedErrors);
 		}
 
-		const user = await this.userService.findByEmail(credentials.email);
+		const user = await this.accountService.findByEmail(credentials.email);
 		if (!user) {
 			throw new UnauthorizedException();
 		}
 
-		await this.userService.verifyPassword(user.password, credentials.password);
+		await this.accountService.verifyPassword(user.password, credentials.password);
 		return user;
 	}
 }

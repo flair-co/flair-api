@@ -23,11 +23,11 @@ export class AuthService {
 		await this.accountService.validateEmailIsUnique(email);
 
 		const hash = await argon2.hash(password);
-		const user = await this.accountService.save(fullName, email, hash);
+		const account = await this.accountService.save(fullName, email, hash);
 
-		await this.emailVerifierService.sendWelcomeEmail(user);
-		await this.logIn(user, request);
-		return plainToInstance(Account, user);
+		await this.emailVerifierService.sendWelcomeEmail(account);
+		await this.logIn(account, request);
+		return plainToInstance(Account, account);
 	}
 
 	async logOut(request: Request) {
@@ -42,9 +42,9 @@ export class AuthService {
 		return {message: 'User logged out.'};
 	}
 
-	async logIn(user: Account, request: Request) {
+	async logIn(account: Account, request: Request) {
 		await new Promise<void>((resolve) => {
-			request.logIn(user, () => {
+			request.logIn(account, () => {
 				resolve();
 			});
 		});
@@ -52,11 +52,11 @@ export class AuthService {
 		return {message: 'User logged in.'};
 	}
 
-	async changePassword(user: Account, dto: ChangePasswordDto) {
-		await this.accountService.verifyPassword(user.password, dto.currentPassword);
+	async changePassword(account: Account, dto: ChangePasswordDto) {
+		await this.accountService.verifyPassword(account.password, dto.currentPassword);
 
 		const hash = await argon2.hash(dto.newPassword);
-		await this.accountService.update(user.id, {password: hash});
+		await this.accountService.update(account.id, {password: hash});
 		return {message: 'Password changed.'};
 	}
 }

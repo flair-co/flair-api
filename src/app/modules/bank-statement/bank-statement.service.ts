@@ -3,6 +3,7 @@ import {InjectRepository} from '@nestjs/typeorm';
 import {plainToInstance} from 'class-transformer';
 import {Repository} from 'typeorm';
 
+import {Account} from '@modules/account/account.entity';
 import {BankAccount} from '@modules/bank-account/bank-account.entity';
 import {BankAccountService} from '@modules/bank-account/bank-account.service';
 import {PaginationDto} from '@modules/bank-statement/api/pagination.dto';
@@ -12,7 +13,6 @@ import {TransactionCategorizerService} from '@modules/transaction/transaction-ca
 import {TransactionPartial} from '@modules/transaction/transaction-mapper/services/transaction-mapper.interface';
 import {TransactionMapperService} from '@modules/transaction/transaction-mapper/services/transaction-mapper.service';
 import {TransactionService} from '@modules/transaction/transaction.service';
-import {Account} from '@modules/user/account.entity';
 
 import {BankStatement} from './bank-statement.entity';
 
@@ -29,8 +29,8 @@ export class BankStatementService {
 		private readonly fileService: FileService,
 	) {}
 
-	async save(file: Express.Multer.File, bankAccountId: BankAccount['id'], userId: Account['id']) {
-		const bankAccount = await this.bankAccountService.findById(bankAccountId, userId);
+	async save(file: Express.Multer.File, bankAccountId: BankAccount['id'], accountId: Account['id']) {
+		const bankAccount = await this.bankAccountService.findById(bankAccountId, accountId);
 
 		const records = this.fileParserService.parse(file.buffer, file.mimetype);
 		const mappedTransactions = await this.transactionMapperService.map(records, bankAccount.bank);
@@ -55,9 +55,9 @@ export class BankStatementService {
 		return plainToInstance(BankStatement, {...savedBankStatement, transactions: savedTransactions});
 	}
 
-	async findAllByBankAccountIdAndUserId(
+	async findAllByBankAccountIdAndAccountId(
 		bankAccountId: BankAccount['id'],
-		userId: Account['id'],
+		accountId: Account['id'],
 		{pageIndex, pageSize}: PaginationDto,
 	): Promise<{
 		bankStatements: BankStatement[];
@@ -66,8 +66,8 @@ export class BankStatementService {
 		const [bankStatements, total] = await this.bankStatementRepository
 			.createQueryBuilder('bankStatement')
 			.innerJoin('bankStatement.bankAccount', 'bankAccount')
-			.innerJoin('bankAccount.user', 'user')
-			.where('user.id = :userId', {userId})
+			.innerJoin('bankAccount.account', 'account')
+			.where('account.id = :accountId', {accountId})
 			.andWhere('bankAccount.id = :bankAccountId', {bankAccountId})
 			.leftJoinAndSelect('bankStatement.file', 'file')
 			.leftJoinAndSelect('bankStatement.transactions', 'transactions')
@@ -78,9 +78,9 @@ export class BankStatementService {
 		return {bankStatements, total};
 	}
 
-	async findFileByIdAndUserId(id: BankStatement['id'], userId: Account['id']) {
+	async findFileByIdAndAccountId(id: BankStatement['id'], accountId: Account['id']) {
 		const bankStatement = await this.bankStatementRepository.findOne({
-			where: {id: id, bankAccount: {account: {id: userId}}},
+			where: {id: id, bankAccount: {account: {id: accountId}}},
 			relations: ['file', 'transactions'],
 		});
 
@@ -90,9 +90,9 @@ export class BankStatementService {
 		return this.fileService.findById(bankStatement.file.id);
 	}
 
-	async deleteByIdAndUserId(id: BankStatement['id'], userId: Account['id']) {
+	async deleteByIdAndAccountId(id: BankStatement['id'], accountId: Account['id']) {
 		const bankStatement = await this.bankStatementRepository.findOne({
-			where: {id: id, bankAccount: {account: {id: userId}}},
+			where: {id: id, bankAccount: {account: {id: accountId}}},
 			relations: ['file', 'transactions'],
 		});
 

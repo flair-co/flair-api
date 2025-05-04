@@ -2,7 +2,7 @@ import {CanActivate, ExecutionContext, ForbiddenException, Injectable, Unauthori
 import {Reflector} from '@nestjs/core';
 import {Request} from 'express';
 
-import {Account} from '@modules/user/account.entity';
+import {Account} from '@modules/account/account.entity';
 
 import {IS_PUBLIC_KEY} from '../decorators/public.decorator';
 import {SKIP_EMAIL_VERIFICATION_KEY} from '../decorators/skip-email-verification.decorator';
@@ -21,7 +21,7 @@ export class AuthGuard implements CanActivate {
 		}
 
 		const request = context.switchToHttp().getRequest() as Request;
-		const user = request.user as Account;
+		const user = request.user as Account; // const should be renamed to account and should come from request.user.account
 
 		if (!request.isAuthenticated()) {
 			throw new UnauthorizedException();
