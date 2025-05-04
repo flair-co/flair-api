@@ -1,23 +1,6 @@
 import {Exclude, Expose, Type} from 'class-transformer';
-import {
-	IsDate,
-	IsEnum,
-	IsIn,
-	IsNotEmpty,
-	IsNumber,
-	IsString,
-	Length,
-	Max,
-	Min,
-} from 'class-validator';
-import {
-	Column,
-	CreateDateColumn,
-	Entity,
-	ManyToOne,
-	PrimaryGeneratedColumn,
-	UpdateDateColumn,
-} from 'typeorm';
+import {IsDate, IsEnum, IsIn, IsNotEmpty, IsNumber, IsString, Length, Max, Min} from 'class-validator';
+import {Column, CreateDateColumn, Entity, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn} from 'typeorm';
 
 import {BankAccount} from '@modules/bank-account/bank-account.entity';
 import {BankStatement} from '@modules/bank-statement/bank-statement.entity';

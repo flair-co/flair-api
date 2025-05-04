@@ -1,13 +1,5 @@
 import {Exclude, Expose, Type} from 'class-transformer';
-import {
-	CreateDateColumn,
-	Entity,
-	JoinColumn,
-	ManyToOne,
-	OneToMany,
-	OneToOne,
-	PrimaryGeneratedColumn,
-} from 'typeorm';
+import {CreateDateColumn, Entity, JoinColumn, ManyToOne, OneToMany, OneToOne, PrimaryGeneratedColumn} from 'typeorm';
 
 import {BankAccount} from '@modules/bank-account/bank-account.entity';
 import {File} from '@modules/file/file.entity';
