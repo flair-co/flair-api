@@ -2,6 +2,7 @@ import {Server} from 'net';
 import request from 'supertest';
 import TestAgent from 'supertest/lib/agent';
 
+import {SESSION_REVOKE_SUCCESS} from '@modules/auth/api/constants/api-messages.constants';
 import {SessionResponseDto} from '@modules/auth/api/dtos/session-response.dto';
 
 import {
@@ -268,7 +269,7 @@ describe('AuthController - Sessions', () => {
 				.delete(`/auth/sessions/${sessionToRevokeId}`)
 				.expect(200)
 				.expect((res) => {
-					expect(res.body.message).toEqual('Session revoked.');
+					expect(res.body.message).toEqual(SESSION_REVOKE_SUCCESS);
 				});
 
 			// Verify the session is gone

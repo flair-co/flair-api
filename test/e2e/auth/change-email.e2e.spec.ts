@@ -5,7 +5,7 @@ import TestAgent from 'supertest/lib/agent';
 
 import {ConfigurationService} from '@core/config/config.service';
 import {Account} from '@modules/account/account.entity';
-import {EmailChangeDto} from '@modules/auth/api/dtos/email-change.dto';
+import {EmailChangeRequestDto} from '@modules/auth/api/dtos/email-change.dto';
 import {EmailVerifyDto} from '@modules/auth/api/dtos/email-verify.dto';
 import {SignUpDto} from '@modules/auth/api/dtos/signup.dto';
 
@@ -69,7 +69,7 @@ describe('AuthController - Change email', () => {
 
 		it('should send a verification email to the new email address for a verified account', async () => {
 			const newEmail = faker.internet.email();
-			const emailChangeDto: EmailChangeDto = {
+			const emailChangeDto: EmailChangeRequestDto = {
 				newEmail: newEmail,
 				password: VERIFIED_ACCOUNT_PASSWORD,
 			};
@@ -97,7 +97,7 @@ describe('AuthController - Change email', () => {
 		});
 
 		it('should fail with 401 Unauthorized if the user is not logged in', async () => {
-			const emailChangeDto: EmailChangeDto = {
+			const emailChangeDto: EmailChangeRequestDto = {
 				newEmail: faker.internet.email(),
 				password: VERIFIED_ACCOUNT_PASSWORD,
 			};
@@ -112,7 +112,7 @@ describe('AuthController - Change email', () => {
 		});
 
 		it('should fail with 403 Forbidden if the account email is not verified', async () => {
-			const emailChangeDto: EmailChangeDto = {
+			const emailChangeDto: EmailChangeRequestDto = {
 				newEmail: faker.internet.email(),
 				password: UNVERIFIED_ACCOUNT_PASSWORD,
 			};
@@ -127,7 +127,7 @@ describe('AuthController - Change email', () => {
 		});
 
 		it('should fail with 401 Unauthorized if the provided password is incorrect', async () => {
-			const emailChangeDto: EmailChangeDto = {
+			const emailChangeDto: EmailChangeRequestDto = {
 				newEmail: faker.internet.email(),
 				password: 'wrong-password',
 			};
@@ -142,7 +142,7 @@ describe('AuthController - Change email', () => {
 		});
 
 		it('should fail with 409 Conflict if the new email is already in use', async () => {
-			const emailChangeDto: EmailChangeDto = {
+			const emailChangeDto: EmailChangeRequestDto = {
 				newEmail: conflictAccountEmail,
 				password: VERIFIED_ACCOUNT_PASSWORD,
 			};
@@ -206,7 +206,7 @@ describe('AuthController - Change email', () => {
 		});
 
 		it('should fail with 400 Bad Request if password is too short', async () => {
-			const emailChangeDto: EmailChangeDto = {
+			const emailChangeDto: EmailChangeRequestDto = {
 				newEmail: faker.internet.email(),
 				password: '123',
 			};
@@ -233,7 +233,7 @@ describe('AuthController - Change email', () => {
 
 		const requestChangeAndGetCode = async (agent: TestAgent, password: string) => {
 			const requestedNewEmail = faker.internet.email();
-			const changeDto: EmailChangeDto = {newEmail: requestedNewEmail, password};
+			const changeDto: EmailChangeRequestDto = {newEmail: requestedNewEmail, password};
 			await agent.post('/auth/change-email/request').send(changeDto).expect(200);
 
 			const emailContent = await findEmailByRecipient(requestedNewEmail, mailhogApiUrl);
@@ -397,7 +397,7 @@ describe('AuthController - Change email', () => {
 				.expect(200);
 
 			// 3. Account B requests change to the same targetEmail and gets their own code
-			const changeDtoForB: EmailChangeDto = {
+			const changeDtoForB: EmailChangeRequestDto = {
 				newEmail: targetEmail,
 				password: accountBCredentials.password,
 			};

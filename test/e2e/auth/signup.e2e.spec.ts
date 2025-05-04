@@ -4,6 +4,7 @@ import request from 'supertest';
 import TestAgent from 'supertest/lib/agent';
 
 import {ConfigurationService} from '@core/config/config.service';
+import {EMAIL_ALREADY_VERIFIED} from '@modules/auth/api/constants/api-messages.constants';
 import {EmailVerifyDto} from '@modules/auth/api/dtos/email-verify.dto';
 import {SignUpDto} from '@modules/auth/api/dtos/signup.dto';
 
@@ -235,7 +236,7 @@ describe('AuthController - Signup', () => {
 				.send()
 				.expect(400)
 				.expect((res) => {
-					expect(res.body.message).toMatch(/Email is already verified/i);
+					expect(res.body.message).toBe(EMAIL_ALREADY_VERIFIED);
 				});
 
 			const email = await findEmailByRecipient(VERIFIED_ACCOUNT_EMAIL, mailhogApiUrl);
