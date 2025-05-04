@@ -50,9 +50,4 @@ export class AccountService {
 		await this.accountRepository.update({id}, updates);
 		return this.findById(id);
 	}
-
-	async updatePassword(id: Account['id'], newPassword: Account['password']) {
-		const hash = await argon2.hash(newPassword);
-		await this.accountRepository.update({id}, {password: hash});
-	}
 }
