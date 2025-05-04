@@ -17,7 +17,7 @@
 		"lint:check": "eslint \"{src,test}/**/*.ts\"",
 		"test": "jest",
 		"test:watch": "jest --watch",
-		"test:cov": "jest --coverage",
+		"test:cov": "jest --coverage --passWithNoTests",
 		"test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest",
 		"docker:test:up": "docker compose -f docker-compose.test.yml --env-file .env.test up --wait",
 		"docker:test:down": "docker compose -f docker-compose.test.yml --env-file .env.test down -v --remove-orphans",
