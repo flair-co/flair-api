@@ -7,6 +7,7 @@ import {
 	PASSWORD_RESET_CONFIRMATION,
 	PASSWORD_RESET_INVALID_TOKEN,
 	PASSWORD_RESET_SUCCESS,
+	PASSWORD_SAME_AS_OLD,
 } from '@modules/auth/api/constants/api-messages.constants';
 import {PasswordResetRequestDto} from '@modules/auth/api/dtos/password-reset-request.dto';
 import {PasswordResetVerifyDto} from '@modules/auth/api/dtos/password-reset-verify.dto';
@@ -141,6 +142,23 @@ describe('AuthController - Reset Password', () => {
 			expect(resetToken).toMatch(UUID_VALIDATION_REGEX);
 		});
 
+		it('should fail with 400 Bad Request if new password is the same as the old password', async () => {
+			const verifyDto: PasswordResetVerifyDto = {token: resetToken!, newPassword: originalPassword};
+
+			await request(httpServer)
+				.post('/auth/reset-password/verify')
+				.send(verifyDto)
+				.expect(400)
+				.expect((res) => {
+					expect(res.body.message).toBe(PASSWORD_SAME_AS_OLD);
+				});
+
+			await request(httpServer)
+				.post('/auth/login')
+				.send({email: accountToResetEmail, password: originalPassword})
+				.expect(200);
+		});
+
 		it('should reset the password with a valid token and new password', async () => {
 			const newPassword = faker.internet.password({length: 12});
 			const verifyDto: PasswordResetVerifyDto = {token: resetToken!, newPassword: newPassword};
@@ -256,6 +274,23 @@ describe('AuthController - Reset Password', () => {
 				.expect((res) => {
 					expect(res.body.message).toEqual(
 						expect.arrayContaining([expect.stringMatching(/newPassword should not be empty/i)]),
+					);
+				});
+		});
+
+		it('should fail with 400 Bad Request if new password exceeds maximum length (255)', async () => {
+			const longPassword = faker.string.alpha(256);
+			const verifyDto: PasswordResetVerifyDto = {token: resetToken!, newPassword: longPassword};
+
+			await request(httpServer)
+				.post('/auth/reset-password/verify')
+				.send(verifyDto)
+				.expect(400)
+				.expect((res) => {
+					expect(res.body.message).toEqual(
+						expect.arrayContaining([
+							expect.stringMatching(/newPassword must be shorter than or equal to 255 characters/i),
+						]),
 					);
 				});
 		});
