@@ -5,8 +5,8 @@ import {CurrentUser} from '@modules/auth/decorators/current-user.decorator';
 import {SkipEmailVerification} from '@modules/auth/decorators/skip-email-verification.decorator';
 
 import {Account} from '../account.entity';
-import {UserService} from '../user.service';
-import {AccountUpdateDto} from './user-update.dto';
+import {AccountService} from '../account.service';
+import {AccountUpdateDto} from './account-update.dto';
 
 type IdealUserContext = {
 	account: {accountId: Account['id']}; // just {id: Account['id']} -> no reason to store all the account info
@@ -14,13 +14,13 @@ type IdealUserContext = {
 
 @ApiTags('Users')
 @Controller('users')
-export class UserController {
-	constructor(private readonly userService: UserService) {}
+export class AccountController {
+	constructor(private readonly accountService: AccountService) {}
 
 	@Get('me')
 	@SkipEmailVerification()
 	findOne(@CurrentUser() user: Account) {
-		return this.userService.findById(user.id);
+		return this.accountService.findById(user.id);
 	}
 
 	// Type of the user parameter should become User
@@ -30,6 +30,6 @@ export class UserController {
 		// TODO: A user class should be implemented
 		const idealUserContext: IdealUserContext = {account: {accountId: user.id}}; // this will be temporary until a solution is implemented
 		const {accountId} = idealUserContext.account; // this will become user.account once implemented
-		return this.userService.update(accountId, {fullName});
+		return this.accountService.update(accountId, {fullName});
 	}
 }

@@ -6,8 +6,8 @@ import ms from 'ms';
 import {ConfigurationService} from '@core/config/config.service';
 import {EmailService} from '@core/email/email.service';
 import {REDIS} from '@core/redis/redis.constants';
-import {Account} from '@modules/user/account.entity';
-import {UserService} from '@modules/user/user.service';
+import {Account} from '@modules/account/account.entity';
+import {AccountService} from '@modules/account/account.service';
 
 import {EmailChangeDto} from '../api/dtos/email-change.dto';
 
@@ -21,7 +21,7 @@ export class EmailVerifierService {
 		@Inject(REDIS) private readonly redisClient: Redis,
 		private readonly configService: ConfigurationService,
 		private readonly emailService: EmailService,
-		private readonly userService: UserService,
+		private readonly accountService: AccountService,
 	) {
 		this.REDIS_KEY = this.configService.get('EMAIL_VERIFICATION_REDIS_KEY');
 		this.WEB_BASE_URL = this.configService.get('WEB_BASE_URL');
@@ -37,7 +37,7 @@ export class EmailVerifierService {
 			throw new BadRequestException('Invalid or expired verification code.');
 		}
 
-		const user = await this.userService.findByEmail(email);
+		const user = await this.accountService.findByEmail(email);
 		if (!user) {
 			throw new BadRequestException('Invalid or expired verification code.');
 		}
@@ -46,7 +46,7 @@ export class EmailVerifierService {
 			throw new BadRequestException('Email is already verified.');
 		}
 
-		const updatedUser = await this.userService.update(user.id, {isEmailVerified: true});
+		const updatedUser = await this.accountService.update(user.id, {isEmailVerified: true});
 		await this.removeCode(code);
 		return updatedUser;
 	}
@@ -88,8 +88,8 @@ export class EmailVerifierService {
 	async requestEmailChange(user: Account, dto: EmailChangeDto) {
 		const {newEmail, password} = dto;
 
-		await this.userService.verifyPassword(user.password, password);
-		await this.userService.validateEmailIsUnique(newEmail);
+		await this.accountService.verifyPassword(user.password, password);
+		await this.accountService.validateEmailIsUnique(newEmail);
 
 		const code = await this.createCode(newEmail);
 
@@ -105,8 +105,8 @@ export class EmailVerifierService {
 	async verifyEmailChange(user: Account, code: string) {
 		const newEmail = await this.getEmailByCode(code);
 
-		await this.userService.validateEmailIsUnique(newEmail);
-		const updatedUser = await this.userService.update(user.id, {email: newEmail});
+		await this.accountService.validateEmailIsUnique(newEmail);
+		const updatedUser = await this.accountService.update(user.id, {email: newEmail});
 
 		await this.removeCode(code);
 		return updatedUser;

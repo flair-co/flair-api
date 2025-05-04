@@ -4,10 +4,10 @@ import request from 'supertest';
 import TestAgent from 'supertest/lib/agent';
 
 import {ConfigurationService} from '@core/config/config.service';
+import {Account} from '@modules/account/account.entity';
 import {EmailChangeDto} from '@modules/auth/api/dtos/email-change.dto';
 import {EmailVerifyDto} from '@modules/auth/api/dtos/email-verify.dto';
 import {SignUpDto} from '@modules/auth/api/dtos/signup.dto';
-import {Account} from '@modules/user/account.entity';
 
 import {
 	UNVERIFIED_USER_EMAIL,
