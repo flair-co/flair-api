@@ -7,7 +7,6 @@
 	"printWidth": 120,
 	"bracketSpacing": false,
 	"arrowParens": "always",
-
 	"importOrderParserPlugins": ["typescript", "decorators-legacy"],
 	"plugins": ["@trivago/prettier-plugin-sort-imports"],
 	"importOrder": ["<THIRD_PARTY_MODULES>", "^@(core|modules)", "^[./]"],

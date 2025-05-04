@@ -25,19 +25,5 @@ module.exports = {
 			},
 		],
 		'no-console': 'off',
-		'prettier/prettier': [
-			'error',
-			{
-				useTabs: true,
-				tabWidth: 4,
-				singleQuote: true,
-				trailingComma: 'all',
-				printWidth: 120,
-				bracketSpacing: false,
-				semi: true,
-				arrowParens: 'always',
-				endOfLine: 'lf',
-			},
-		],
 	},
 };
