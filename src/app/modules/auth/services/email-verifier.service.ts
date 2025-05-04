@@ -1,4 +1,4 @@
-import {BadRequestException, Injectable} from '@nestjs/common';
+import {BadRequestException, ConflictException, Injectable} from '@nestjs/common';
 import {Inject} from '@nestjs/common';
 import Redis from 'ioredis';
 import ms from 'ms';
@@ -10,6 +10,7 @@ import {Account} from '@modules/account/account.entity';
 import {AccountService} from '@modules/account/account.service';
 
 import {
+	EMAIL_ALREADY_IN_USE,
 	EMAIL_ALREADY_VERIFIED,
 	EMAIL_CHANGE_SUCCESS,
 	EMAIL_INVALID_TOKEN,
@@ -35,6 +36,13 @@ export class EmailVerifierService {
 		const expirationMs = ms(this.configService.get('EMAIL_VERIFICATION_EXPIRATION'));
 		const expirationSeconds = Math.floor(expirationMs / 1000);
 		this.EXPIRATION = expirationSeconds;
+	}
+
+	async checkEmailAvailability(email: Account['email']) {
+		const existingAccount = await this.accountService.findByEmail(email);
+		if (existingAccount) {
+			throw new ConflictException(EMAIL_ALREADY_IN_USE);
+		}
 	}
 
 	async verify(code: string, email: Account['email']) {

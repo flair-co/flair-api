@@ -1,4 +1,4 @@
-import {Body, Controller, Delete, Get, HttpCode, Param, Post, Req, Res, UseGuards} from '@nestjs/common';
+import {Body, Controller, Delete, Get, Head, HttpCode, Param, Post, Query, Req, Res, UseGuards} from '@nestjs/common';
 import {ApiOperation, ApiResponse, ApiTags} from '@nestjs/swagger';
 import {Throttle, minutes} from '@nestjs/throttler';
 import {Request, Response} from 'express';
@@ -37,6 +37,7 @@ import {
 } from './constants/api-messages.constants';
 import {EmailChangeVerifyDto} from './dtos/email-change-verify.dto';
 import {EmailChangeRequestDto} from './dtos/email-change.dto';
+import {EmailCheckDto} from './dtos/email-check.dto';
 import {EmailVerifyDto} from './dtos/email-verify.dto';
 import {LogInDto} from './dtos/login.dto';
 import {PasswordChangeDto} from './dtos/password-change.dto';
@@ -121,6 +122,18 @@ export class AuthController {
 			await this.authService.logIn(user, request);
 		}
 		return {message: EMAIL_VERIFICATION_SUCCESS};
+	}
+
+	@Head('change-email/check')
+	@HttpCode(204)
+	@Throttle({default: {limit: 10, ttl: minutes(1)}})
+	@ApiResponse({status: 204, description: 'Email is available.'})
+	@ApiResponse({status: 401, description: UNAUTHORIZED})
+	@ApiResponse({status: 409, description: EMAIL_ALREADY_IN_USE})
+	@ApiResponse({status: 429, description: TOO_MANY_REQUESTS})
+	@ApiOperation({summary: 'Checks if an email address is available for use.'})
+	async checkEmailAvailability(@Query() query: EmailCheckDto) {
+		return await this.emailVerifierService.checkEmailAvailability(query.email);
 	}
 
 	@Post('change-email/request')
