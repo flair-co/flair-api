@@ -21,7 +21,7 @@ describe('AuthController - Login', () => {
 
 		beforeEach(async () => {
 			userCredentials = {
-				fullName: faker.person.fullName(),
+				name: faker.person.fullName(),
 				email: faker.internet.email(),
 				password: faker.internet.password({length: 10}),
 			};
@@ -44,7 +44,7 @@ describe('AuthController - Login', () => {
 			expect(user).toBeDefined();
 			expect(user.id).toBeDefined();
 			expect(user.email).toEqual(userCredentials.email);
-			expect(user.fullName).toEqual(userCredentials.fullName);
+			expect(user.name).toEqual(userCredentials.name);
 			expect(user.password).toBeUndefined();
 
 			const cookiesHeader = response.headers['set-cookie'];

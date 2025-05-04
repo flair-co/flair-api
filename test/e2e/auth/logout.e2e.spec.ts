@@ -20,7 +20,7 @@ describe('AuthController - Logout', () => {
 
 		beforeEach(async () => {
 			userCredentials = {
-				fullName: faker.person.fullName(),
+				name: faker.person.fullName(),
 				email: faker.internet.email(),
 				password: faker.internet.password({length: 10}),
 			};

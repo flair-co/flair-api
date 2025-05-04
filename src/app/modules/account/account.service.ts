@@ -40,8 +40,8 @@ export class AccountService {
 		}
 	}
 
-	async save(fullName: Account['fullName'], email: Account['email'], password: Account['password']) {
-		return this.accountRepository.save({fullName, email, password});
+	async save(name: Account['name'], email: Account['email'], password: Account['password']) {
+		return this.accountRepository.save({name, email, password});
 	}
 
 	async update(id: Account['id'], updates: Partial<Account>) {

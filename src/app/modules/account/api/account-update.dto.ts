@@ -5,5 +5,5 @@ import {Account} from '../account.entity';
 export class AccountUpdateDto {
 	@IsString()
 	@Length(1, 255)
-	fullName: Account['fullName'];
+	name: Account['name'];
 }

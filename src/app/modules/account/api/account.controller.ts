@@ -25,11 +25,11 @@ export class AccountController {
 
 	// Type of the user parameter should become User
 	@Patch('me')
-	update(@Body() {fullName}: AccountUpdateDto, @CurrentUser() user: Account) {
+	update(@Body() {name: fullName}: AccountUpdateDto, @CurrentUser() user: Account) {
 		// Users should not have an ID, this const is a replacement for something like user.account.id
 		// TODO: A user class should be implemented
 		const idealUserContext: IdealUserContext = {account: {accountId: user.id}}; // this will be temporary until a solution is implemented
 		const {accountId} = idealUserContext.account; // this will become user.account once implemented
-		return this.accountService.update(accountId, {fullName});
+		return this.accountService.update(accountId, {name: fullName});
 	}
 }

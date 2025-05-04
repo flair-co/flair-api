@@ -35,14 +35,14 @@ describe('AuthController - Change email', () => {
 
 	describe('/auth/change-email/request (POST)', () => {
 		let verifiedAgent: TestAgent;
-		let verifiedFullname: string;
+		let verifiedName: string;
 		let unverifiedAgent: TestAgent;
 		let conflictUserEmail: string;
 
 		beforeAll(async () => {
 			conflictUserEmail = faker.internet.email();
 			const conflictUserDto: SignUpDto = {
-				fullName: faker.person.fullName(),
+				name: faker.person.fullName(),
 				email: conflictUserEmail,
 				password: faker.internet.password({length: 10}),
 			};
@@ -56,7 +56,7 @@ describe('AuthController - Change email', () => {
 				.send({email: VERIFIED_USER_EMAIL, password: VERIFIED_USER_PASSWORD})
 				.expect(200);
 			const meResponse = await verifiedAgent.get('/users/me').expect(200);
-			verifiedFullname = meResponse.body.fullName;
+			verifiedName = meResponse.body.name;
 
 			unverifiedAgent = request.agent(httpServer);
 			await unverifiedAgent
@@ -92,7 +92,7 @@ describe('AuthController - Change email', () => {
 
 			expect(recipientEmail).toEqual(newEmail);
 			expect(subject).toContain('is your verification code');
-			expect(body).toContain(verifiedFullname);
+			expect(body).toContain(verifiedName);
 			expect(code).toMatch(/^\d{6}$/);
 		});
 
@@ -374,7 +374,7 @@ describe('AuthController - Change email', () => {
 
 			// 2. Create, verify and log in User B
 			const userBCredentials: SignUpDto = {
-				fullName: faker.person.fullName(),
+				name: faker.person.fullName(),
 				email: faker.internet.email(),
 				password: faker.internet.password({length: 10}),
 			};
