@@ -17,30 +17,30 @@ import {TransactionModule} from '@modules/transaction/transaction.module';
 import {UserModule} from '@modules/user/user.module';
 
 @Module({
-  imports: [
-    ConfigurationModule,
-    DatabaseModule,
-    RedisModule,
-    QueueModule,
-    SessionModule,
-    RateLimitModule,
-    EmailModule,
-    AuthModule,
-    FileParserModule,
-    TransactionModule,
-    TransactionCategorizerModule,
-    UserModule,
-    BankStatementModule,
-  ],
-  providers: [
-    {
-      provide: APP_GUARD,
-      useClass: ThrottlerGuard,
-    },
-    {
-      provide: APP_INTERCEPTOR,
-      useClass: ClassSerializerInterceptor,
-    },
-  ],
+	imports: [
+		ConfigurationModule,
+		DatabaseModule,
+		RedisModule,
+		QueueModule,
+		SessionModule,
+		RateLimitModule,
+		EmailModule,
+		AuthModule,
+		FileParserModule,
+		TransactionModule,
+		TransactionCategorizerModule,
+		UserModule,
+		BankStatementModule,
+	],
+	providers: [
+		{
+			provide: APP_GUARD,
+			useClass: ThrottlerGuard,
+		},
+		{
+			provide: APP_INTERCEPTOR,
+			useClass: ClassSerializerInterceptor,
+		},
+	],
 })
 export class AppModule {}

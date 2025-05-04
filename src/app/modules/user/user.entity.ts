@@ -1,37 +1,51 @@
 import {Exclude, Expose, Type} from 'class-transformer';
-import {Column, CreateDateColumn, Entity, Index, OneToMany, PrimaryGeneratedColumn} from 'typeorm';
+import {
+	Column,
+	CreateDateColumn,
+	Entity,
+	Index,
+	OneToMany,
+	PrimaryGeneratedColumn,
+	Unique,
+	UpdateDateColumn,
+} from 'typeorm';
 
 import {BankAccount} from '@modules/bank-account/bank-account.entity';
 
-@Entity()
-export class User {
-  @PrimaryGeneratedColumn('uuid')
-  @Expose()
-  id: string;
+@Entity('accounts')
+@Unique('index_accounts_unique_email', ['email'])
+export class Account {
+	@PrimaryGeneratedColumn('uuid')
+	@Expose()
+	id: string;
 
-  @Column({type: 'varchar', length: 255})
-  @Expose()
-  username: string;
+	@Column({type: 'varchar', length: 255})
+	@Expose()
+	username: string;
 
-  @Index()
-  @Column({type: 'varchar', length: 255, unique: true})
-  @Expose()
-  email: string;
+	@Index()
+	@Column({type: 'varchar', length: 255})
+	@Expose()
+	email: string;
 
-  @Column({type: 'boolean', default: false})
-  @Expose()
-  isEmailVerified: boolean;
+	@Column({type: 'boolean', default: false})
+	@Expose()
+	isEmailVerified: boolean;
 
-  @Column({type: 'varchar', length: 255})
-  @Exclude()
-  password: string;
+	@Column({type: 'varchar', length: 255})
+	@Exclude()
+	password: string;
 
-  @CreateDateColumn({type: 'timestamp'})
-  @Expose()
-  createdAt: Date;
+	@CreateDateColumn({type: 'timestamp'})
+	@Expose()
+	createdAt: Date;
 
-  @OneToMany(() => BankAccount, (bankAccount) => bankAccount.user)
-  @Expose()
-  @Type(() => BankAccount)
-  bankAccounts: BankAccount[];
+	@UpdateDateColumn()
+	@Expose()
+	updatedAt: Date;
+
+	@OneToMany(() => BankAccount, (bankAccount) => bankAccount.account)
+	@Expose()
+	@Type(() => BankAccount)
+	bankAccounts: Array<BankAccount>;
 }

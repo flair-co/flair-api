@@ -1,56 +1,60 @@
 import {
-  ConflictException,
-  Injectable,
-  NotFoundException,
-  UnauthorizedException,
+	ConflictException,
+	Injectable,
+	NotFoundException,
+	UnauthorizedException,
 } from '@nestjs/common';
 import {InjectRepository} from '@nestjs/typeorm';
 import argon2 from 'argon2';
 import {Repository} from 'typeorm';
 
-import {User} from './user.entity';
+import {Account} from './user.entity';
 
 @Injectable()
 export class UserService {
-  constructor(
-    @InjectRepository(User)
-    private readonly userRepository: Repository<User>,
-  ) {}
+	constructor(
+		@InjectRepository(Account)
+		private readonly userRepository: Repository<Account>,
+	) {}
 
-  async findById(id: User['id']) {
-    const user = await this.userRepository.findOneBy({id});
+	async findById(id: Account['id']) {
+		const user = await this.userRepository.findOneBy({id});
 
-    if (!user) {
-      throw new NotFoundException(`User not found.`);
-    }
-    return user;
-  }
+		if (!user) {
+			throw new NotFoundException(`User not found.`);
+		}
+		return user;
+	}
 
-  async findByEmail(email: User['email']) {
-    return await this.userRepository.findOneBy({email});
-  }
+	async findByEmail(email: Account['email']) {
+		return await this.userRepository.findOneBy({email});
+	}
 
-  async validateEmailIsUnique(email: User['email']) {
-    const emailExists = await this.userRepository.existsBy({email});
+	async validateEmailIsUnique(email: Account['email']) {
+		const emailExists = await this.userRepository.existsBy({email});
 
-    if (emailExists) {
-      throw new ConflictException(`This email is already in use.`);
-    }
-  }
+		if (emailExists) {
+			throw new ConflictException(`This email is already in use.`);
+		}
+	}
 
-  async verifyPassword(hash: User['password'], password: User['password']) {
-    const isPasswordValid = await argon2.verify(hash, password);
-    if (!isPasswordValid) {
-      throw new UnauthorizedException();
-    }
-  }
+	async verifyPassword(hash: Account['password'], password: Account['password']) {
+		const isPasswordValid = await argon2.verify(hash, password);
+		if (!isPasswordValid) {
+			throw new UnauthorizedException();
+		}
+	}
 
-  async save(username: User['username'], email: User['email'], password: User['password']) {
-    return this.userRepository.save({username, email, password});
-  }
+	async save(
+		username: Account['username'],
+		email: Account['email'],
+		password: Account['password'],
+	) {
+		return this.userRepository.save({username, email, password});
+	}
 
-  async update(id: User['id'], updates: Partial<User>) {
-    await this.userRepository.update({id}, updates);
-    return this.findById(id);
-  }
+	async update(id: Account['id'], updates: Partial<Account>) {
+		await this.userRepository.update({id}, updates);
+		return this.findById(id);
+	}
 }
