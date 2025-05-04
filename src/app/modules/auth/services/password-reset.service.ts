@@ -14,6 +14,7 @@ import {
 	PASSWORD_RESET_CONFIRMATION,
 	PASSWORD_RESET_INVALID_TOKEN,
 	PASSWORD_RESET_SUCCESS,
+	PASSWORD_SAME_AS_OLD,
 } from '../api/constants/api-messages.constants';
 import {SessionService} from './session.service';
 
@@ -59,6 +60,8 @@ export class PasswordResetService {
 	async resetPassword(password: Account['password'], token: string) {
 		const {accountId, key} = await this._getTokenData(token);
 
+		await this._assertPasswordIsNew(accountId, password, key);
+
 		const hash = await argon2.hash(password);
 		await this.accountService.update(accountId, {password: hash});
 
@@ -90,5 +93,15 @@ export class PasswordResetService {
 			throw new BadRequestException(PASSWORD_RESET_INVALID_TOKEN);
 		}
 		return {accountId, key};
+	}
+
+	private async _assertPasswordIsNew(accountId: Account['id'], newPassword: string, key: string) {
+		const account = await this.accountService.findById(accountId);
+
+		const isSamePassword = await argon2.verify(account.password, newPassword);
+		if (isSamePassword) {
+			await this.redisClient.del(key);
+			throw new BadRequestException(PASSWORD_SAME_AS_OLD);
+		}
 	}
 }

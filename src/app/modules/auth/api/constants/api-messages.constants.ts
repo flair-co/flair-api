@@ -2,6 +2,7 @@ export const PASSWORD_RESET_CONFIRMATION = 'If an account with this email exists
 export const PASSWORD_RESET_INVALID_TOKEN = 'Invalid or expired password reset token.';
 export const PASSWORD_RESET_SUCCESS = 'Password has been reset.';
 export const PASSWORD_CHANGE_SUCCESS = 'Password has been changed.';
+export const PASSWORD_SAME_AS_OLD = 'New password cannot be the same as the current password.';
 
 export const EMAIL_INVALID_TOKEN = 'Invalid or expired email verification code.';
 export const EMAIL_ALREADY_VERIFIED = 'Email is already verified.';
