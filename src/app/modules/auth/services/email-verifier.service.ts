@@ -6,7 +6,7 @@ import ms from 'ms';
 import {ConfigurationService} from '@core/config/config.service';
 import {EmailService} from '@core/email/email.service';
 import {REDIS} from '@core/redis/redis.constants';
-import {Account} from '@modules/user/user.entity';
+import {Account} from '@modules/user/account.entity';
 import {UserService} from '@modules/user/user.service';
 
 import {EmailChangeDto} from '../api/dtos/email-change.dto';

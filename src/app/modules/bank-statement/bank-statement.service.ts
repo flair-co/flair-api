@@ -12,7 +12,7 @@ import {TransactionCategorizerService} from '@modules/transaction/transaction-ca
 import {TransactionPartial} from '@modules/transaction/transaction-mapper/services/transaction-mapper.interface';
 import {TransactionMapperService} from '@modules/transaction/transaction-mapper/services/transaction-mapper.service';
 import {TransactionService} from '@modules/transaction/transaction.service';
-import {Account} from '@modules/user/user.entity';
+import {Account} from '@modules/user/account.entity';
 
 import {BankStatement} from './bank-statement.entity';
 
@@ -37,8 +37,7 @@ export class BankStatementService {
 
 		await this.assertNoPeriodOverlap(mappedTransactions, bankAccountId);
 
-		const categorizedTransactions =
-			await this.transactionCategorizerService.categorize(mappedTransactions);
+		const categorizedTransactions = await this.transactionCategorizerService.categorize(mappedTransactions);
 
 		const savedFile = await this.fileService.save(file);
 		const savedBankStatement = await this.bankStatementRepository.save({
@@ -110,10 +109,7 @@ export class BankStatementService {
 		await this.fileService.deleteById(bankStatement.file.id);
 	}
 
-	async assertNoPeriodOverlap(
-		transactions: TransactionPartial[],
-		bankAccountId: BankAccount['id'],
-	) {
+	async assertNoPeriodOverlap(transactions: TransactionPartial[], bankAccountId: BankAccount['id']) {
 		let periodStart = transactions[0].startedAt;
 		let periodEnd = transactions[0].startedAt;
 
@@ -133,14 +129,12 @@ export class BankStatementService {
 
 		const overlappingStatement = existingStatements.find((statement) => {
 			const statementPeriodStart = statement.transactions.reduce(
-				(minDate, transaction) =>
-					transaction.startedAt < minDate ? transaction.startedAt : minDate,
+				(minDate, transaction) => (transaction.startedAt < minDate ? transaction.startedAt : minDate),
 				statement.transactions[0]?.startedAt,
 			);
 
 			const statementPeriodEnd = statement.transactions.reduce(
-				(maxDate, transaction) =>
-					transaction.startedAt > maxDate ? transaction.startedAt : maxDate,
+				(maxDate, transaction) => (transaction.startedAt > maxDate ? transaction.startedAt : maxDate),
 				statement.transactions[0]?.startedAt,
 			);
 

@@ -2,7 +2,7 @@ import {Injectable, NotFoundException} from '@nestjs/common';
 import {InjectRepository} from '@nestjs/typeorm';
 import {Repository} from 'typeorm';
 
-import {Account} from '@modules/user/user.entity';
+import {Account} from '@modules/user/account.entity';
 import {UserService} from '@modules/user/user.service';
 
 import {BankAccountCreateDto} from './api/bank-account-create.dto';

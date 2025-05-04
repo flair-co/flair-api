@@ -3,7 +3,7 @@ import argon2 from 'argon2';
 import {plainToInstance} from 'class-transformer';
 import {Request} from 'express';
 
-import {Account} from '@modules/user/user.entity';
+import {Account} from '@modules/user/account.entity';
 import {UserService} from '@modules/user/user.service';
 
 import {ChangePasswordDto} from '../api/dtos/change-password.dto';

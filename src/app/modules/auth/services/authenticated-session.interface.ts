@@ -1,6 +1,6 @@
 import {SessionData} from 'express-session';
 
-import {Account} from '@modules/user/user.entity';
+import {Account} from '@modules/user/account.entity';
 
 export interface AuthenticatedSession extends SessionData {
 	passport?: {

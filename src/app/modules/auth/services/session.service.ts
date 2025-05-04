@@ -6,7 +6,7 @@ import {IResult, UAParser} from 'ua-parser-js';
 
 import {ConfigurationService} from '@core/config/config.service';
 import {REDIS} from '@core/redis/redis.constants';
-import {Account} from '@modules/user/user.entity';
+import {Account} from '@modules/user/account.entity';
 
 import {SessionResponseDto} from '../api/dtos/session-response.dto';
 import {AuthenticatedSession} from './authenticated-session.interface';
@@ -37,13 +37,7 @@ export class SessionService {
 		const matchPattern = `${prefix}*`;
 
 		while (true) {
-			const reply = await this.redisClient.scan(
-				cursor,
-				'MATCH',
-				matchPattern,
-				'COUNT',
-				scanBatchSize,
-			);
+			const reply = await this.redisClient.scan(cursor, 'MATCH', matchPattern, 'COUNT', scanBatchSize);
 
 			cursor = reply[0];
 			const keys = reply[1];
@@ -165,8 +159,7 @@ export class SessionService {
 		//  • IPv6 loopback:       ::1
 		//  • full IPv6 loopback:  0:0:0:0:0:0:0:1
 		//  • IPv4‑mapped IPv6:    ::ffff:127.x.x.x
-		const localhostRegex =
-			/^(?:127(?:\.\d{1,3}){3}|::1|0:0:0:0:0:0:0:1|::ffff:127(?:\.\d{1,3}){3})$/;
+		const localhostRegex = /^(?:127(?:\.\d{1,3}){3}|::1|0:0:0:0:0:0:0:1|::ffff:127(?:\.\d{1,3}){3})$/;
 
 		if (ip === 'Unknown' || localhostRegex.test(ip)) {
 			return 'Unknown';

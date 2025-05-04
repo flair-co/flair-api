@@ -3,7 +3,7 @@ import {InjectRepository} from '@nestjs/typeorm';
 import argon2 from 'argon2';
 import {Repository} from 'typeorm';
 
-import {Account} from './user.entity';
+import {Account} from './account.entity';
 
 @Injectable()
 export class UserService {

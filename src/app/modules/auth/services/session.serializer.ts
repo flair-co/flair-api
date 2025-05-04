@@ -1,7 +1,7 @@
 import {Injectable, UnauthorizedException} from '@nestjs/common';
 import {PassportSerializer} from '@nestjs/passport';
 
-import {Account} from '@modules/user/user.entity';
+import {Account} from '@modules/user/account.entity';
 import {UserService} from '@modules/user/user.service';
 
 type SerializeDoneCallback = (err: Error | null, id: Account['id']) => void;

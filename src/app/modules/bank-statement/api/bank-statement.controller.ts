@@ -19,7 +19,7 @@ import {Response} from 'express';
 import {CurrentUser} from '@modules/auth/decorators/current-user.decorator';
 import {BankAccount} from '@modules/bank-account/bank-account.entity';
 import {PaginationDto} from '@modules/bank-statement/api/pagination.dto';
-import {Account} from '@modules/user/user.entity';
+import {Account} from '@modules/user/account.entity';
 
 import {BankStatement} from '../bank-statement.entity';
 import {BankStatementService} from '../bank-statement.service';
@@ -56,11 +56,7 @@ export class BankStatementController {
 		bankStatements: BankStatement[];
 		total: number;
 	}> {
-		return this.bankStatementService.findAllByBankAccountIdAndUserId(
-			bankAccountId,
-			user.id,
-			paginationDto,
-		);
+		return this.bankStatementService.findAllByBankAccountIdAndUserId(bankAccountId, user.id, paginationDto);
 	}
 
 	@Delete(':bankStatementId')

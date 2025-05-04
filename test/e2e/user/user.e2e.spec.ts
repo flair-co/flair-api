@@ -4,8 +4,8 @@ import {Server} from 'node:net';
 import request from 'supertest';
 import TestAgent from 'supertest/lib/agent';
 
+import {Account} from '@modules/user/account.entity';
 import {AccountUpdateDto} from '@modules/user/api/user-update.dto';
-import {Account} from '@modules/user/user.entity';
 
 import {
 	UNVERIFIED_USER_EMAIL,

@@ -4,7 +4,7 @@ import request from 'supertest';
 import TestAgent from 'supertest/lib/agent';
 
 import {SignUpDto} from '@modules/auth/api/dtos/signup.dto';
-import {Account} from '@modules/user/user.entity';
+import {Account} from '@modules/user/account.entity';
 
 import {getApp} from '../../setup/e2e.setup';
 

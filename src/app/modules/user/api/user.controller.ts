@@ -4,7 +4,7 @@ import {ApiTags} from '@nestjs/swagger';
 import {CurrentUser} from '@modules/auth/decorators/current-user.decorator';
 import {SkipEmailVerification} from '@modules/auth/decorators/skip-email-verification.decorator';
 
-import {Account} from '../user.entity';
+import {Account} from '../account.entity';
 import {UserService} from '../user.service';
 import {AccountUpdateDto} from './user-update.dto';
 

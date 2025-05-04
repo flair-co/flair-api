@@ -2,7 +2,7 @@ import {Body, Controller, Get, Param, ParseUUIDPipe, Patch, Query} from '@nestjs
 import {ApiTags} from '@nestjs/swagger';
 
 import {CurrentUser} from '@modules/auth/decorators/current-user.decorator';
-import {Account} from '@modules/user/user.entity';
+import {Account} from '@modules/user/account.entity';
 
 import {Transaction} from '../transaction.entity';
 import {TransactionService} from '../transaction.service';
@@ -20,10 +20,7 @@ export class TransactionController {
 	}
 
 	@Get(':id')
-	findOne(
-		@CurrentUser() user: Account,
-		@Param('id', new ParseUUIDPipe({version: '4'})) id: Transaction['id'],
-	) {
+	findOne(@CurrentUser() user: Account, @Param('id', new ParseUUIDPipe({version: '4'})) id: Transaction['id']) {
 		return this.transactionService.findById(user.id, id);
 	}
 

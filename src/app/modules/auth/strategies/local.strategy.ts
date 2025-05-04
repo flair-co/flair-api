@@ -4,7 +4,7 @@ import {plainToClass} from 'class-transformer';
 import {validate} from 'class-validator';
 import {Strategy} from 'passport-local';
 
-import {Account} from '@modules/user/user.entity';
+import {Account} from '@modules/user/account.entity';
 import {UserService} from '@modules/user/user.service';
 
 import {LogInDto} from '../api/dtos/login.dto';

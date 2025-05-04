@@ -3,7 +3,7 @@ import {getRepositoryToken} from '@nestjs/typeorm';
 import argon2 from 'argon2';
 import {Repository} from 'typeorm';
 
-import {Account} from '@modules/user/user.entity';
+import {Account} from '@modules/user/account.entity';
 
 import {
 	PW_CHANGE_USER_EMAIL,

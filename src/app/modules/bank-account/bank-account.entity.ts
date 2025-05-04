@@ -4,7 +4,7 @@ import {Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn
 import {BankStatement} from '@modules/bank-statement/bank-statement.entity';
 import {Bank} from '@modules/transaction/transaction-mapper/constants/bank.enum';
 import {Transaction} from '@modules/transaction/transaction.entity';
-import {Account} from '@modules/user/user.entity';
+import {Account} from '@modules/user/account.entity';
 
 @Entity('bank_accounts')
 export class BankAccount {
