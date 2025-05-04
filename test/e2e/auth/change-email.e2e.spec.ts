@@ -39,7 +39,7 @@ describe('AuthController - Change email', () => {
 		await clearEmails(mailhogApiUrl);
 	});
 
-	describe('AuthController - /auth/change-email/check (HEAD)', () => {
+	describe('/auth/change-email/check (HEAD)', () => {
 		let verifiedAgent: TestAgent;
 		let unverifiedAgent: TestAgent;
 		let existingEmail: string; // Email already used by another account
