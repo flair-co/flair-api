@@ -3,7 +3,7 @@ import {Column, Entity, PrimaryGeneratedColumn} from 'typeorm';
 
 import {MimeType} from '@modules/file/file-parser/constants/mime-type.enum';
 
-@Entity()
+@Entity('files')
 export class File {
 	@PrimaryGeneratedColumn('uuid')
 	@Expose()
