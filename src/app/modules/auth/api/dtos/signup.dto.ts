@@ -6,7 +6,7 @@ export class SignUpDto {
 	@IsNotEmpty()
 	@IsString()
 	@Length(1, 255)
-	username: Account['username'];
+	fullName: Account['fullName'];
 
 	@IsNotEmpty()
 	@IsEmail()

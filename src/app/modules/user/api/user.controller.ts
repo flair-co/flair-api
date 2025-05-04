@@ -6,7 +6,7 @@ import {SkipEmailVerification} from '@modules/auth/decorators/skip-email-verific
 
 import {Account} from '../user.entity';
 import {UserService} from '../user.service';
-import {UserUpdateDto} from './user-update.dto';
+import {AccountUpdateDto} from './user-update.dto';
 
 type IdealUserContext = {
 	account: {accountId: Account['id']}; // just {id: Account['id']} -> no reason to store all the account info
@@ -25,7 +25,7 @@ export class UserController {
 
 	// Type of the user parameter should become User
 	@Patch('me')
-	update(@Body() {fullName}: UserUpdateDto, @CurrentUser() user: Account) {
+	update(@Body() {fullName}: AccountUpdateDto, @CurrentUser() user: Account) {
 		// Users should not have an ID, this const is a replacement for something like user.account.id
 		// TODO: A user class should be implemented
 		const idealUserContext: IdealUserContext = {account: {accountId: user.id}}; // this will be temporary until a solution is implemented

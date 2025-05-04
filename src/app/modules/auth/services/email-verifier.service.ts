@@ -52,7 +52,7 @@ export class EmailVerifierService {
 	}
 
 	async sendWelcomeEmail(user: Account) {
-		const {email, username} = user;
+		const {email, fullName} = user;
 
 		const code = await this.createCode(email);
 		const verificationUrl = await this.createUrl(code, email);
@@ -61,12 +61,12 @@ export class EmailVerifierService {
 			to: email,
 			subject: `Welcome to Flair - ${code} is your verification code`,
 			template: 'welcome',
-			context: {username, verificationUrl, code},
+			context: {fullName, verificationUrl, code},
 		});
 	}
 
 	async sendVerifyEmail(user: Account) {
-		const {email, username, isEmailVerified} = user;
+		const {email, fullName, isEmailVerified} = user;
 
 		if (isEmailVerified) {
 			throw new BadRequestException('Email is already verified.');
@@ -79,7 +79,7 @@ export class EmailVerifierService {
 			to: email,
 			subject: `${code} is your verification code`,
 			template: 'verify-email',
-			context: {username, verificationUrl, code},
+			context: {fullName, verificationUrl, code},
 		});
 
 		return {message: 'Verification email sent.'};
@@ -97,7 +97,7 @@ export class EmailVerifierService {
 			to: newEmail,
 			subject: `${code} is your verification code`,
 			template: 'verify-new-email',
-			context: {username: user.username, code},
+			context: {fullName: user.fullName, code},
 		});
 		return {message: 'Verification email sent.'};
 	}

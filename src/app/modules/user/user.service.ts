@@ -1,9 +1,4 @@
-import {
-	ConflictException,
-	Injectable,
-	NotFoundException,
-	UnauthorizedException,
-} from '@nestjs/common';
+import {ConflictException, Injectable, NotFoundException, UnauthorizedException} from '@nestjs/common';
 import {InjectRepository} from '@nestjs/typeorm';
 import argon2 from 'argon2';
 import {Repository} from 'typeorm';
@@ -45,12 +40,8 @@ export class UserService {
 		}
 	}
 
-	async save(
-		username: Account['username'],
-		email: Account['email'],
-		password: Account['password'],
-	) {
-		return this.userRepository.save({username, email, password});
+	async save(fullName: Account['fullName'], email: Account['email'], password: Account['password']) {
+		return this.userRepository.save({fullName, email, password});
 	}
 
 	async update(id: Account['id'], updates: Partial<Account>) {

@@ -35,14 +35,14 @@ describe('AuthController - Change email', () => {
 
 	describe('/auth/change-email/request (POST)', () => {
 		let verifiedAgent: TestAgent;
-		let verifiedUsername: string;
+		let verifiedFullname: string;
 		let unverifiedAgent: TestAgent;
 		let conflictUserEmail: string;
 
 		beforeAll(async () => {
 			conflictUserEmail = faker.internet.email();
 			const conflictUserDto: SignUpDto = {
-				username: faker.person.fullName(),
+				fullName: faker.person.fullName(),
 				email: conflictUserEmail,
 				password: faker.internet.password({length: 10}),
 			};
@@ -56,7 +56,7 @@ describe('AuthController - Change email', () => {
 				.send({email: VERIFIED_USER_EMAIL, password: VERIFIED_USER_PASSWORD})
 				.expect(200);
 			const meResponse = await verifiedAgent.get('/users/me').expect(200);
-			verifiedUsername = meResponse.body.username;
+			verifiedFullname = meResponse.body.fullName;
 
 			unverifiedAgent = request.agent(httpServer);
 			await unverifiedAgent
@@ -85,15 +85,14 @@ describe('AuthController - Change email', () => {
 			const verificationEmail = await findEmailByRecipient(newEmail, mailhogApiUrl);
 			expect(verificationEmail).toBeDefined();
 
-			const recipientEmail =
-				verificationEmail?.To?.[0]?.Mailbox + '@' + verificationEmail?.To?.[0]?.Domain;
+			const recipientEmail = verificationEmail?.To?.[0]?.Mailbox + '@' + verificationEmail?.To?.[0]?.Domain;
 			const subject = verificationEmail?.Content?.Headers?.Subject?.[0];
 			const body = verificationEmail?.Content?.Body;
 			const code = extractVerificationCode(body);
 
 			expect(recipientEmail).toEqual(newEmail);
 			expect(subject).toContain('is your verification code');
-			expect(body).toContain(verifiedUsername);
+			expect(body).toContain(verifiedFullname);
 			expect(code).toMatch(/^\d{6}$/);
 		});
 
@@ -312,10 +311,7 @@ describe('AuthController - Change email', () => {
 		});
 
 		it('should fail with 400 Bad Request if the code has already been used', async () => {
-			await verifiedAgent
-				.post('/auth/change-email/verify')
-				.send({code: verificationCode})
-				.expect(200);
+			await verifiedAgent.post('/auth/change-email/verify').send({code: verificationCode}).expect(200);
 
 			initialUserEmail = newEmailAddress;
 
@@ -378,7 +374,7 @@ describe('AuthController - Change email', () => {
 
 			// 2. Create, verify and log in User B
 			const userBCredentials: SignUpDto = {
-				username: faker.person.fullName(),
+				fullName: faker.person.fullName(),
 				email: faker.internet.email(),
 				password: faker.internet.password({length: 10}),
 			};
@@ -388,7 +384,10 @@ describe('AuthController - Change email', () => {
 			const signupCodeB = extractVerificationCode(signupEmailB?.Content?.Body);
 			expect(signupCodeB).toBeDefined();
 
-			const emailVerifyDto: EmailVerifyDto = {code: signupCodeB!, email: userBCredentials.email};
+			const emailVerifyDto: EmailVerifyDto = {
+				code: signupCodeB!,
+				email: userBCredentials.email,
+			};
 			await request(httpServer).post('/auth/signup/verify').send(emailVerifyDto).expect(200);
 
 			const userBAgent = request.agent(httpServer);

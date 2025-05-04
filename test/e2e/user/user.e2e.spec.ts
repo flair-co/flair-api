@@ -4,7 +4,7 @@ import {Server} from 'node:net';
 import request from 'supertest';
 import TestAgent from 'supertest/lib/agent';
 
-import {UserUpdateDto} from '@modules/user/api/user-update.dto';
+import {AccountUpdateDto} from '@modules/user/api/user-update.dto';
 import {Account} from '@modules/user/user.entity';
 
 import {
@@ -15,7 +15,7 @@ import {
 } from '../../setup/constants';
 import {getApp} from '../../setup/e2e.setup';
 
-describe('UserController - /me', () => {
+describe('Account controller - /me', () => {
 	let httpServer: Server;
 	let app: INestApplication;
 
@@ -38,15 +38,15 @@ describe('UserController - /me', () => {
 
 			const response = await agent.get('/users/me').expect(200);
 
-			const user: Account = response.body;
-			expect(user).toBeDefined();
-			expect(user.id).toBeDefined();
-			expect(user.email).toEqual(VERIFIED_USER_EMAIL);
-			expect(user.username).toEqual('Verified User');
-			expect(user.isEmailVerified).toBe(true);
-			expect(user.createdAt).toBeDefined();
-			expect(user.password).toBeUndefined();
-			expect(user.bankAccounts).toBeUndefined();
+			const account: Account = response.body;
+			expect(account).toBeDefined();
+			expect(account.id).toBeDefined();
+			expect(account.email).toEqual(VERIFIED_USER_EMAIL);
+			expect(account.fullName).toEqual('Verified User');
+			expect(account.isEmailVerified).toBe(true);
+			expect(account.createdAt).toBeDefined();
+			expect(account.password).toBeUndefined();
+			expect(account.bankAccounts).toBeUndefined();
 		});
 
 		it('should return the current UNVERIFIED authenticated user', async () => {
@@ -62,15 +62,15 @@ describe('UserController - /me', () => {
 
 			const response = await agent.get('/users/me').expect(200);
 
-			const user: Account = response.body;
-			expect(user).toBeDefined();
-			expect(user.id).toBeDefined();
-			expect(user.email).toEqual(UNVERIFIED_USER_EMAIL);
-			expect(user.username).toEqual('Unverified User');
-			expect(user.isEmailVerified).toBe(false);
-			expect(user.createdAt).toBeDefined();
-			expect(user.password).toBeUndefined();
-			expect(user.bankAccounts).toBeUndefined();
+			const account: Account = response.body;
+			expect(account).toBeDefined();
+			expect(account.id).toBeDefined();
+			expect(account.email).toEqual(UNVERIFIED_USER_EMAIL);
+			expect(account.fullName).toEqual('Unverified User');
+			expect(account.isEmailVerified).toBe(false);
+			expect(account.createdAt).toBeDefined();
+			expect(account.password).toBeUndefined();
+			expect(account.bankAccounts).toBeUndefined();
 		});
 
 		it('should return 401 Unauthorized if the user is not authenticated', async () => {
@@ -102,39 +102,39 @@ describe('UserController - /me', () => {
 				.expect(200);
 		});
 
-		it('should update the username for an authenticated VERIFIED user', async () => {
-			const newUsername = faker.person.fullName();
-			const updateDto: UserUpdateDto = {username: newUsername};
+		it('should update the fullName for an authenticated VERIFIED user', async () => {
+			const newFullName = faker.person.fullName();
+			const updateDto: AccountUpdateDto = {fullName: newFullName};
 
 			const patchResponse = await verifiedAgent.patch('/users/me').send(updateDto).expect(200);
 
-			const updatedUser: Account = patchResponse.body;
-			expect(updatedUser).toBeDefined();
-			expect(updatedUser.username).toEqual(newUsername);
-			expect(updatedUser.email).toEqual(VERIFIED_USER_EMAIL);
-			expect(updatedUser.isEmailVerified).toBe(true);
-			expect(updatedUser.password).toBeUndefined();
+			const updatedAccount: Account = patchResponse.body;
+			expect(updatedAccount).toBeDefined();
+			expect(updatedAccount.fullName).toEqual(newFullName);
+			expect(updatedAccount.email).toEqual(VERIFIED_USER_EMAIL);
+			expect(updatedAccount.isEmailVerified).toBe(true);
+			expect(updatedAccount.password).toBeUndefined();
 
 			const getResponse = await verifiedAgent.get('/users/me').expect(200);
-			expect(getResponse.body.username).toEqual(newUsername);
+			expect(getResponse.body.fullName).toEqual(newFullName);
 		});
 
-		it('should strip disallowed fields and update the username for an authenticated VERIFIED user', async () => {
-			const updateDto = {username: 'Valid Username Again', email: 'ignored@mail.com'};
+		it('should strip disallowed fields and update the fullName for an authenticated VERIFIED user', async () => {
+			const updateDto: AccountUpdateDto = {fullName: 'Valid fullName Again'};
 
 			await verifiedAgent
 				.patch('/users/me')
 				.send(updateDto)
 				.expect(200)
 				.expect((res) => {
-					expect(res.body.username).toEqual('Valid Username Again');
+					expect(res.body.fullName).toEqual('Valid fullName Again');
 					expect(res.body.email).toEqual(VERIFIED_USER_EMAIL);
 				});
 		});
 
 		it('should return 403 Forbidden for an UNVERIFIED user', async () => {
-			const newUsername = faker.person.fullName();
-			const updateDto: UserUpdateDto = {username: newUsername};
+			const newFullName = faker.person.fullName();
+			const updateDto: AccountUpdateDto = {fullName: newFullName};
 
 			await unverifiedAgent
 				.patch('/users/me')
@@ -146,24 +146,24 @@ describe('UserController - /me', () => {
 		});
 
 		it('should return 401 Unauthorized if the user is not authenticated', async () => {
-			const updateDto: UserUpdateDto = {username: 'Attempt Update'};
+			const updateDto: AccountUpdateDto = {fullName: 'Attempt Update'};
 			await request(httpServer).patch('/users/me').send(updateDto).expect(401);
 		});
 
-		it('should return 400 Bad Request if username is missing', async () => {
+		it('should return 400 Bad Request if fullName is missing', async () => {
 			await verifiedAgent
 				.patch('/users/me')
 				.send({})
 				.expect(400)
 				.expect((res) => {
 					expect(res.body.message).toEqual(
-						expect.arrayContaining([expect.stringMatching(/username must be a string/i)]),
+						expect.arrayContaining([expect.stringMatching(/fullName must be a string/i)]),
 					);
 				});
 		});
 
-		it('should return 400 Bad Request if username is empty', async () => {
-			const updateDto: Partial<UserUpdateDto> = {username: ''};
+		it('should return 400 Bad Request if fullName is empty', async () => {
+			const updateDto: AccountUpdateDto = {fullName: ''};
 			await verifiedAgent
 				.patch('/users/me')
 				.send(updateDto)
@@ -171,15 +171,15 @@ describe('UserController - /me', () => {
 				.expect((res) => {
 					expect(res.body.message).toEqual(
 						expect.arrayContaining([
-							expect.stringMatching(/username must be longer than or equal to 1 characters/i),
+							expect.stringMatching(/fullName must be longer than or equal to 1 characters/i),
 						]),
 					);
 				});
 		});
 
-		it('should return 400 Bad Request if username is too long', async () => {
-			const longUsername = 'a'.repeat(256);
-			const updateDto: UserUpdateDto = {username: longUsername};
+		it('should return 400 Bad Request if fullName is too long', async () => {
+			const longFullName = 'a'.repeat(256);
+			const updateDto: AccountUpdateDto = {fullName: longFullName};
 			await verifiedAgent
 				.patch('/users/me')
 				.send(updateDto)
@@ -187,21 +187,21 @@ describe('UserController - /me', () => {
 				.expect((res) => {
 					expect(res.body.message).toEqual(
 						expect.arrayContaining([
-							expect.stringMatching(/username must be shorter than or equal to 255 characters/i),
+							expect.stringMatching(/fullName must be shorter than or equal to 255 characters/i),
 						]),
 					);
 				});
 		});
 
-		it('should return 400 Bad Request if username is not a string', async () => {
-			const updateDto = {username: 12345};
+		it('should return 400 Bad Request if fullName is not a string', async () => {
+			const updateDto: AccountUpdateDto = {fullName: 12345 as unknown as string};
 			await verifiedAgent
 				.patch('/users/me')
 				.send(updateDto)
 				.expect(400)
 				.expect((res) => {
 					expect(res.body.message).toEqual(
-						expect.arrayContaining([expect.stringMatching(/username must be a string/i)]),
+						expect.arrayContaining([expect.stringMatching(/fullName must be a string/i)]),
 					);
 				});
 		});

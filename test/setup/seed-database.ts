@@ -14,26 +14,26 @@ import {
 	VERIFIED_USER_PASSWORD,
 } from './constants';
 
-type UserSeedData = Pick<Account, 'username' | 'email' | 'password' | 'isEmailVerified'>;
+type UserSeedData = Pick<Account, 'fullName' | 'email' | 'password' | 'isEmailVerified'>;
 
 export async function seedDatabase(app: INestApplication) {
 	const userRepository = app.get<Repository<Account>>(getRepositoryToken(Account));
 
 	const usersToSeed: UserSeedData[] = [
 		{
-			username: 'Verified User',
+			fullName: 'Verified User',
 			email: VERIFIED_USER_EMAIL,
 			password: VERIFIED_USER_PASSWORD,
 			isEmailVerified: true,
 		},
 		{
-			username: 'Unverified User',
+			fullName: 'Unverified User',
 			email: UNVERIFIED_USER_EMAIL,
 			password: UNVERIFIED_USER_PASSWORD,
 			isEmailVerified: false,
 		},
 		{
-			username: 'Password Change User',
+			fullName: 'Password Change User',
 			email: PW_CHANGE_USER_EMAIL,
 			password: PW_CHANGE_USER_PASSWORD,
 			isEmailVerified: true,
@@ -44,7 +44,7 @@ export async function seedDatabase(app: INestApplication) {
 		usersToSeed.map(async (user) => {
 			const hashedPassword = await argon2.hash(user.password);
 			return userRepository.create({
-				username: user.username,
+				fullName: user.fullName,
 				email: user.email,
 				password: hashedPassword,
 				isEmailVerified: user.isEmailVerified,

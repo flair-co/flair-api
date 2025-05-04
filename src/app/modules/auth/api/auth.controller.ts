@@ -1,15 +1,4 @@
-import {
-	Body,
-	Controller,
-	Delete,
-	Get,
-	HttpCode,
-	Param,
-	Post,
-	Req,
-	Res,
-	UseGuards,
-} from '@nestjs/common';
+import {Body, Controller, Delete, Get, HttpCode, Param, Post, Req, Res, UseGuards} from '@nestjs/common';
 import {ApiOperation, ApiResponse, ApiTags} from '@nestjs/swagger';
 import {Throttle, minutes} from '@nestjs/throttler';
 import {Request, Response} from 'express';
@@ -170,11 +159,7 @@ export class AuthController {
 	@ApiResponse({status: 409, description: 'Cannot revoke the current session. Log out instead.'})
 	@ApiResponse({status: 429, description: 'Too many requests. Try again later.'})
 	@ApiOperation({summary: 'Revokes a user session.'})
-	async revokeSession(
-		@CurrentUser() user: Account,
-		@Req() request: Request,
-		@Param() dto: SessionRevokeDto,
-	) {
+	async revokeSession(@CurrentUser() user: Account, @Req() request: Request, @Param() dto: SessionRevokeDto) {
 		return this.sessionService.revokeSession(user.id, request.session.id, dto.sessionId);
 	}
 
