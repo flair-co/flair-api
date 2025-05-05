@@ -46,7 +46,7 @@ export class PasswordResetService {
 		}
 
 		const token = await this._createResetToken(account.id);
-		const resetUrl = this._createUrl(token);
+		const resetUrl = this._createUrl(token, account.email);
 
 		await this.emailService.send({
 			to: account.email,
@@ -79,9 +79,9 @@ export class PasswordResetService {
 		return token;
 	}
 
-	private _createUrl(token: string) {
+	private _createUrl(token: string, email: Account['email']) {
 		const url = new URL('/reset-password', this.WEB_BASE_URL);
-		url.searchParams.set('token', token);
+		url.search = new URLSearchParams({token, email}).toString();
 		return url.toString();
 	}
 
