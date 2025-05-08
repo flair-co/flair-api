@@ -14,7 +14,7 @@ export class FileController {
 	constructor(private readonly fileService: FileService) {}
 
 	@Head(':id')
-	async findOne(
+	async findOneMetadata(
 		@CurrentUser() user: Account,
 		@Param('id', new ParseUUIDPipe({version: '4'})) id: File['id'],
 		@Res({passthrough: true}) res: Response,
@@ -24,7 +24,7 @@ export class FileController {
 	}
 
 	@Get(':id')
-	async getFileUrl(@CurrentUser() user: Account, @Param('id', new ParseUUIDPipe({version: '4'})) id: File['id']) {
+	async findOneUrl(@CurrentUser() user: Account, @Param('id', new ParseUUIDPipe({version: '4'})) id: File['id']) {
 		const file = await this.fileService.findOneByIdAndAccountId(id, user.id);
 		const url = await this.fileService.getSignedUrl(file);
 		return {url};
