@@ -73,10 +73,10 @@ services:
     volumes:
       - minio_data:/data
 
-  # creates bucket on container startup
-  createbucket:
+  # creates files bucket on container startup
+  minio-createbucket:
     image: minio/mc
-    container_name: createbucket
+    container_name: minio-createbucket
     depends_on:
       - minio
     entrypoint: >
