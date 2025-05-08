@@ -4,9 +4,11 @@ import Redis from 'ioredis';
 import {ConfigurationService} from '@core/config/config.service';
 
 import {REDIS} from './redis.constants';
+import {RedisService} from './redis.service';
 
 @Module({
 	providers: [
+		RedisService,
 		{
 			provide: REDIS,
 			inject: [ConfigurationService],
