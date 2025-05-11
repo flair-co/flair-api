@@ -26,5 +26,4 @@ EXPOSE ${PORT}
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s \
     CMD curl -f "$APP_URL/health" || exit 1
 
-# Run the compiled app
 CMD ["node", "dist/main.js"]
