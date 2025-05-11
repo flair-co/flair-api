@@ -12,7 +12,7 @@ export class HealthController {
 
 	@Get()
 	@HealthCheck()
-	@ApiOperation({summary: 'Returns “up” when the API is healthy.'})
+	@ApiOperation({summary: 'Health check.'})
 	check() {
 		return this.health.check([async () => ({api: {status: 'up'}}), () => this.db.pingCheck('database')]);
 	}
