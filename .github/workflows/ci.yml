@@ -107,6 +107,7 @@ jobs:
     name: Publish Docker image to GHCR
     runs-on: ubuntu-latest
     needs: [unit-test, e2e-test]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
     steps:
       - name: Checkout repository
