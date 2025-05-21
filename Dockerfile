@@ -23,6 +23,8 @@ COPY --from=builder --chown=node:node /usr/src/app/dist ./dist
 ARG NODE_ENV=test
 ENV NODE_ENV=${NODE_ENV}
 
+COPY --chown=node:node .env.test .env
+
 EXPOSE ${PORT}
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s \
     CMD curl -f "$APP_URL/health" || exit 1
