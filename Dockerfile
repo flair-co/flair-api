@@ -20,7 +20,6 @@ RUN npm ci
 
 COPY --from=builder --chown=node:node /usr/src/app/dist ./dist
 
-COPY --chown=node:node .env.test .env.test
 COPY --chown=node:node .env.development .env.development
 
 ARG NODE_ENV=test
