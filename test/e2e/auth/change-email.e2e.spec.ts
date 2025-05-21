@@ -168,7 +168,7 @@ describe('AuthController - Change email', () => {
 
 			const recipientEmail = verificationEmail?.To[0].Address;
 			const subject = verificationEmail?.Subject;
-			const body = verificationEmail?.Snippet;
+			const body = verificationEmail?.Text;
 			const code = extractVerificationCode(body);
 
 			expect(recipientEmail).toEqual(newEmail);
@@ -259,7 +259,7 @@ describe('AuthController - Change email', () => {
 			await verifiedAgent.post('/auth/change-email/request').send(changeDto).expect(200);
 
 			const emailContent = await findEmailByRecipient(requestedNewEmail, mailpitApiUrl);
-			const code = extractVerificationCode(emailContent?.Snippet);
+			const code = extractVerificationCode(emailContent?.Text);
 
 			verificationCode = code;
 			newEmailAddress = requestedNewEmail;
@@ -390,7 +390,7 @@ describe('AuthController - Change email', () => {
 			await request(httpServer).post('/auth/signup').send(accountBCredentials).expect(201);
 
 			const signupEmailB = await findEmailByRecipient(accountBCredentials.email, mailpitApiUrl);
-			const signupCodeB = extractVerificationCode(signupEmailB?.Snippet);
+			const signupCodeB = extractVerificationCode(signupEmailB?.Text);
 			expect(signupCodeB).toBeDefined();
 
 			const emailVerifyDto: EmailVerifyDto = {
@@ -410,7 +410,7 @@ describe('AuthController - Change email', () => {
 			await accountBAgent.post('/auth/change-email/request').send(changeDtoForB).expect(200);
 
 			const emailForB = await findEmailByRecipient(targetEmail, mailpitApiUrl);
-			const codeForB = extractVerificationCode(emailForB?.Snippet);
+			const codeForB = extractVerificationCode(emailForB?.Text);
 			expect(codeForB).toBeDefined();
 			expect(codeForB).not.toEqual(codeForA);
 

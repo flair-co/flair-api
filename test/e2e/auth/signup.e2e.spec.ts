@@ -58,7 +58,7 @@ describe('AuthController - Signup', () => {
 
 			const recipientEmail = welcomeEmail?.To[0].Address;
 			const subject = welcomeEmail?.Subject;
-			const body = welcomeEmail?.Snippet;
+			const body = welcomeEmail?.Text;
 
 			expect(recipientEmail).toEqual(signUpDto.email);
 			expect(subject).toContain('Welcome to Flair');
@@ -229,7 +229,7 @@ describe('AuthController - Signup', () => {
 
 			const recipientEmail = verificationEmail?.To[0].Address;
 			const subject = verificationEmail?.Subject;
-			const body = verificationEmail?.Snippet;
+			const body = verificationEmail?.Text;
 
 			expect(recipientEmail).toEqual(UNVERIFIED_ACCOUNT_EMAIL);
 			expect(subject).toContain('is your verification code');
@@ -274,7 +274,7 @@ describe('AuthController - Signup', () => {
 			await request(httpServer).post('/auth/signup').send(accountCredentials).expect(201);
 
 			const welcomeEmail = await findEmailByRecipient(accountCredentials.email, mailpitApiUrl);
-			verificationCode = extractVerificationCode(welcomeEmail?.Snippet);
+			verificationCode = extractVerificationCode(welcomeEmail?.Text);
 			expect(verificationCode).toBeDefined();
 			expect(verificationCode).toMatch(/^\d{6}$/);
 
@@ -328,7 +328,7 @@ describe('AuthController - Signup', () => {
 			await agent.post('/auth/signup/resend').send().expect(200);
 
 			const resendEmail = await findEmailByRecipient(accountCredentials.email, mailpitApiUrl);
-			const resendCode = extractVerificationCode(resendEmail?.Snippet);
+			const resendCode = extractVerificationCode(resendEmail?.Text);
 			expect(resendCode).toBeDefined();
 			expect(resendCode).toMatch(/^\d{6}$/);
 			expect(resendCode).not.toEqual(verificationCode);
