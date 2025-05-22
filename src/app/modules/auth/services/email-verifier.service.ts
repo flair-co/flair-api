@@ -74,7 +74,7 @@ export class EmailVerifierService {
 			to: email,
 			subject: `Welcome to Flair - ${code} is your verification code`,
 			template: 'welcome',
-			context: {name, verificationUrl, code},
+			context: {name, verificationUrl, code, webUrl: this.WEB_BASE_URL},
 		});
 	}
 

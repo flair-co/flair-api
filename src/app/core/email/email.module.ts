@@ -27,6 +27,12 @@ import {EmailService} from './email.service';
 					adapter: new HandlebarsAdapter(),
 					options: {strict: true},
 				},
+				options: {
+					partials: {
+						dir: join(__dirname, 'templates/partials'),
+						options: {strict: true},
+					},
+				},
 			}),
 		}),
 		BullModule.registerQueue({name: EMAIL_QUEUE}),
