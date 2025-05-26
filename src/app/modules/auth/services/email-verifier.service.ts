@@ -74,7 +74,7 @@ export class EmailVerifierService {
 
 		await this.emailService.send({
 			to: email,
-			subject: `Welcome to Flair - Please confirm your email`,
+			subject: 'Welcome to Flair - Please confirm your email',
 			template: 'welcome',
 			context: {name, verificationUrl, code, expiration},
 		});
@@ -86,12 +86,14 @@ export class EmailVerifierService {
 		await this.accountService.validateEmailIsUnique(newEmail);
 
 		const code = await this._createCode(newEmail);
+		const verificationUrl = await this._createUrl(code, newEmail);
+		const expiration = ms(ms(this.EXPIRATION), {long: true});
 
 		await this.emailService.send({
 			to: newEmail,
-			subject: `${code} is your verification code`,
+			subject: 'Verify your new email with Flair',
 			template: 'verify-new-email',
-			context: {name: account.name, code},
+			context: {name: account.name, verificationUrl, expiration},
 		});
 		return {message: EMAIL_VERIFICATION_SENT};
 	}
