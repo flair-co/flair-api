@@ -35,7 +35,6 @@ import {
 	SESSION_REVOKE_SUCCESS,
 	UNAUTHORIZED,
 } from './constants/api-messages.constants';
-import {EmailChangeVerifyDto} from './dtos/email-change-verify.dto';
 import {EmailChangeRequestDto} from './dtos/email-change.dto';
 import {EmailCheckDto} from './dtos/email-check.dto';
 import {EmailVerifyDto} from './dtos/email-verify.dto';
@@ -148,6 +147,7 @@ export class AuthController {
 		return await this.emailVerifierService.requestEmailChange(user, dto.newEmail);
 	}
 
+	@Public()
 	@Post('change-email/verify')
 	@HttpCode(200)
 	@Throttle({default: {limit: 6, ttl: minutes(1)}})
@@ -157,8 +157,8 @@ export class AuthController {
 	@ApiResponse({status: 409, description: EMAIL_ALREADY_IN_USE})
 	@ApiResponse({status: 429, description: TOO_MANY_REQUESTS})
 	@ApiOperation({summary: 'Verifies the new email using a code.'})
-	async verifyEmailChange(@CurrentUser() user: Account, @Body() dto: EmailChangeVerifyDto) {
-		return await this.emailVerifierService.verifyEmailChange(user, dto.code);
+	async verifyEmailChange(@Body() dto: EmailVerifyDto) {
+		return await this.emailVerifierService.verifyEmailChange(dto.code, dto.email);
 	}
 
 	@Post('change-password')
