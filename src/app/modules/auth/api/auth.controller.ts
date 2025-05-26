@@ -147,7 +147,6 @@ export class AuthController {
 		return await this.emailVerifierService.requestEmailChange(user, dto.newEmail);
 	}
 
-	@Public()
 	@Post('change-email/verify')
 	@HttpCode(200)
 	@Throttle({default: {limit: 6, ttl: minutes(1)}})
@@ -157,8 +156,8 @@ export class AuthController {
 	@ApiResponse({status: 409, description: EMAIL_ALREADY_IN_USE})
 	@ApiResponse({status: 429, description: TOO_MANY_REQUESTS})
 	@ApiOperation({summary: 'Verifies the new email using a code.'})
-	async verifyEmailChange(@Body() dto: EmailVerifyDto) {
-		return await this.emailVerifierService.verifyEmailChange(dto.code, dto.email);
+	async verifyEmailChange(@CurrentUser() account: Account, @Body() dto: EmailVerifyDto) {
+		return await this.emailVerifierService.verifyEmailChange(account, dto.code, dto.email);
 	}
 
 	@Post('change-password')
