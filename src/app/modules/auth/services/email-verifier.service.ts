@@ -29,10 +29,9 @@ export class EmailVerifierService {
 		private readonly emailService: EmailService,
 		private readonly accountService: AccountService,
 	) {
+		this.EXPIRATION = this.configService.get('EMAIL_VERIFICATION_EXPIRATION');
 		this.REDIS_KEY = this.configService.get('EMAIL_VERIFICATION_REDIS_KEY');
 		this.WEB_BASE_URL = this.configService.get('WEB_BASE_URL');
-
-		this.EXPIRATION = this.configService.get('EMAIL_VERIFICATION_EXPIRATION');
 	}
 
 	async checkEmailAvailability(email: Account['email']) {
@@ -63,21 +62,6 @@ export class EmailVerifierService {
 	}
 
 	async sendWelcomeEmail(account: Account) {
-		const {email, name} = account;
-
-		const code = await this._createCode(email);
-		const verificationUrl = await this._createUrl(code, email);
-		const expiration = ms(ms(this.EXPIRATION), {long: true});
-
-		await this.emailService.send({
-			to: email,
-			subject: `Welcome to Flair - ${code} is your verification code`,
-			template: 'welcome',
-			context: {name, verificationUrl, code, expiration},
-		});
-	}
-
-	async sendVerifyEmail(account: Account) {
 		const {email, name, isEmailVerified} = account;
 
 		if (isEmailVerified) {
@@ -86,12 +70,13 @@ export class EmailVerifierService {
 
 		const code = await this._createCode(email);
 		const verificationUrl = await this._createUrl(code, email);
+		const expiration = ms(ms(this.EXPIRATION), {long: true});
 
 		await this.emailService.send({
 			to: email,
-			subject: `${code} is your verification code`,
-			template: 'verify-email',
-			context: {name, verificationUrl, code},
+			subject: `Welcome to Flair - Please confirm your email`,
+			template: 'welcome',
+			context: {name, verificationUrl, code, expiration},
 		});
 
 		return {message: EMAIL_VERIFICATION_SENT};

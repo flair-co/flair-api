@@ -104,8 +104,8 @@ export class AuthController {
 	@ApiResponse({status: 401, description: UNAUTHORIZED})
 	@ApiResponse({status: 429, description: TOO_MANY_REQUESTS})
 	@ApiOperation({summary: 'Resends the email verification code to the current user.'})
-	async sendVerifyEmail(@CurrentUser() user: Account) {
-		return await this.emailVerifierService.sendVerifyEmail(user);
+	async resendWelcomeEmail(@CurrentUser() user: Account) {
+		return await this.emailVerifierService.sendWelcomeEmail(user);
 	}
 
 	@Public()
