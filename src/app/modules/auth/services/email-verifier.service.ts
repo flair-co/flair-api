@@ -42,15 +42,7 @@ export class EmailVerifierService {
 	}
 
 	async verify(code: string, email: Account['email']) {
-		const expectedEmail = await this._getEmailByCode(code);
-		if (expectedEmail !== email) {
-			throw new BadRequestException(EMAIL_INVALID_TOKEN);
-		}
-
-		const account = await this.accountService.findByEmail(email);
-		if (!account) {
-			throw new BadRequestException(EMAIL_INVALID_TOKEN);
-		}
+		const account = await this._validateCode(code, email);
 
 		if (account.isEmailVerified) {
 			throw new BadRequestException(EMAIL_ALREADY_VERIFIED);
@@ -98,8 +90,8 @@ export class EmailVerifierService {
 		return {message: EMAIL_VERIFICATION_SENT};
 	}
 
-	async verifyEmailChange(account: Account, code: string) {
-		const newEmail = await this._getEmailByCode(code);
+	async verifyEmailChange(code: string, newEmail: Account['email']) {
+		const account = await this._validateCode(code, newEmail);
 
 		await this.accountService.validateEmailIsUnique(newEmail);
 		await this.accountService.update(account.id, {email: newEmail});
@@ -127,6 +119,19 @@ export class EmailVerifierService {
 				return code;
 			}
 		}
+	}
+
+	private async _validateCode(code: string, email: Account['email']) {
+		const expectedEmail = await this._getEmailByCode(code);
+		if (expectedEmail !== email) {
+			throw new BadRequestException(EMAIL_INVALID_TOKEN);
+		}
+
+		const account = await this.accountService.findByEmail(email);
+		if (!account) {
+			throw new BadRequestException(EMAIL_INVALID_TOKEN);
+		}
+		return account;
 	}
 
 	private async _getEmailByCode(code: string) {
