@@ -32,9 +32,7 @@ export class EmailVerifierService {
 		this.REDIS_KEY = this.configService.get('EMAIL_VERIFICATION_REDIS_KEY');
 		this.WEB_BASE_URL = this.configService.get('WEB_BASE_URL');
 
-		const expirationMs = ms(this.configService.get('EMAIL_VERIFICATION_EXPIRATION'));
-		const expirationSeconds = Math.floor(expirationMs / 1000);
-		this.EXPIRATION = expirationSeconds;
+		this.EXPIRATION = this.configService.get('EMAIL_VERIFICATION_EXPIRATION');
 	}
 
 	async checkEmailAvailability(email: Account['email']) {
@@ -69,12 +67,13 @@ export class EmailVerifierService {
 
 		const code = await this._createCode(email);
 		const verificationUrl = await this._createUrl(code, email);
+		const expiration = ms(ms(this.EXPIRATION), {long: true});
 
 		await this.emailService.send({
 			to: email,
 			subject: `Welcome to Flair - ${code} is your verification code`,
 			template: 'welcome',
-			context: {name, verificationUrl, code, webUrl: this.WEB_BASE_URL},
+			context: {name, verificationUrl, code, expiration},
 		});
 	}
 
@@ -136,7 +135,8 @@ export class EmailVerifierService {
 			try {
 				await this._getEmailByCode(code);
 			} catch {
-				await this.redisClient.set(key, email, 'EX', this.EXPIRATION);
+				const expirationSeconds = Math.floor(ms(this.EXPIRATION) / 1000);
+				await this.redisClient.set(key, email, 'EX', expirationSeconds);
 				return code;
 			}
 		}
