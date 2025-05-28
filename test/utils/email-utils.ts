@@ -40,21 +40,14 @@ export class EmailUtils {
 		return match ? match[1] : '';
 	}
 
-	static extractPasswordResetToken(body?: string) {
-		if (!body) return null;
+	static extractPasswordResetToken(body?: string): string {
+		if (!body) return '';
+		// decode the quoted-printable encoding and handle soft line breaks
+		const decodedBody = body.replace(/=3D/g, '=').replace(/=\r?\n/g, '');
 
-		// First, decode the quoted-printable encoding. Replaces =3D with =
-		let decodedBody = body.replace(/=3D/g, '=');
-		// Handle line breaks with = at the end
-		decodedBody = decodedBody.replace(/=\r?\n/g, '');
-
-		const pattern = new RegExp(`reset-password\\?token=${UUID_REGEX.source}`);
+		const pattern = new RegExp(`[?&]token=(${UUID_REGEX.source})`, 'i');
 		const match = decodedBody.match(pattern);
-		if (match) {
-			const uuidMatch = match[0].match(UUID_REGEX);
-			return uuidMatch ? uuidMatch[0] : null;
-		}
-		return null;
+		return match ? match[1] : '';
 	}
 
 	static normalizeEmailText(text?: string) {
@@ -83,6 +76,16 @@ Verify email ( ${webUrl}/verify-email?email=${encodeURIComponent(email)}&code=${
 This link and code expire in ${ex}. You can also manually enter the code below:
 ${code}
 If you did not sign up for Flair, please disregard this email.`;
+	}
+
+	static getPasswordResetEmailBody(email: Account['email'], webUrl: string, token: string, expiration: string) {
+		const ex = ms(ms(expiration), {long: true});
+
+		return `Reset your Flair password
+You requested a password reset for your Flair account. Click the button below to proceed and set a new password.
+Reset password ( ${webUrl}/reset-password?email=${encodeURIComponent(email)}&token=${token} )
+This link will expire in ${ex}.
+If you did not request this, please disregard this email.`;
 	}
 
 	private static _sleep(ms: number = 250) {
