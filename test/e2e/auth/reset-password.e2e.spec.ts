@@ -193,7 +193,7 @@ describe('AuthController - Reset Password', () => {
 
 		it('should fail with 400 Bad Request for an invalid token', async () => {
 			const verifyDto: PasswordResetVerifyDto = {
-				token: 'invalid-token',
+				token: faker.string.uuid(),
 				newPassword: faker.internet.password({length: 12}),
 			};
 
