@@ -33,14 +33,14 @@ export class EmailUtils {
 		}
 	}
 
-	static extractVerificationCode(body?: string) {
+	static extractCode(body?: string) {
 		if (!body) return '';
 		const pattern = new RegExp(`You can also manually enter the code below:·?\\s*(${SIX_DIGIT_REGEX.source})`, 'i');
 		const match = body.match(pattern);
 		return match ? match[1] : '';
 	}
 
-	static extractPasswordResetToken(body?: string): string {
+	static extractToken(body?: string): string {
 		if (!body) return '';
 		// decode the quoted-printable encoding and handle soft line breaks
 		const decodedBody = body.replace(/=3D/g, '=').replace(/=\r?\n/g, '');
@@ -84,6 +84,16 @@ If you did not sign up for Flair, please disregard this email.`;
 		return `Reset your Flair password
 You requested a password reset for your Flair account. Click the button below to proceed and set a new password.
 Reset password ( ${webUrl}/reset-password?email=${encodeURIComponent(email)}&token=${token} )
+This link will expire in ${ex}.
+If you did not request this, please disregard this email.`;
+	}
+
+	static getVerifyNewEmailBody(email: Account['email'], webUrl: string, token: string, expiration: string) {
+		const ex = ms(ms(expiration), {long: true});
+
+		return `Verify your new email with Flair
+You requested to change the the email address associated with your Flair account. Please confirm this change by clicking the button below.
+Verify email ( ${webUrl}/verify-email?email=${encodeURIComponent(email)}&token=${token}&flow=email-change )
 This link will expire in ${ex}.
 If you did not request this, please disregard this email.`;
 	}

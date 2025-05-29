@@ -41,8 +41,8 @@ export class EmailVerifierService {
 		}
 	}
 
-	async verify(code: string, email: Account['email']) {
-		const expectedEmail = await this._getEmailByCode(code);
+	async verifySignup(code: string, email: Account['email']) {
+		const expectedEmail = await this._getEmailBySecret(code);
 		if (expectedEmail !== email) {
 			throw new BadRequestException(EMAIL_INVALID_TOKEN);
 		}
@@ -57,7 +57,7 @@ export class EmailVerifierService {
 		}
 
 		const updatedAccount = await this.accountService.update(account.id, {isEmailVerified: true});
-		await this._removeCode(code);
+		await this._removeSecret(code);
 		return updatedAccount;
 	}
 
@@ -85,8 +85,8 @@ export class EmailVerifierService {
 	async requestEmailChange(account: Account, newEmail: Account['email']) {
 		await this.accountService.validateEmailIsUnique(newEmail);
 
-		const code = await this._createCode(newEmail);
-		const verificationUrl = await this._createUrl(code, newEmail, 'email-change');
+		const token = await this._createToken(newEmail);
+		const verificationUrl = await this._createUrl(token, newEmail, 'email-change');
 		const expiration = ms(ms(this.EXPIRATION), {long: true});
 
 		await this.emailService.send({
@@ -98,8 +98,8 @@ export class EmailVerifierService {
 		return {message: EMAIL_VERIFICATION_SENT};
 	}
 
-	async verifyEmailChange(account: Account, code: string, newEmail: Account['email']) {
-		const expectedEmail = await this._getEmailByCode(code);
+	async verifyEmailChange(account: Account, token: string, newEmail: Account['email']) {
+		const expectedEmail = await this._getEmailBySecret(token);
 		if (expectedEmail !== newEmail) {
 			throw new BadRequestException(EMAIL_INVALID_TOKEN);
 		}
@@ -107,13 +107,15 @@ export class EmailVerifierService {
 		await this.accountService.validateEmailIsUnique(newEmail);
 		await this.accountService.update(account.id, {email: newEmail});
 
-		await this._removeCode(code);
+		await this._removeSecret(token);
 		return {message: EMAIL_CHANGE_SUCCESS};
 	}
 
-	private async _createUrl(code: string, email: Account['email'], flow: 'onboarding' | 'email-change') {
+	private async _createUrl(secret: string, email: Account['email'], flow: 'onboarding' | 'email-change') {
 		const url = new URL('/verify-email', this.WEB_BASE_URL);
-		url.search = new URLSearchParams({email, code, flow}).toString();
+
+		const secretKey = flow === 'onboarding' ? 'code' : 'token';
+		url.search = new URLSearchParams({email, [secretKey]: secret, flow}).toString();
 		return url.toString();
 	}
 
@@ -123,7 +125,7 @@ export class EmailVerifierService {
 			const key = `${this.REDIS_KEY}:${code}`;
 
 			try {
-				await this._getEmailByCode(code);
+				await this._getEmailBySecret(code);
 			} catch {
 				const expirationSeconds = Math.floor(ms(this.EXPIRATION) / 1000);
 				await this.redisClient.set(key, email, 'EX', expirationSeconds);
@@ -132,8 +134,17 @@ export class EmailVerifierService {
 		}
 	}
 
-	private async _getEmailByCode(code: string) {
-		const key = `${this.REDIS_KEY}:${code}`;
+	private async _createToken(email: Account['email']) {
+		const token: string = crypto.randomUUID();
+		const key = `${this.REDIS_KEY}:${token}`;
+
+		const expirationSeconds = Math.floor(ms(this.EXPIRATION) / 1000);
+		await this.redisClient.set(key, email, 'EX', expirationSeconds);
+		return token;
+	}
+
+	private async _getEmailBySecret(secret: string) {
+		const key = `${this.REDIS_KEY}:${secret}`;
 		const email = await this.redisClient.get(key);
 
 		if (!email) {
@@ -142,8 +153,8 @@ export class EmailVerifierService {
 		return email;
 	}
 
-	private async _removeCode(code: string) {
-		const key = `${this.REDIS_KEY}:${code}`;
+	private async _removeSecret(secret: string) {
+		const key = `${this.REDIS_KEY}:${secret}`;
 		await this.redisClient.del(key);
 	}
 }

@@ -35,6 +35,7 @@ import {
 	SESSION_REVOKE_SUCCESS,
 	UNAUTHORIZED,
 } from './constants/api-messages.constants';
+import {EmailChangeVerifyDto} from './dtos/email-change-verify.dto';
 import {EmailChangeRequestDto} from './dtos/email-change.dto';
 import {EmailCheckDto} from './dtos/email-check.dto';
 import {EmailVerifyDto} from './dtos/email-verify.dto';
@@ -116,7 +117,7 @@ export class AuthController {
 	@ApiResponse({status: 429, description: TOO_MANY_REQUESTS})
 	@ApiOperation({summary: "Verifies an account's email using a code."})
 	async verifyEmail(@Body() dto: EmailVerifyDto, @Req() request: Request) {
-		const user = await this.emailVerifierService.verify(dto.code, dto.email);
+		const user = await this.emailVerifierService.verifySignup(dto.code, dto.email);
 		if (!request.isAuthenticated()) {
 			await this.authService.logIn(user, request);
 		}
@@ -155,9 +156,9 @@ export class AuthController {
 	@ApiResponse({status: 401, description: UNAUTHORIZED})
 	@ApiResponse({status: 409, description: EMAIL_ALREADY_IN_USE})
 	@ApiResponse({status: 429, description: TOO_MANY_REQUESTS})
-	@ApiOperation({summary: 'Verifies the new email using a code.'})
-	async verifyEmailChange(@CurrentUser() account: Account, @Body() dto: EmailVerifyDto) {
-		return await this.emailVerifierService.verifyEmailChange(account, dto.code, dto.email);
+	@ApiOperation({summary: 'Verifies the new email using a token.'})
+	async verifyEmailChange(@CurrentUser() account: Account, @Body() dto: EmailChangeVerifyDto) {
+		return await this.emailVerifierService.verifyEmailChange(account, dto.token, dto.email);
 	}
 
 	@Post('change-password')

@@ -67,7 +67,7 @@ describe('AuthController - Signup', () => {
 			const subject = welcomeEmail?.Subject;
 			const body = EmailUtils.normalizeEmailText(welcomeEmail?.Text);
 
-			const code = EmailUtils.extractVerificationCode(body);
+			const code = EmailUtils.extractCode(body);
 			const expectedBody = EmailUtils.getWelcomeEmailBody(
 				signUpDto.email,
 				signUpDto.name,
@@ -247,7 +247,7 @@ describe('AuthController - Signup', () => {
 
 			expect(recipientEmail).toEqual(UNVERIFIED_ACCOUNT_EMAIL);
 
-			const code = EmailUtils.extractVerificationCode(body);
+			const code = EmailUtils.extractCode(body);
 			const expectedBody = EmailUtils.getWelcomeEmailBody(
 				UNVERIFIED_ACCOUNT_EMAIL,
 				UNVERIFIED_ACCOUNT_NAME,
@@ -299,7 +299,7 @@ describe('AuthController - Signup', () => {
 			await request(httpServer).post('/auth/signup').send(accountCredentials).expect(201);
 
 			const welcomeEmail = await EmailUtils.findEmailByRecipient(accountCredentials.email, mailpitApiUrl);
-			verificationCode = EmailUtils.extractVerificationCode(welcomeEmail?.Text);
+			verificationCode = EmailUtils.extractCode(welcomeEmail?.Text);
 			expect(verificationCode).toBeDefined();
 			expect(verificationCode).toMatch(/^\d{6}$/);
 
@@ -353,7 +353,7 @@ describe('AuthController - Signup', () => {
 			await agent.post('/auth/signup/resend').send().expect(200);
 
 			const resendEmail = await EmailUtils.findEmailByRecipient(accountCredentials.email, mailpitApiUrl);
-			const resendCode = EmailUtils.extractVerificationCode(resendEmail?.Text);
+			const resendCode = EmailUtils.extractCode(resendEmail?.Text);
 			expect(resendCode).toBeDefined();
 			expect(resendCode).toMatch(/^\d{6}$/);
 			expect(resendCode).not.toEqual(verificationCode);
