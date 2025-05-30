@@ -2,6 +2,7 @@ import {BadRequestException, ConflictException, Injectable} from '@nestjs/common
 import {Inject} from '@nestjs/common';
 import Redis from 'ioredis';
 import ms from 'ms';
+import crypto from 'node:crypto';
 
 import {ConfigurationService} from '@core/config/config.service';
 import {EmailService} from '@core/email/email.service';
@@ -121,7 +122,7 @@ export class EmailVerifierService {
 
 	private async _createCode(email: Account['email']) {
 		while (true) {
-			const code = Array.from({length: 6}, () => Math.floor(Math.random() * 10)).join('');
+			const code = crypto.randomInt(0, 1000000).toString().padStart(6, '0');
 			const key = `${this.REDIS_KEY}:${code}`;
 
 			try {
