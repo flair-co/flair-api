@@ -1,6 +1,6 @@
 import {INestApplicationContext} from '@nestjs/common';
 import {NestFactory} from '@nestjs/core';
-import {DataSource} from 'typeorm';
+import {EntityManager} from 'typeorm';
 
 import {AppModule} from '../src/app.module';
 
@@ -21,13 +21,8 @@ export async function bootstrap() {
 }
 
 export async function truncateTables(app: INestApplicationContext) {
-	const dataSource = app.get(DataSource);
-	const queryRunner = dataSource.createQueryRunner();
-
-	await queryRunner.connect();
-	await queryRunner.query('DROP SCHEMA public CASCADE;');
-	await queryRunner.query('CREATE SCHEMA public;');
-	await queryRunner.release();
-
-	console.log('Schema has been recreated successfully.');
+	const entityManager = app.get(EntityManager);
+	const tableNames = entityManager.connection.entityMetadatas.map((entity) => entity.tableName).join(', ');
+	await entityManager.query(`truncate ${tableNames} restart identity cascade;`);
+	console.log(`Database tables cleared: ${tableNames}`);
 }

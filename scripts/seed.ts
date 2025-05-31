@@ -1,6 +1,6 @@
 import {seedDatabase} from 'test/setup/seed-database';
 
-import {bootstrap, truncateTables} from './truncate';
+import {bootstrap} from './truncate';
 
 seed().catch((err) => {
 	console.error(err);
@@ -9,7 +9,6 @@ seed().catch((err) => {
 
 async function seed() {
 	const app = await bootstrap();
-	await truncateTables(app);
 	await seedDatabase(app);
 
 	await app.close();
