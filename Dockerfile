@@ -12,7 +12,6 @@ RUN npm run build
 FROM node:20-alpine AS runtime
 
 USER node
-
 WORKDIR /usr/src/app
 
 COPY --chown=node:node package*.json ./
@@ -20,6 +19,7 @@ RUN npm ci
 
 COPY --from=builder --chown=node:node /usr/src/app/dist ./dist
 
+COPY --chown=node:node tsconfig.json ./tsconfig.json
 COPY --chown=node:node scripts/ ./scripts/
 COPY --chown=node:node test/ ./test/
 
