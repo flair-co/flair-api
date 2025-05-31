@@ -40,7 +40,7 @@ async function truncate() {
 
 	try {
 		await dataSource.initialize();
-		console.log('DB connection successful. Truncating schema...');
+		console.log('Recreating schema...');
 
 		queryRunner = dataSource.createQueryRunner();
 		await queryRunner.connect();
