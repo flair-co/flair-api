@@ -6,6 +6,8 @@ RUN npm ci
 
 COPY tsconfig*.json ./
 COPY src/ ./src/
+COPY scripts/ ./scripts/
+COPY test/ ./test/
 COPY nest-cli.json ./
 RUN npm run build
 
@@ -20,8 +22,6 @@ RUN npm ci
 COPY --from=builder --chown=node:node /usr/src/app/dist ./dist
 
 COPY --chown=node:node tsconfig.json ./tsconfig.json
-COPY --chown=node:node scripts/ ./scripts/
-COPY --chown=node:node test/ ./test/
 
 COPY --chown=node:node .env.test .env.test
 COPY --chown=node:node .env.development .env.development
