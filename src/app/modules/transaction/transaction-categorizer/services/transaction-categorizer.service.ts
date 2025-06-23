@@ -21,31 +21,29 @@ export class TransactionCategorizerService {
 	async categorize(transactions: TransactionPartial[]) {
 		if (transactions.length === 0) return [];
 
-		const categorizedTransactions: CategorizedTransactionPartial[] = [];
 		const transactionsWithId: TransactionToCategorize[] = transactions.map((transaction) => ({
 			...transaction,
 			correlationId: crypto.randomUUID(),
 		}));
 
+		const batches: TransactionToCategorize[][] = [];
+
 		for (let i = 0; i < transactionsWithId.length; i += BATCH_SIZE) {
-			const batch = transactionsWithId.slice(i, i + BATCH_SIZE);
-			try {
-				const processedBatch = await this._processBatch(batch);
-				categorizedTransactions.push(...processedBatch);
-			} catch (error) {
-				const failedBatch = batch.map((transaction) => {
-					// eslint-disable-next-line @typescript-eslint/no-unused-vars
-					const {correlationId, ...rest} = transaction;
-					return {...rest, category: Category.OTHER};
-				});
-				categorizedTransactions.push(...failedBatch);
-			}
+			batches.push(transactionsWithId.slice(i, i + BATCH_SIZE));
 		}
 
-		return categorizedTransactions;
+		const batchPromises = batches.map((batch) => this._processBatch(batch));
+		const results = await Promise.allSettled(batchPromises);
+
+		return results.flatMap((result, index) => {
+			if (result.status === 'rejected') {
+				return batches[index].map(({correlationId, ...rest}) => ({...rest, category: Category.OTHER}));
+			}
+			return result.value;
+		});
 	}
 
-	private async _processBatch(batch: TransactionToCategorize[]) {
+	private async _processBatch(batch: TransactionToCategorize[]): Promise<CategorizedTransactionPartial[]> {
 		const fieldsToInclude: (keyof TransactionToCategorize)[] = [
 			'correlationId',
 			'description',
@@ -54,8 +52,8 @@ export class TransactionCategorizerService {
 		];
 		const serializedTransactions = JSON.stringify(batch, fieldsToInclude);
 		const result = await this.model.generateContent(serializedTransactions);
-		const categorizedBatch: {correlationId: string; category: string}[] = JSON.parse(result.response.text());
 
+		const categorizedBatch: {correlationId: string; category: string}[] = JSON.parse(result.response.text());
 		const categories = new Map(categorizedBatch.map((item) => [item.correlationId, item.category]));
 
 		return batch.map(({correlationId, ...rest}) => {
