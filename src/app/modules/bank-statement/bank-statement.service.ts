@@ -33,7 +33,7 @@ export class BankStatementService {
 		const bankAccount = await this.bankAccountService.findById(bankAccountId, accountId);
 
 		const records = this.fileParserService.parse(file.buffer, file.mimetype);
-		const mappedTransactions = await this.transactionMapperService.map(records, bankAccount.bank);
+		const mappedTransactions = await this.transactionMapperService.map(records, bankAccount);
 
 		await this.assertNoPeriodOverlap(mappedTransactions, bankAccountId);
 
