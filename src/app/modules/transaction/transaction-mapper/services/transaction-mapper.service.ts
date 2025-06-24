@@ -4,13 +4,13 @@ import {validate} from 'class-validator';
 import {BankAccount} from '@modules/bank-account/bank-account.entity';
 
 import {TransactionMapperFactory} from './transaction-mapper.factory';
-import {TransactionPartial} from './transaction-mapper.interface';
+import {TransactionCreateDto} from './transaction-mapper.interface';
 
 @Injectable()
 export class TransactionMapperService {
 	constructor(private readonly transactionMapperFactory: TransactionMapperFactory) {}
 
-	async map(records: Record<string, string>[], bankAccount: BankAccount): Promise<TransactionPartial[]> {
+	async map(records: Record<string, string>[], bankAccount: BankAccount): Promise<TransactionCreateDto[]> {
 		const mapper = this.transactionMapperFactory.create(bankAccount.bank);
 
 		const transactions = await Promise.all(
