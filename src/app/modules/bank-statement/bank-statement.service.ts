@@ -40,10 +40,7 @@ export class BankStatementService {
 		const categorizedTransactions = await this.transactionCategorizerService.categorize(mappedTransactions);
 
 		const savedFile = await this.fileService.save(file);
-		const savedBankStatement = await this.bankStatementRepository.save({
-			file: savedFile,
-			bankAccount,
-		});
+		const savedBankStatement = await this.bankStatementRepository.save({file: savedFile, bankAccount});
 
 		const transactions = categorizedTransactions.map((transaction) => ({
 			...transaction,
