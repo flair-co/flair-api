@@ -78,7 +78,6 @@ describe('BankAccountController', () => {
 
 		it('should fail with 400 Bad Request for invalid data', async () => {
 			await verifiedAgent.post('/bank-accounts').send({}).expect(400);
-
 			await verifiedAgent.post('/bank-accounts').send({bank: 'INVALID_BANK', currency: 'USD'}).expect(400);
 
 			await verifiedAgent
@@ -107,9 +106,7 @@ describe('BankAccountController', () => {
 				bank: Bank.REVOLUT,
 				currency: 'GBP',
 			};
-
 			const response = await verifiedAgent.post('/bank-accounts').send(bankAccountDto).expect(201);
-
 			createdAccountId = response.body.id;
 		});
 
@@ -137,15 +134,12 @@ describe('BankAccountController', () => {
 				bank: Bank.ABN_AMRO,
 				currency: 'EUR',
 			};
-
 			const response = await verifiedAgent.post('/bank-accounts').send(bankAccountDto).expect(201);
-
 			createdAccountId = response.body.id;
 		});
 
 		it('should get a bank account by id for the owner', async () => {
 			const response = await verifiedAgent.get(`/bank-accounts/${createdAccountId}`).expect(200);
-
 			expect(response.body.id).toEqual(createdAccountId);
 		});
 
