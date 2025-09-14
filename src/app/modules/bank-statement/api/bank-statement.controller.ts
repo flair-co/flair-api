@@ -15,7 +15,7 @@ import {ApiOperation, ApiResponse, ApiTags} from '@nestjs/swagger';
 
 import {Account} from '@modules/account/account.entity';
 import {UNAUTHORIZED} from '@modules/auth/api/constants/api-messages.constants';
-import {CurrentUser} from '@modules/auth/decorators/current-user.decorator';
+import {CurrentAccount} from '@modules/auth/decorators/current-user.decorator';
 import {BankAccount} from '@modules/bank-account/bank-account.entity';
 import {PaginationDto} from '@modules/bank-statement/api/dtos/pagination.dto';
 
@@ -41,7 +41,7 @@ export class BankStatementController {
 	@ApiResponse({status: 401, description: UNAUTHORIZED})
 	@ApiOperation({summary: 'Accepts a bank statement file for processing.'})
 	async upload(
-		@CurrentUser() account: Account,
+		@CurrentAccount() account: Account,
 		@UploadedFile() file: Express.Multer.File,
 		@Param('bankAccountId', new ParseUUIDPipe({version: '4'})) bankAccountId: BankAccount['id'],
 	) {
@@ -52,7 +52,7 @@ export class BankStatementController {
 	@ApiResponse({status: 200, type: JobStatusDto})
 	@ApiResponse({status: 404, description: JOB_NOT_FOUND})
 	@ApiOperation({summary: 'Get the status of a bank statement upload job.'})
-	async getUploadStatus(@Param('jobId') jobId: string, @CurrentUser() account: Account) {
+	async getUploadStatus(@Param('jobId') jobId: string, @CurrentAccount() account: Account) {
 		return this.bankStatementService.getJobStatus(jobId, account.id);
 	}
 
@@ -60,7 +60,7 @@ export class BankStatementController {
 	@ApiResponse({status: 200})
 	@ApiOperation({summary: 'Get all bank statements for a bank account.'})
 	async getAll(
-		@CurrentUser() account: Account,
+		@CurrentAccount() account: Account,
 		@Param('bankAccountId', new ParseUUIDPipe({version: '4'})) bankAccountId: BankAccount['id'],
 		@Query() paginationDto: PaginationDto,
 	) {
@@ -73,7 +73,7 @@ export class BankStatementController {
 	@ApiResponse({status: 404, description: BANK_STATEMENT_NOT_FOUND})
 	@ApiOperation({summary: 'Delete a bank statement by ID.'})
 	async delete(
-		@CurrentUser() account: Account,
+		@CurrentAccount() account: Account,
 		@Param('bankStatementId', new ParseUUIDPipe({version: '4'}))
 		bankStatementId: BankStatement['id'],
 	) {
