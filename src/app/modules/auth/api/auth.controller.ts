@@ -21,6 +21,7 @@ import {
 	EMAIL_ALREADY_VERIFIED,
 	EMAIL_CHANGE_SUCCESS,
 	EMAIL_INVALID_TOKEN,
+	EMAIL_IS_AVAILABLE,
 	EMAIL_VERIFICATION_SENT,
 	EMAIL_VERIFICATION_SUCCESS,
 	INVALID_CREDENTIALS,
@@ -127,7 +128,7 @@ export class AuthController {
 	@Head('change-email/check')
 	@HttpCode(204)
 	@Throttle({default: {limit: 10, ttl: minutes(1)}})
-	@ApiResponse({status: 204, description: 'Email is available.'})
+	@ApiResponse({status: 204, description: EMAIL_IS_AVAILABLE})
 	@ApiResponse({status: 401, description: UNAUTHORIZED})
 	@ApiResponse({status: 409, description: EMAIL_ALREADY_IN_USE})
 	@ApiResponse({status: 429, description: TOO_MANY_REQUESTS})
@@ -197,7 +198,7 @@ export class AuthController {
 
 	@Get('sessions')
 	@HttpCode(200)
-	@ApiResponse({status: 200, description: 'List of active sessions.', type: [SessionResponseDto]})
+	@ApiResponse({status: 200, type: [SessionResponseDto]})
 	@ApiResponse({status: 401, description: UNAUTHORIZED})
 	@ApiResponse({status: 429, description: TOO_MANY_REQUESTS})
 	@ApiOperation({summary: 'Retrieves all active sessions for the current account.'})
