@@ -26,6 +26,8 @@ import {BankStatementJob} from './api/dtos/bank-statement-job.dto';
 import {JobStatusDto} from './api/dtos/job-status.dto';
 import {BankStatement} from './bank-statement.entity';
 
+const PROGRESS_INTERVAL_MS = 2000;
+
 @Injectable()
 export class BankStatementService {
 	constructor(
@@ -44,27 +46,30 @@ export class BankStatementService {
 	async processUpload(job: Job<BankStatementJob>) {
 		const {bankAccountId, accountId, file: sourceFile} = job.data;
 		const file = {...sourceFile, buffer: Buffer.from(sourceFile.buffer)};
-		const step = job.updateProgress.bind(job);
+		await job.updateProgress(10);
 
-		await step(10);
 		const bankAccount = await this.bankAccountService.findById(bankAccountId, accountId);
 
-		await step(20);
 		const records = this.fileParserService.parse(file.buffer, file.mimetype);
-
-		await step(30);
 		const mappedTransactions = await this.transactionMapperService.map(records, bankAccount);
 
-		await step(40);
 		await this.assertNoPeriodOverlap(mappedTransactions, bankAccountId);
+		await job.updateProgress(20);
 
-		await step(50);
-		const categorizedTransactions = await this.transactionCategorizerService.categorize(mappedTransactions);
+		// simulate progress while long-running categorization api call(s) take place
+		const progressInterval = setInterval(async () => {
+			const currentProgress = Number(job.progress);
+			if (currentProgress < 90) {
+				await job.updateProgress(currentProgress + 10);
+			}
+		}, PROGRESS_INTERVAL_MS);
 
-		await step(70);
+		const {categorizedTransactions} = await (async () => {
+			const categorizedTransactions = await this.transactionCategorizerService.categorize(mappedTransactions);
+			return {categorizedTransactions};
+		})().finally(() => clearInterval(progressInterval));
+
 		const savedFile = await this.fileService.save(file as Express.Multer.File);
-
-		await step(80);
 		const savedBankStatement = await this.bankStatementRepository.save({file: savedFile, bankAccount});
 
 		const transactions = categorizedTransactions.map((transaction) => ({
@@ -72,10 +77,9 @@ export class BankStatementService {
 			bankAccount: bankAccount,
 			bankStatement: savedBankStatement,
 		}));
-		await step(90);
 		const savedTransactions = await this.transactionService.saveAll(transactions);
 
-		await step(100);
+		await job.updateProgress(100);
 		return plainToInstance(BankStatement, {...savedBankStatement, transactions: savedTransactions});
 	}
 
