@@ -20,6 +20,7 @@ import {TransactionService} from '@modules/transaction/transaction.service';
 import {
 	BANK_STATEMENT_DELETE_SUCCESS,
 	BANK_STATEMENT_NOT_FOUND,
+	BANK_STATEMENT_PERIOD_OVERLAP,
 	JOB_NOT_FOUND,
 } from './api/constants/api-messages.constants';
 import {BankStatementJob} from './api/dtos/bank-statement-job.dto';
@@ -111,14 +112,7 @@ export class BankStatementService {
 		};
 	}
 
-	async findAll(
-		bankAccountId: BankAccount['id'],
-		accountId: Account['id'],
-		{pageIndex, pageSize}: PaginationDto,
-	): Promise<{
-		bankStatements: BankStatement[];
-		total: number;
-	}> {
+	async findAll(bankAccountId: BankAccount['id'], accountId: Account['id'], {pageIndex, pageSize}: PaginationDto) {
 		const [bankStatements, total] = await this.bankStatementRepository
 			.createQueryBuilder('bankStatement')
 			.innerJoin('bankStatement.bankAccount', 'bankAccount')
@@ -192,7 +186,7 @@ export class BankStatementService {
 		});
 
 		if (overlappingStatement) {
-			throw new ConflictException(`A bank statement already exists for this period.`);
+			throw new ConflictException(BANK_STATEMENT_PERIOD_OVERLAP);
 		}
 	}
 }

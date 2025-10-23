@@ -22,7 +22,7 @@ describe('AuthController - Change password', () => {
 		httpServer = getApp().getHttpServer();
 	});
 
-	describe('/auth/change-password (POST)', () => {
+	describe('POST /auth/change-password', () => {
 		it('should change password for authenticated account and allow login with new password', async () => {
 			const agent = request.agent(httpServer);
 			await agent
