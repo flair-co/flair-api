@@ -8,7 +8,6 @@ import {Account} from '@modules/account/account.entity';
 import {CurrentAccount} from '@modules/auth/decorators/current-user.decorator';
 import {Public} from '@modules/auth/decorators/public.decorator';
 
-import {BankConnectionCallbackResult} from '../bank-connection-callback-result';
 import {BankingService} from '../banking.service';
 import {BankingSyncService} from '../services/banking-sync.service';
 import {BankConnectionAuthorizeDto} from './dtos/bank-connection-authorize.dto';
@@ -49,9 +48,7 @@ export class BankConnectionController {
 	@Public()
 	@Get('callback')
 	async handleCallback(@Query() query: BankConnectionCallbackDto, @Res() response: Response) {
-		const result: BankConnectionCallbackResult = await this.bankingService
-			.handleCallback(query)
-			.catch((): BankConnectionCallbackResult => 'error');
+		const result = await this.bankingService.handleCallback(query);
 
 		const redirectUrl = new URL('/bank-connections', this.configurationService.get('WEB_BASE_URL'));
 		redirectUrl.searchParams.set('result', result);

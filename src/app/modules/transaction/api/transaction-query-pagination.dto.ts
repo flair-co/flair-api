@@ -1,9 +1,9 @@
 import {Transform} from 'class-transformer';
 import {IsIn, IsInt, Min} from 'class-validator';
 
-export const DEFAULT_PAGE_INDEX = 0;
-export const DEFAULT_PAGE_SIZE = 10;
-export const PAGE_SIZE_OPTIONS = [10, 20, 30, 40, 50];
+import {DEFAULT_PAGE_INDEX, DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS} from '@core/pagination/pagination.constants';
+
+export {DEFAULT_PAGE_INDEX, DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS};
 
 export class TransactionQueryPaginationDto {
 	@Transform(({value}) => parseInt(value, 10))

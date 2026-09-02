@@ -620,33 +620,38 @@ describe('BankConnectionController', () => {
 		});
 	});
 
+	type ExternalAccountFixture = {
+		providerAccountId: string;
+		identificationHash: string;
+		details?: string;
+	};
+
 	async function createAuthorizedConnection(providerSessionId: string) {
-		const connection = await bankConnectionRepository.save(
-			bankConnectionRepository.create({
-				account,
-				provider: 'enable-banking',
-				aspspName: 'ABN AMRO',
-				aspspCountry: 'NL',
-				status: 'AUTHORIZED',
-				providerSessionId: app.get(BankingEncryptionService).encrypt(providerSessionId),
-				consentValidUntil: new Date(Date.now() + 60 * 60 * 1000),
-			}),
-		);
-		const externalAccount = await externalAccountRepository.save(
-			externalAccountRepository.create({
-				bankConnection: connection,
+		const {connection, externalAccounts} = await createAuthorizedConnectionFixture(providerSessionId, [
+			{
 				providerAccountId: 'sync-provider-account',
 				identificationHash: `hash-${providerSessionId}`,
-				name: 'Sync account',
 				details: 'Test account',
-				currency: 'EUR',
-				isActive: true,
-			}),
-		);
-		return {connection, externalAccount};
+			},
+		]);
+		return {connection, externalAccount: externalAccounts[0]};
 	}
 
 	async function createAuthorizedConnectionWithAccounts(providerSessionId: string, providerAccountIds: string[]) {
+		const {connection} = await createAuthorizedConnectionFixture(
+			providerSessionId,
+			providerAccountIds.map((providerAccountId) => ({
+				providerAccountId,
+				identificationHash: `hash-${providerAccountId}`,
+			})),
+		);
+		return connection;
+	}
+
+	async function createAuthorizedConnectionFixture(
+		providerSessionId: string,
+		externalAccountFixtures: ExternalAccountFixture[],
+	) {
 		const connection = await bankConnectionRepository.save(
 			bankConnectionRepository.create({
 				account,
@@ -658,19 +663,20 @@ describe('BankConnectionController', () => {
 				consentValidUntil: new Date(Date.now() + 60 * 60 * 1000),
 			}),
 		);
-		await externalAccountRepository.save(
-			providerAccountIds.map((providerAccountId) =>
+		const externalAccounts = await externalAccountRepository.save(
+			externalAccountFixtures.map(({providerAccountId, identificationHash, details}) =>
 				externalAccountRepository.create({
 					bankConnection: connection,
 					providerAccountId,
-					identificationHash: `hash-${providerAccountId}`,
+					identificationHash,
 					name: 'Sync account',
+					details,
 					currency: 'EUR',
 					isActive: true,
 				}),
 			),
 		);
-		return connection;
+		return {connection, externalAccounts};
 	}
 });
 

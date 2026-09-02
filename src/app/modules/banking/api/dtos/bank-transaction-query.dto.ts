@@ -9,18 +9,19 @@ import {
 	IsString,
 	IsUUID,
 	Matches,
-	Max,
 	MaxLength,
 	Min,
 	ValidateNested,
 } from 'class-validator';
 
+import {DEFAULT_PAGE_INDEX, DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS} from '@core/pagination/pagination.constants';
+
 const transformOptionalNumber = ({value}: TransformFnParams) => (value === undefined ? undefined : Number(value));
 
-export const DEFAULT_BANK_TRANSACTION_PAGE_INDEX = 0;
-export const DEFAULT_BANK_TRANSACTION_PAGE_SIZE = 10;
-export const BANK_TRANSACTION_PAGE_SIZE_OPTIONS = [10, 20, 30, 40, 50];
-export const MAX_BANK_TRANSACTION_PAGE_SIZE = 50;
+export const DEFAULT_BANK_TRANSACTION_PAGE_INDEX = DEFAULT_PAGE_INDEX;
+export const DEFAULT_BANK_TRANSACTION_PAGE_SIZE = DEFAULT_PAGE_SIZE;
+export const BANK_TRANSACTION_PAGE_SIZE_OPTIONS = PAGE_SIZE_OPTIONS;
+export const MAX_BANK_TRANSACTION_PAGE_SIZE = Math.max(...BANK_TRANSACTION_PAGE_SIZE_OPTIONS);
 
 export enum BankTransactionSortField {
 	BOOKING_DATE = 'bookingDate',
@@ -44,7 +45,6 @@ export class BankTransactionPaginationQueryDto {
 	@IsInt()
 	@Min(1)
 	@IsIn(BANK_TRANSACTION_PAGE_SIZE_OPTIONS)
-	@Max(MAX_BANK_TRANSACTION_PAGE_SIZE)
 	pageSize: number = DEFAULT_BANK_TRANSACTION_PAGE_SIZE;
 }
 

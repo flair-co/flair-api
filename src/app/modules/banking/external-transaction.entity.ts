@@ -9,6 +9,7 @@ import {
 	UpdateDateColumn,
 } from 'typeorm';
 
+import {BankTransactionType} from './bank-transaction-type';
 import {ExternalAccount} from './external-account.entity';
 
 @Entity('external_transactions')
@@ -53,7 +54,7 @@ export class ExternalTransaction {
 	creditDebitIndicator: string | null;
 
 	@Column({type: 'varchar', length: 32, nullable: true})
-	transactionType: string | null;
+	transactionType: BankTransactionType | null;
 
 	@Column({type: 'varchar', length: 32, nullable: true})
 	transactionStatus: string | null;

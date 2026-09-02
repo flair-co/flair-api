@@ -17,6 +17,7 @@ import {
 	BankTransactionResponseDto,
 	BankTransactionsResponseDto,
 } from '../api/dtos/bank-transaction-response.dto';
+import {BANK_TRANSACTION_TYPES} from '../bank-transaction-type';
 import {ExternalTransaction} from '../external-transaction.entity';
 
 @Injectable()
@@ -109,7 +110,7 @@ export class BankTransactionService {
 			currency: transaction.currency,
 			creditDebitIndicator: transaction.creditDebitIndicator,
 			direction: this.toDirection(transaction.creditDebitIndicator),
-			transactionType: transaction.transactionType ?? 'OTHER',
+			transactionType: transaction.transactionType ?? BANK_TRANSACTION_TYPES.OTHER,
 			transactionStatus: transaction.transactionStatus,
 			providerTransactionDescription: transaction.bankTransactionDescription,
 			merchantCategoryCode: transaction.merchantCategoryCode,

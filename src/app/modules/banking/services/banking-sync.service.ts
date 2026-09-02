@@ -10,7 +10,7 @@ import {
 import {InjectRepository} from '@nestjs/typeorm';
 import Redis from 'ioredis';
 import {createHash, randomUUID} from 'node:crypto';
-import {DataSource, In, Repository} from 'typeorm';
+import {DataSource, Repository} from 'typeorm';
 
 import {REDIS} from '@core/redis/redis.constants';
 import {Account} from '@modules/account/account.entity';
@@ -35,6 +35,7 @@ import {
 import {BankConnection} from '../bank-connection.entity';
 import {BankSyncRun} from '../bank-sync-run.entity';
 import {normalizeBankTransactionType} from '../bank-transaction-type';
+import {getBalancePreference, truncate} from '../banking.utils';
 import {
 	EnableBankingBalance,
 	EnableBankingTransaction,
@@ -221,7 +222,7 @@ export class BankingSyncService {
 
 	private async findPreviousSuccessfulRun(connectionId: BankConnection['id']): Promise<BankSyncRun | null> {
 		return this.bankSyncRunRepository.findOne({
-			where: {bankConnection: {id: connectionId}, status: In([SUCCEEDED])},
+			where: {bankConnection: {id: connectionId}, status: SUCCEEDED},
 			order: {finishedAt: 'DESC'},
 		});
 	}
@@ -331,7 +332,7 @@ export class BankingSyncService {
 							{id: accountResult.externalAccount.id},
 							{
 								currentBalanceAmount: preferredBalance.amount,
-								currentBalanceType: this.truncate(preferredBalance.balanceType, 32),
+								currentBalanceType: truncate(preferredBalance.balanceType, 32),
 								balanceUpdatedAt: this.toDateTime(preferredBalance.lastChangeDateTime) ?? observedAt,
 							},
 						);
@@ -387,13 +388,13 @@ export class BankingSyncService {
 		return {
 			externalAccountId: externalAccount.id,
 			bankSyncRunId: run.id,
-			name: this.truncate(balance.name, 255),
-			balanceType: this.truncate(balance.balanceType, 32) ?? 'UNKNOWN',
+			name: truncate(balance.name, 255),
+			balanceType: truncate(balance.balanceType, 32) ?? 'UNKNOWN',
 			amount: balance.amount,
 			currency: balance.currency.toUpperCase(),
 			lastChangeDateTime: this.toDateTime(balance.lastChangeDateTime),
 			referenceDate: this.toDateOnly(balance.referenceDate),
-			lastCommittedTransaction: this.truncate(balance.lastCommittedTransaction, 255),
+			lastCommittedTransaction: truncate(balance.lastCommittedTransaction, 255),
 			observedAt,
 		};
 	}
@@ -401,18 +402,18 @@ export class BankingSyncService {
 	private toExternalTransactionValues(externalAccount: ExternalAccount, transaction: EnableBankingTransaction) {
 		const amount = this.toSignedAmount(transaction.amount, transaction.creditDebitIndicator);
 		const currency = transaction.currency.toUpperCase();
-		const description = this.truncate(transaction.description, 500);
-		const counterpartyName = this.truncate(transaction.counterpartyName, 255);
-		const remittanceInformation = this.truncate(transaction.remittanceInformation, 10_000);
+		const description = truncate(transaction.description, 500);
+		const counterpartyName = truncate(transaction.counterpartyName, 255);
+		const remittanceInformation = truncate(transaction.remittanceInformation, 10_000);
 		const transactionDate = this.toDateOnly(transaction.transactionDate);
 		const bookingDate = this.toDateOnly(transaction.bookingDate);
 		const valueDate = this.toDateOnly(transaction.valueDate);
-		const providerTransactionId = this.truncate(transaction.providerTransactionId, 255);
-		const entryReference = this.truncate(transaction.entryReference, 255);
-		const creditDebitIndicator = this.truncate(transaction.creditDebitIndicator, 8);
-		const bankTransactionCode = this.truncate(transaction.bankTransactionCode, 64);
-		const bankTransactionSubCode = this.truncate(transaction.bankTransactionSubCode, 64);
-		const bankTransactionDescription = this.truncate(transaction.bankTransactionDescription, 255);
+		const providerTransactionId = truncate(transaction.providerTransactionId, 255);
+		const entryReference = truncate(transaction.entryReference, 255);
+		const creditDebitIndicator = truncate(transaction.creditDebitIndicator, 8);
+		const bankTransactionCode = truncate(transaction.bankTransactionCode, 64);
+		const bankTransactionSubCode = truncate(transaction.bankTransactionSubCode, 64);
+		const bankTransactionDescription = truncate(transaction.bankTransactionDescription, 255);
 		const hasBalanceAfter = Boolean(transaction.balanceAfterAmount && transaction.balanceAfterCurrency);
 		const hasInstructedAmount = Boolean(transaction.instructedAmount && transaction.instructedCurrency);
 		const hasExchangeRate = Boolean(transaction.exchangeRate && transaction.exchangeRateUnitCurrency);
@@ -444,13 +445,13 @@ export class BankingSyncService {
 				subCode: bankTransactionSubCode ?? undefined,
 				description: bankTransactionDescription ?? undefined,
 			}),
-			transactionStatus: this.truncate(transaction.status, 32),
+			transactionStatus: truncate(transaction.status, 32),
 			bankTransactionCode,
 			bankTransactionSubCode,
 			bankTransactionDescription,
 			description,
 			counterpartyName,
-			merchantCategoryCode: this.truncate(transaction.merchantCategoryCode, 16),
+			merchantCategoryCode: truncate(transaction.merchantCategoryCode, 16),
 			remittanceInformation,
 			balanceAfterAmount: hasBalanceAfter ? transaction.balanceAfterAmount : null,
 			balanceAfterCurrency: hasBalanceAfter ? transaction.balanceAfterCurrency?.toUpperCase() : null,
@@ -458,9 +459,9 @@ export class BankingSyncService {
 			instructedCurrency: hasInstructedAmount ? transaction.instructedCurrency?.toUpperCase() : null,
 			exchangeRate: hasExchangeRate ? transaction.exchangeRate : null,
 			exchangeRateUnitCurrency: hasExchangeRate ? transaction.exchangeRateUnitCurrency?.toUpperCase() : null,
-			exchangeRateType: this.truncate(transaction.exchangeRateType, 16),
-			referenceNumber: this.truncate(transaction.referenceNumber, 255),
-			referenceNumberScheme: this.truncate(transaction.referenceNumberScheme, 32),
+			exchangeRateType: truncate(transaction.exchangeRateType, 16),
+			referenceNumber: truncate(transaction.referenceNumber, 255),
+			referenceNumberScheme: truncate(transaction.referenceNumberScheme, 32),
 		};
 	}
 
@@ -498,19 +499,12 @@ export class BankingSyncService {
 	private selectPreferredBalance(balances: EnableBankingBalance[]): EnableBankingBalance | undefined {
 		return [...balances].sort((left, right) => {
 			const preferenceDifference =
-				this.balancePreference(right.balanceType) - this.balancePreference(left.balanceType);
+				getBalancePreference(right.balanceType) - getBalancePreference(left.balanceType);
 			if (preferenceDifference !== 0) return preferenceDifference;
 			return (right.referenceDate ?? right.lastChangeDateTime ?? '').localeCompare(
 				left.referenceDate ?? left.lastChangeDateTime ?? '',
 			);
 		})[0];
-	}
-
-	private balancePreference(balanceType: string): number {
-		const normalizedType = balanceType.toLowerCase();
-		if (normalizedType.includes('available')) return 2;
-		if (normalizedType.includes('booked')) return 1;
-		return 0;
 	}
 
 	private createDedupeKey(values: Record<string, string | null>): string {
@@ -560,10 +554,6 @@ export class BankingSyncService {
 		const date = new Date(`${value}T00:00:00.000Z`);
 		date.setUTCDate(date.getUTCDate() - days);
 		return this.toDateOnly(date) as string;
-	}
-
-	private truncate(value: string | undefined | null, length: number): string | null {
-		return value ? value.slice(0, length) : null;
 	}
 
 	private isExpiredSessionError(error: unknown): boolean {

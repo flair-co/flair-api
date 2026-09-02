@@ -1,3 +1,5 @@
+import {BankTransactionType} from '../../bank-transaction-type';
+
 export enum BankTransactionDirection {
 	INCOME = 'INCOME',
 	EXPENSE = 'EXPENSE',
@@ -15,7 +17,7 @@ export class BankTransactionResponseDto {
 	currency: string;
 	creditDebitIndicator: string | null;
 	direction: BankTransactionDirection;
-	transactionType: string;
+	transactionType: BankTransactionType;
 	transactionStatus: string | null;
 	providerTransactionDescription: string | null;
 	merchantCategoryCode: string | null;

@@ -25,6 +25,7 @@ import {BankConnectionCallbackDto} from './api/dtos/bank-connection-callback.dto
 import {BankConnectionResponseDto, ExternalAccountResponseDto} from './api/dtos/bank-connection-response.dto';
 import {BankConnectionCallbackResult} from './bank-connection-callback-result';
 import {BankConnection} from './bank-connection.entity';
+import {getBalancePreference, truncate} from './banking.utils';
 import {EnableBankingAccount, EnableBankingSession} from './enable-banking.types';
 import {BankingAuthorizationStateError} from './errors/banking-authorization-state.error';
 import {BankingEncryptionError} from './errors/banking-encryption.error';
@@ -257,11 +258,11 @@ export class BankingService {
 		return {
 			providerAccountId: account.uid as string,
 			identificationHash: account.identificationHash,
-			name: this.truncate(account.name, 255),
-			details: this.truncate(account.details, 255),
+			name: truncate(account.name, 255),
+			details: truncate(account.details, 255),
 			currency: account.currency.toUpperCase(),
-			cashAccountType: this.truncate(account.cashAccountType, 32),
-			usage: this.truncate(account.usage, 16),
+			cashAccountType: truncate(account.cashAccountType, 32),
+			usage: truncate(account.usage, 16),
 		};
 	}
 
@@ -310,17 +311,10 @@ export class BankingService {
 
 	private selectPreferredBalance(balances: ExternalAccountBalance[]): ExternalAccountBalance | undefined {
 		return [...balances].sort((left, right) => {
-			const rankDifference = this.balancePreference(right.balanceType) - this.balancePreference(left.balanceType);
+			const rankDifference = getBalancePreference(right.balanceType) - getBalancePreference(left.balanceType);
 			if (rankDifference !== 0) return rankDifference;
 			return right.observedAt.getTime() - left.observedAt.getTime();
 		})[0];
-	}
-
-	private balancePreference(balanceType: string): number {
-		const normalizedType = balanceType.toLowerCase();
-		if (normalizedType.includes('available')) return 2;
-		if (normalizedType.includes('booked')) return 1;
-		return 0;
 	}
 
 	private isCancellation(error: string): boolean {
@@ -359,9 +353,5 @@ export class BankingService {
 
 	private toLogSafeCode(value: string): string {
 		return value.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 64);
-	}
-
-	private truncate(value: string | undefined, length: number): string | null {
-		return value ? value.slice(0, length) : null;
 	}
 }

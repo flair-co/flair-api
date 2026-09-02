@@ -2,9 +2,9 @@ import {Injectable, NotFoundException} from '@nestjs/common';
 import {InjectRepository} from '@nestjs/typeorm';
 import {Repository} from 'typeorm';
 
+import {DEFAULT_PAGE_INDEX, DEFAULT_PAGE_SIZE} from '@core/pagination/pagination.constants';
 import {Account} from '@modules/account/account.entity';
 
-import {DEFAULT_PAGE_INDEX, DEFAULT_PAGE_SIZE} from './api/transaction-query-pagination.dto';
 import {TransactionQueryDto} from './api/transaction-query.dto';
 import {TransactionUpdateDto} from './api/transaction-update.dto';
 import {Transaction} from './transaction.entity';
