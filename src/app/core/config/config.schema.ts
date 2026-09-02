@@ -37,6 +37,11 @@ export const configSchema = z.object({
 
 	// --- APIs ---
 	GEMINI_API_KEY: z.string().min(1),
+	ENABLE_BANKING_API_URL: z.string().url(),
+	ENABLE_BANKING_APPLICATION_ID: z.string().min(1),
+	ENABLE_BANKING_PRIVATE_KEY_B64: z.string().min(1),
+	ENABLE_BANKING_REDIRECT_URL: z.string().url(),
+	BANKING_SESSION_ENCRYPTION_KEY_B64: z.string().min(1),
 
 	// --- Email ---
 	EMAIL_HOST: z.string().min(1),

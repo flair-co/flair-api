@@ -13,6 +13,7 @@ import {SessionModule} from '@core/session/session.module';
 import {AccountModule} from '@modules/account/account.module';
 import {AuthModule} from '@modules/auth/auth.module';
 import {BankStatementModule} from '@modules/bank-statement/bank-statement.module';
+import {BankingModule} from '@modules/banking/banking.module';
 import {CurrencyModule} from '@modules/currency/currency.module';
 import {FileParserModule} from '@modules/file/file-parser/file-parser.module';
 import {TransactionCategorizerModule} from '@modules/transaction/transaction-categorizer/transaction-categorizer.module';
@@ -33,6 +34,7 @@ import {TransactionModule} from '@modules/transaction/transaction.module';
 		TransactionModule,
 		TransactionCategorizerModule,
 		AccountModule,
+		BankingModule,
 		BankStatementModule,
 		CurrencyModule,
 	],

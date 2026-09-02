@@ -26,7 +26,7 @@ services:
       - redis
 
   postgres:
-    image: postgres
+    image: postgres:17
     restart: always
     container_name: postgres
     environment:
