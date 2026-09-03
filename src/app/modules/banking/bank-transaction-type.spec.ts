@@ -26,6 +26,21 @@ describe('normalizeBankTransactionType', () => {
 		expect(normalizeBankTransactionType(classification)).toBe(expected);
 	});
 
+	it.each([
+		['Coffee shop is not a fee', {description: 'Coffee shop'}, BANK_TRANSACTION_TYPES.OTHER],
+		['Deposit is not a card payment', {description: 'Deposit'}, BANK_TRANSACTION_TYPES.OTHER],
+		[
+			'structured card code takes precedence over the description',
+			{code: 'PMNT', subCode: 'CARD', description: 'Coffee shop'},
+			BANK_TRANSACTION_TYPES.CARD_PAYMENT,
+		],
+		['fee descriptions', {description: 'Monthly account fee'}, BANK_TRANSACTION_TYPES.FEE],
+		['card descriptions', {description: 'Card payment at a merchant'}, BANK_TRANSACTION_TYPES.CARD_PAYMENT],
+		['deposit descriptions', {description: 'Bank deposit'}, BANK_TRANSACTION_TYPES.OTHER],
+	])('%s', (_label, classification, expected) => {
+		expect(normalizeBankTransactionType(classification)).toBe(expected);
+	});
+
 	it('uses OTHER when the provider classification is absent or unknown', () => {
 		expect(normalizeBankTransactionType({})).toBe(BANK_TRANSACTION_TYPES.OTHER);
 		expect(normalizeBankTransactionType({code: 'ZZZZ', subCode: 'UNKNOWN', description: 'Something else'})).toBe(
