@@ -39,6 +39,11 @@ export class BankConnection {
 	@Column({type: 'varchar', length: 255, nullable: true})
 	providerSessionId: string | null;
 
+	@Exclude()
+	@Index('idx_bank_connections_authorization_state_hash')
+	@Column({type: 'varchar', length: 64, nullable: true})
+	authorizationStateHash: string | null;
+
 	@Column({type: 'varchar', length: 50, default: 'PENDING_AUTHORIZATION'})
 	status: string;
 

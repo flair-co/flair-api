@@ -7,7 +7,20 @@ import {REDIS} from '@core/redis/redis.constants';
 import {BankingAuthorizationStateError} from '../errors/banking-authorization-state.error';
 
 const STATE_TTL_SECONDS = 10 * 60;
+const CONSUMED_STATE_TTL_SECONDS = 24 * 60 * 60;
 const STATE_KEY_PREFIX = 'banking:authorization:';
+const CONSUMED_STATE_KEY_SUFFIX = ':consumed';
+const CONSUME_STATE_SCRIPT = [
+	"local value = redis.call('GET', KEYS[1])",
+	'if not value then',
+	"  if redis.call('EXISTS', KEYS[2]) == 1 then return {2} end",
+	'  return {0}',
+	'end',
+	"if redis.call('EXISTS', KEYS[2]) == 1 then return {2} end",
+	"redis.call('SET', KEYS[2], '1', 'EX', ARGV[1])",
+	"redis.call('DEL', KEYS[1])",
+	'return {1, value}',
+].join('\n');
 
 export type BankingAuthorizationState = {
 	accountId: string;
@@ -17,6 +30,12 @@ export type BankingAuthorizationState = {
 	authorizationId?: string;
 	expiresAt: number;
 };
+
+export type BankingAuthorizationStateConsumption =
+	| {status: 'consumed'; state: BankingAuthorizationState}
+	| {status: 'expired'; state: BankingAuthorizationState}
+	| {status: 'already_consumed'}
+	| {status: 'invalid'};
 
 @Injectable()
 export class BankingAuthorizationStateService {
@@ -58,20 +77,38 @@ export class BankingAuthorizationStateService {
 	}
 
 	async consume(state: string | undefined): Promise<BankingAuthorizationState | null> {
+		const result = await this.consumeWithStatus(state);
+		return result?.status === 'consumed' ? result.state : null;
+	}
+
+	async consumeWithStatus(state: string | undefined): Promise<BankingAuthorizationStateConsumption | null> {
 		if (!state || state.length > 256) return null;
 
-		const value = (await this.runRedisOperation(() => this.redis.call('GETDEL', this.getKey(state)))) as
-			| string
-			| null;
-		if (!value) return null;
+		const result = await this.runRedisOperation(() =>
+			this.redis.eval(
+				CONSUME_STATE_SCRIPT,
+				2,
+				this.getKey(state),
+				this.getConsumedKey(state),
+				CONSUMED_STATE_TTL_SECONDS,
+			),
+		);
+		if (!Array.isArray(result)) return {status: 'invalid'};
 
-		const parsedValue = this.parse(value);
-		if (!parsedValue || parsedValue.expiresAt <= Date.now()) return null;
+		const outcome = Number(result[0]);
+		if (outcome === 0) return null;
+		if (outcome === 2) return {status: 'already_consumed'};
+		if (outcome !== 1 || typeof result[1] !== 'string') return {status: 'invalid'};
 
-		return parsedValue;
+		const parsedValue = this.parse(result[1]);
+		if (!parsedValue) return {status: 'invalid'};
+		if (parsedValue.expiresAt <= Date.now()) return {status: 'expired', state: parsedValue};
+
+		return {status: 'consumed', state: parsedValue};
 	}
 
 	async delete(state: string): Promise<void> {
+		// Keep the consumed marker so a callback racing this cleanup is not mistaken for expiry.
 		await this.runRedisOperation(() => this.redis.del(this.getKey(state)));
 	}
 
@@ -102,6 +139,10 @@ export class BankingAuthorizationStateService {
 		} catch {
 			return null;
 		}
+	}
+
+	private getConsumedKey(state: string): string {
+		return `${this.getKey(state)}${CONSUMED_STATE_KEY_SUFFIX}`;
 	}
 
 	private getKey(state: string): string {

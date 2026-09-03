@@ -8,6 +8,7 @@ import {
 	ServiceUnavailableException,
 } from '@nestjs/common';
 import {InjectRepository} from '@nestjs/typeorm';
+import {createHash} from 'node:crypto';
 import {DataSource, Repository} from 'typeorm';
 
 import {ConfigurationService} from '@core/config/config.service';
@@ -93,6 +94,14 @@ export class BankingService {
 				aspspName: aspsp.name,
 				aspspCountry: aspsp.country,
 			});
+			const authorizationStateHash = this.hashAuthorizationState(state);
+			const bindingResult = await this.bankConnectionRepository.update(
+				{id: connection.id, status: PENDING_AUTHORIZATION},
+				{authorizationStateHash},
+			);
+			if (bindingResult.affected === 0) {
+				throw new Error('Bank connection authorization was superseded.');
+			}
 
 			const authorization = await this.enableBankingClient.startAuthorization({
 				state,
@@ -106,8 +115,22 @@ export class BankingService {
 
 			return {authorizationUrl: authorization.url};
 		} catch (error) {
-			if (state) await this.authorizationStateService.delete(state).catch(() => undefined);
-			await this.bankConnectionRepository.update({id: connection.id}, {status: FAILED});
+			if (state) {
+				await this.authorizationStateService.delete(state).catch(() => undefined);
+				await this.updatePendingAuthorization(
+					{
+						id: connection.id,
+						status: PENDING_AUTHORIZATION,
+						authorizationStateHash: this.hashAuthorizationState(state),
+					},
+					FAILED,
+				);
+			} else {
+				await this.bankConnectionRepository.update(
+					{id: connection.id, status: PENDING_AUTHORIZATION},
+					{status: FAILED, authorizationStateHash: null},
+				);
+			}
 
 			throw this.toAuthorizationStartException(error);
 		}
@@ -161,37 +184,57 @@ export class BankingService {
 	}
 
 	private async handleCallbackInternal(query: BankConnectionCallbackDto): Promise<BankConnectionCallbackResult> {
-		const state = await this.authorizationStateService.consume(query.state);
-		if (!state) return 'error';
+		const consumption = await this.authorizationStateService.consumeWithStatus(query.state);
+		if (!consumption) {
+			await this.expireAuthorization(query.state);
+			return 'error';
+		}
+		if (consumption.status === 'already_consumed') return 'error';
+		if (consumption.status !== 'consumed') {
+			await this.expireAuthorization(query.state);
+			return 'error';
+		}
+		if (!query.state) return 'error';
 
+		const state = consumption.state;
+		const authorizationStateHash = this.hashAuthorizationState(query.state);
+		const pendingConnectionCriteria = {
+			id: state.connectionId,
+			status: PENDING_AUTHORIZATION,
+			authorizationStateHash,
+		};
 		const connection = await this.bankConnectionRepository.findOne({
-			where: {id: state.connectionId, account: {id: state.accountId}},
+			where: {...pendingConnectionCriteria, account: {id: state.accountId}},
 		});
-		if (!connection || connection.status !== PENDING_AUTHORIZATION) return 'error';
+		if (!connection) return 'error';
 
 		if (query.error) {
 			const status = this.isCancellation(query.error) ? CANCELLED : FAILED;
-			await this.bankConnectionRepository.update({id: connection.id}, {status});
-			return status === CANCELLED ? 'cancelled' : 'error';
+			const transitioned = await this.updatePendingAuthorization(pendingConnectionCriteria, status);
+			return transitioned && status === CANCELLED ? 'cancelled' : 'error';
 		}
 
 		if (!query.code) {
-			await this.bankConnectionRepository.update({id: connection.id}, {status: FAILED});
+			await this.updatePendingAuthorization(pendingConnectionCriteria, FAILED);
 			return 'error';
 		}
 
 		try {
 			const session = await this.enableBankingClient.createSession(query.code);
-			await this.persistAuthorizedSession(connection.id, session);
+			await this.persistAuthorizedSession(connection.id, authorizationStateHash, session);
 			return 'connected';
 		} catch (error) {
 			this.logger.warn(`Enable Banking authorization failed: ${this.getSafeErrorCode(error)}`);
-			await this.bankConnectionRepository.update({id: connection.id}, {status: FAILED});
+			await this.updatePendingAuthorization(pendingConnectionCriteria, FAILED);
 			return 'error';
 		}
 	}
 
-	private async persistAuthorizedSession(connectionId: string, session: EnableBankingSession): Promise<void> {
+	private async persistAuthorizedSession(
+		connectionId: string,
+		authorizationStateHash: string,
+		session: EnableBankingSession,
+	): Promise<void> {
 		const consentValidUntil = new Date(session.consentValidUntil);
 		if (Number.isNaN(consentValidUntil.getTime())) {
 			throw new EnableBankingClientError('invalid_provider_response');
@@ -200,23 +243,31 @@ export class BankingService {
 		await this.dataSource.transaction(async (manager) => {
 			const connectionRepository = manager.getRepository(BankConnection);
 			const externalAccountRepository = manager.getRepository(ExternalAccount);
-			const connection = await connectionRepository.findOneBy({id: connectionId});
+			const connection = await connectionRepository.findOneBy({
+				id: connectionId,
+				status: PENDING_AUTHORIZATION,
+				authorizationStateHash,
+			});
 
-			if (!connection || connection.status !== PENDING_AUTHORIZATION) {
+			if (!connection) {
 				throw new Error('Bank connection is no longer pending.');
 			}
 
-			await connectionRepository.update(
-				{id: connectionId},
+			const connectionUpdate = await connectionRepository.update(
+				{id: connectionId, status: PENDING_AUTHORIZATION, authorizationStateHash},
 				{
 					providerSessionId: this.encryptionService.encrypt(session.sessionId),
 					status: AUTHORIZED,
+					authorizationStateHash: null,
 					aspspName: session.aspsp.name,
 					aspspCountry: session.aspsp.country,
 					consentValidUntil,
 					lastSyncError: null,
 				},
 			);
+			if (connectionUpdate.affected === 0) {
+				throw new Error('Bank connection authorization was superseded.');
+			}
 
 			for (const account of session.accounts) {
 				if (!account.uid) continue;
@@ -252,6 +303,27 @@ export class BankingService {
 		} catch (error) {
 			throw this.toProviderException(error, BANKING_SUPPORTED_BANKS_UNAVAILABLE);
 		}
+	}
+
+	private async updatePendingAuthorization(
+		criteria: {id: string; status: string; authorizationStateHash: string},
+		status: string,
+	): Promise<boolean> {
+		const result = await this.bankConnectionRepository.update(criteria, {status, authorizationStateHash: null});
+		return result.affected !== 0;
+	}
+
+	private async expireAuthorization(state: string | undefined): Promise<void> {
+		if (!state || state.length > 256) return;
+
+		await this.bankConnectionRepository.update(
+			{authorizationStateHash: this.hashAuthorizationState(state), status: PENDING_AUTHORIZATION},
+			{status: FAILED, authorizationStateHash: null},
+		);
+	}
+
+	private hashAuthorizationState(state: string): string {
+		return createHash('sha256').update(state).digest('hex');
 	}
 
 	private toExternalAccountValues(account: EnableBankingAccount) {

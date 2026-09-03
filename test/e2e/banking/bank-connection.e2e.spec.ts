@@ -283,6 +283,12 @@ describe('BankConnectionController', () => {
 			.expect(302)
 			.expect('Location', 'http://localhost:5173/bank-connections?result=error');
 		expect(createSession).not.toHaveBeenCalledWith('expired-provider-code');
+
+		const expiredConnection = await bankConnectionRepository.findOne({
+			where: {account: {id: account.id}},
+			order: {createdAt: 'DESC'},
+		});
+		expect(expiredConnection?.status).toBe('FAILED');
 	});
 
 	it('marks provider failures as failed without leaking provider details', async () => {

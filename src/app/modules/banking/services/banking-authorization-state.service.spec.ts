@@ -7,7 +7,7 @@ describe('BankingAuthorizationStateService', () => {
 		set: jest.Mock;
 		get: jest.Mock;
 		ttl: jest.Mock;
-		call: jest.Mock;
+		eval: jest.Mock;
 		del: jest.Mock;
 	};
 	let service: BankingAuthorizationStateService;
@@ -17,7 +17,7 @@ describe('BankingAuthorizationStateService', () => {
 			set: jest.fn(),
 			get: jest.fn(),
 			ttl: jest.fn(),
-			call: jest.fn(),
+			eval: jest.fn(),
 			del: jest.fn(),
 		};
 		service = new BankingAuthorizationStateService(redis as unknown as Redis);
@@ -85,35 +85,62 @@ describe('BankingAuthorizationStateService', () => {
 	});
 
 	it('consumes a valid state only once', async () => {
-		redis.call.mockResolvedValue(
-			JSON.stringify({
-				accountId: 'account-id',
-				connectionId: 'connection-id',
-				aspspName: 'ABN AMRO',
-				aspspCountry: 'NL',
-				expiresAt: Date.now() + 60_000,
-			}),
-		);
+		redis.eval
+			.mockResolvedValueOnce([
+				1,
+				JSON.stringify({
+					accountId: 'account-id',
+					connectionId: 'connection-id',
+					aspspName: 'ABN AMRO',
+					aspspCountry: 'NL',
+					expiresAt: Date.now() + 60_000,
+				}),
+			])
+			.mockResolvedValueOnce([2]);
 
 		await expect(service.consume('state-value')).resolves.toEqual(
 			expect.objectContaining({accountId: 'account-id', connectionId: 'connection-id'}),
 		);
-		expect(redis.call).toHaveBeenCalledWith('GETDEL', 'banking:authorization:state-value');
+		await expect(service.consume('state-value')).resolves.toBeNull();
+		expect(redis.eval).toHaveBeenCalledWith(
+			expect.stringContaining("redis.call('GET', KEYS[1])"),
+			2,
+			expect.stringContaining('banking:authorization:'),
+			expect.stringContaining(':consumed'),
+			86_400,
+		);
 	});
 
 	it('treats missing or malformed state as an invalid callback without throwing', async () => {
-		redis.call.mockResolvedValueOnce(null).mockResolvedValueOnce('{not-json');
+		redis.eval.mockResolvedValueOnce([0]).mockResolvedValueOnce([1, '{not-json']);
 
 		await expect(service.consume('missing-state')).resolves.toBeNull();
 		await expect(service.consume('malformed-state')).resolves.toBeNull();
 	});
 
 	it('converts callback-state Redis failures into a typed storage error', async () => {
-		redis.call.mockRejectedValue(new Error('Redis is unavailable'));
+		redis.eval.mockRejectedValue(new Error('Redis is unavailable'));
 
 		await expect(service.consume('state-value')).rejects.toMatchObject({
 			code: 'storage_unavailable',
 		});
+	});
+
+	it('distinguishes an expired state from a replayed state', async () => {
+		const expiredState = {
+			accountId: 'account-id',
+			connectionId: 'connection-id',
+			aspspName: 'ABN AMRO',
+			aspspCountry: 'NL',
+			expiresAt: Date.now() - 1,
+		};
+		redis.eval.mockResolvedValueOnce([1, JSON.stringify(expiredState)]).mockResolvedValueOnce([2]);
+
+		await expect(service.consumeWithStatus('expired-state')).resolves.toEqual({
+			status: 'expired',
+			state: expiredState,
+		});
+		await expect(service.consumeWithStatus('expired-state')).resolves.toEqual({status: 'already_consumed'});
 	});
 
 	it('updates the authorization id while retaining the remaining TTL', async () => {
