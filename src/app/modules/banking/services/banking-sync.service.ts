@@ -95,11 +95,11 @@ export class BankingSyncService {
 	) {}
 
 	async synchronize(accountId: Account['id'], connectionId: BankConnection['id']): Promise<BankSyncRunResponseDto> {
+		const connection = await this.findOwnedConnection(accountId, connectionId);
 		const lockToken = randomUUID();
 		await this.acquireLock(connectionId, lockToken);
 
 		try {
-			const connection = await this.findOwnedConnection(accountId, connectionId);
 			await this.validateConnection(connection);
 
 			const externalAccounts = await this.externalAccountRepository.find({
