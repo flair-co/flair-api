@@ -132,6 +132,44 @@ describe('EnableBankingClient', () => {
 		expect(fetchMock).toHaveBeenCalledTimes(2);
 	});
 
+	it('maps the authoritative account IDs from a session response', async () => {
+		fetchMock.mockResolvedValueOnce(
+			new Response(
+				JSON.stringify({
+					status: 'AUTHORIZED',
+					accounts: ['account-1', 'account-2'],
+				}),
+				{status: 200, headers: {'content-type': 'application/json'}},
+			),
+		);
+
+		await expect(client.getSessionAccounts('session-id')).resolves.toEqual({
+			status: 'AUTHORIZED',
+			accountIds: ['account-1', 'account-2'],
+		});
+
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+		const requestUrl = new URL(String(fetchMock.mock.calls[0][0]));
+		expect(requestUrl.pathname).toBe('/sessions/session-id');
+	});
+
+	it.each([
+		['missing status', {accounts: ['account-1']}],
+		['missing accounts', {status: 'AUTHORIZED'}],
+		['non-string account ID', {status: 'AUTHORIZED', accounts: ['account-1', 2]}],
+	])('rejects an incomplete session account response (%s)', async (_case, response) => {
+		fetchMock.mockResolvedValueOnce(
+			new Response(JSON.stringify(response), {
+				status: 200,
+				headers: {'content-type': 'application/json'},
+			}),
+		);
+
+		await expect(client.getSessionAccounts('session-id')).rejects.toMatchObject({
+			code: 'invalid_provider_response',
+		});
+	});
+
 	it('maps account balances without retaining the provider response', async () => {
 		fetchMock.mockResolvedValueOnce(
 			new Response(

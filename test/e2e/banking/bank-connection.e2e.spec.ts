@@ -46,8 +46,10 @@ describe('BankConnectionController', () => {
 	let getAspsps: jest.SpiedFunction<EnableBankingClient['getAspsps']>;
 	let startAuthorization: jest.SpiedFunction<EnableBankingClient['startAuthorization']>;
 	let createSession: jest.SpiedFunction<EnableBankingClient['createSession']>;
+	let getSessionAccounts: jest.SpiedFunction<EnableBankingClient['getSessionAccounts']>;
 	let getAccountBalances: jest.SpiedFunction<EnableBankingClient['getAccountBalances']>;
 	let getAccountTransactions: jest.SpiedFunction<EnableBankingClient['getAccountTransactions']>;
+	const sessionAccountIdsBySession = new Map<string, string[]>();
 
 	beforeAll(async () => {
 		app = getApp();
@@ -70,6 +72,11 @@ describe('BankConnectionController', () => {
 		getAspsps = jest.spyOn(enableBankingClient, 'getAspsps');
 		startAuthorization = jest.spyOn(enableBankingClient, 'startAuthorization');
 		createSession = jest.spyOn(enableBankingClient, 'createSession');
+		getSessionAccounts = jest.spyOn(enableBankingClient, 'getSessionAccounts');
+		getSessionAccounts.mockImplementation(async (sessionId) => ({
+			status: 'AUTHORIZED',
+			accountIds: sessionAccountIdsBySession.get(sessionId) ?? [],
+		}));
 		getAccountBalances = jest.spyOn(enableBankingClient, 'getAccountBalances');
 		getAccountTransactions = jest.spyOn(enableBankingClient, 'getAccountTransactions');
 
@@ -454,7 +461,11 @@ describe('BankConnectionController', () => {
 				transactionsFetched: 5,
 			}),
 		);
-		expect(getAccountTransactions).toHaveBeenCalledWith(externalAccount.providerAccountId, {strategy: 'longest'});
+		expect(getAccountTransactions).toHaveBeenCalledWith(
+			externalAccount.providerAccountId,
+			{strategy: 'longest'},
+			expect.any(AbortSignal),
+		);
 
 		const persistedBalances = await externalAccountBalanceRepository.find({
 			where: {externalAccountId: externalAccount.id},
@@ -535,6 +546,7 @@ describe('BankConnectionController', () => {
 				dateFrom: expect.any(String),
 				dateTo: expect.any(String),
 			}),
+			expect.any(AbortSignal),
 		);
 		expect(await externalTransactionRepository.count({where: {externalAccountId: externalAccount.id}})).toBe(5);
 		expect(await externalAccountBalanceRepository.count({where: {externalAccountId: externalAccount.id}})).toBe(4);
@@ -695,6 +707,10 @@ describe('BankConnectionController', () => {
 					isActive: true,
 				}),
 			),
+		);
+		sessionAccountIdsBySession.set(
+			providerSessionId,
+			externalAccounts.map((externalAccount) => externalAccount.providerAccountId),
 		);
 		return {connection, externalAccounts};
 	}

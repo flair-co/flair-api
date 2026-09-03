@@ -40,6 +40,11 @@ export type EnableBankingSession = {
 	consentValidUntil: string;
 };
 
+export type EnableBankingSessionAccounts = {
+	status: string;
+	accountIds: string[];
+};
+
 export type EnableBankingBalance = {
 	name?: string;
 	balanceType: string;

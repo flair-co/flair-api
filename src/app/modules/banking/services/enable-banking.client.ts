@@ -8,6 +8,7 @@ import {
 	EnableBankingAspsp,
 	EnableBankingBalance,
 	EnableBankingSession,
+	EnableBankingSessionAccounts,
 	EnableBankingTransaction,
 	EnableBankingTransactionFetchOptions,
 	StartEnableBankingAuthorizationInput,
@@ -103,6 +104,23 @@ export class EnableBankingClient {
 			aspsp: {name: aspspName, country: aspspCountry},
 			accounts,
 		};
+	}
+
+	async getSessionAccounts(sessionId: string, signal?: AbortSignal): Promise<EnableBankingSessionAccounts> {
+		const response = await this.request(`/sessions/${encodeURIComponent(sessionId)}`, undefined, signal);
+		const record = this.asRecord(response);
+		const status = this.asString(record?.status);
+		const rawAccounts = record?.accounts;
+
+		if (
+			!status ||
+			!Array.isArray(rawAccounts) ||
+			rawAccounts.some((accountId) => typeof accountId !== 'string' || accountId.length === 0)
+		) {
+			throw new EnableBankingClientError('invalid_provider_response');
+		}
+
+		return {status, accountIds: rawAccounts as string[]};
 	}
 
 	async getAccountBalances(accountId: string, signal?: AbortSignal): Promise<EnableBankingBalance[]> {

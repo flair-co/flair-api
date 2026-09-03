@@ -75,6 +75,8 @@ type AccountFetchResult = {
 
 type SyncFetchResult = {
 	accounts: AccountFetchResult[];
+	knownAccounts: ExternalAccount[];
+	authoritativeAccountIds: Set<string> | null;
 	hasFailure: boolean;
 	hasSuccessfulEndpoint: boolean;
 	connectionExpired: boolean;
@@ -130,10 +132,10 @@ export class BankingSyncService {
 		const lockLease = this.startLockRenewal(connectionId, lockToken);
 
 		try {
-			await this.validateConnection(connection);
+			const providerSessionId = await this.validateConnection(connection);
 
 			const externalAccounts = await this.externalAccountRepository.find({
-				where: {bankConnection: {id: connection.id}, isActive: true},
+				where: {bankConnection: {id: connection.id}},
 				order: {createdAt: 'ASC'},
 			});
 			const previousSuccessfulRun = await this.findPreviousSuccessfulRun(connection.id);
@@ -156,11 +158,18 @@ export class BankingSyncService {
 
 			let fetchResult: SyncFetchResult;
 			try {
-				fetchResult = await this.fetchAccounts(externalAccounts, transactionOptions, lockLease);
+				fetchResult = await this.fetchAccounts(
+					externalAccounts,
+					providerSessionId,
+					transactionOptions,
+					lockLease,
+				);
 			} catch {
 				lockLease.assertHealthy();
 				fetchResult = {
 					accounts: [],
+					knownAccounts: externalAccounts,
+					authoritativeAccountIds: null,
 					hasFailure: true,
 					hasSuccessfulEndpoint: false,
 					connectionExpired: false,
@@ -228,7 +237,7 @@ export class BankingSyncService {
 		return connection;
 	}
 
-	private async validateConnection(connection: BankConnection): Promise<void> {
+	private async validateConnection(connection: BankConnection): Promise<string> {
 		if (connection.status !== AUTHORIZED) {
 			throw new ConflictException(BANKING_CONNECTION_NOT_AUTHORIZED);
 		}
@@ -237,8 +246,9 @@ export class BankingSyncService {
 			throw new ConflictException(BANKING_CONNECTION_SESSION_UNAVAILABLE);
 		}
 
+		let providerSessionId: string;
 		try {
-			this.encryptionService.decrypt(connection.providerSessionId);
+			providerSessionId = this.encryptionService.decrypt(connection.providerSessionId);
 		} catch (error) {
 			if (error instanceof BankingEncryptionError) {
 				throw new ConflictException(BANKING_CONNECTION_SESSION_UNAVAILABLE);
@@ -253,6 +263,8 @@ export class BankingSyncService {
 			);
 			throw new ConflictException(BANKING_CONSENT_EXPIRED);
 		}
+
+		return providerSessionId;
 	}
 
 	private async findPreviousSuccessfulRun(connectionId: BankConnection['id']): Promise<BankSyncRun | null> {
@@ -264,16 +276,51 @@ export class BankingSyncService {
 
 	private async fetchAccounts(
 		externalAccounts: ExternalAccount[],
+		providerSessionId: string,
 		transactionOptions: EnableBankingTransactionFetchOptions,
 		lockLease: SyncLockLease,
 	): Promise<SyncFetchResult> {
 		const accounts: AccountFetchResult[] = [];
+		let authoritativeAccountIds: Set<string> | null = null;
 		let hasFailure = false;
 		let hasSuccessfulEndpoint = false;
 		let connectionExpired = false;
 
+		try {
+			const sessionAccounts = await this.enableBankingClient.getSessionAccounts(
+				providerSessionId,
+				lockLease.signal,
+			);
+			lockLease.assertHealthy();
+
+			if (sessionAccounts.status !== AUTHORIZED) {
+				throw new EnableBankingClientError('provider_session_not_authorized');
+			}
+
+			authoritativeAccountIds = new Set(sessionAccounts.accountIds);
+			hasSuccessfulEndpoint = true;
+		} catch (error) {
+			lockLease.assertHealthy();
+			hasFailure = true;
+			connectionExpired ||= this.isExpiredSessionError(error);
+		}
+
+		if (connectionExpired) {
+			return {
+				accounts,
+				knownAccounts: externalAccounts,
+				authoritativeAccountIds,
+				hasFailure,
+				hasSuccessfulEndpoint,
+				connectionExpired,
+			};
+		}
+
 		for (const externalAccount of externalAccounts) {
 			lockLease.assertHealthy();
+			if (authoritativeAccountIds && !authoritativeAccountIds.has(externalAccount.providerAccountId)) continue;
+			if (!authoritativeAccountIds && !externalAccount.isActive) continue;
+
 			let balances: EnableBankingBalance[] = [];
 			let transactions: EnableBankingTransaction[] = [];
 			let balancesSucceeded = false;
@@ -322,7 +369,14 @@ export class BankingSyncService {
 			lockLease.assertHealthy();
 		}
 
-		return {accounts, hasFailure, hasSuccessfulEndpoint, connectionExpired};
+		return {
+			accounts,
+			knownAccounts: externalAccounts,
+			authoritativeAccountIds,
+			hasFailure,
+			hasSuccessfulEndpoint,
+			connectionExpired,
+		};
 	}
 
 	private getRunStatus(fetchResult: SyncFetchResult): string {
@@ -352,6 +406,15 @@ export class BankingSyncService {
 			const externalTransactionRepository = manager.getRepository(ExternalTransaction);
 			const externalAccountRepository = manager.getRepository(ExternalAccount);
 			const observedAt = new Date();
+
+			if (fetchResult.authoritativeAccountIds) {
+				for (const externalAccount of fetchResult.knownAccounts) {
+					const isActive = fetchResult.authoritativeAccountIds.has(externalAccount.providerAccountId);
+					if (externalAccount.isActive === isActive) continue;
+
+					await externalAccountRepository.update({id: externalAccount.id}, {isActive});
+				}
+			}
 
 			for (const accountResult of fetchResult.accounts) {
 				if (accountResult.balancesSucceeded && accountResult.balances.length > 0) {
