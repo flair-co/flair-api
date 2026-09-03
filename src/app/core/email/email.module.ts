@@ -10,8 +10,6 @@ import {EMAIL_QUEUE} from '@core/queue/queue.constants';
 import {EmailProcessor} from './email.processor';
 import {EmailService} from './email.service';
 
-const emailModuleDirectory = typeof __dirname === 'undefined' ? join(process.cwd(), 'src/app/core/email') : __dirname;
-
 @Module({
 	imports: [
 		MailerModule.forRootAsync({
@@ -24,13 +22,13 @@ const emailModuleDirectory = typeof __dirname === 'undefined' ? join(process.cwd
 				},
 				defaults: {from: '"Flair" <no-reply@flair.com>'},
 				template: {
-					dir: join(emailModuleDirectory, 'templates'),
+					dir: join(__dirname, 'templates'),
 					adapter: new HandlebarsAdapter(),
 					options: {strict: true},
 				},
 				options: {
 					partials: {
-						dir: join(emailModuleDirectory, 'templates/partials'),
+						dir: join(__dirname, 'templates/partials'),
 						options: {strict: true},
 					},
 				},
