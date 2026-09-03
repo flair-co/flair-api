@@ -26,10 +26,7 @@
 		"db:seed": "ts-node -r tsconfig-paths/register ./scripts/seed.ts"
 	},
 	"dependencies": {
-		"@aws-sdk/client-s3": "^3.803.0",
-		"@aws-sdk/s3-request-presigner": "^3.804.0",
 		"@faker-js/faker": "^8.4.1",
-		"@google/generative-ai": "^0.24.1",
 		"@nest-lab/throttler-storage-redis": "^1.1.0",
 		"@nestjs-modules/mailer": "^2.0.2",
 		"@nestjs/bullmq": "^11.0.2",
@@ -47,7 +44,6 @@
 		"class-transformer": "^0.5.1",
 		"class-validator": "^0.14.1",
 		"connect-redis": "^7.1.1",
-		"csv-parse": "^5.5.6",
 		"express-session": "^1.18.0",
 		"fast-geoip": "^1.1.88",
 		"handlebars": "^4.7.8",
@@ -64,7 +60,6 @@
 		"rxjs": "^7.8.1",
 		"typeorm": "^0.3.20",
 		"ua-parser-js": "^2.0.3",
-		"xlsx": "^0.18.5",
 		"zod": "^3.24.3"
 	},
 	"devDependencies": {
@@ -76,7 +71,6 @@
 		"@types/express-session": "^1.18.0",
 		"@types/jest": "^29.5.2",
 		"@types/ms": "^0.7.34",
-		"@types/multer": "^1.4.11",
 		"@types/node": "^20.3.1",
 		"@types/nodemailer": "^6.4.17",
 		"@types/passport-local": "^1.0.38",

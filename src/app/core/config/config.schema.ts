@@ -36,7 +36,6 @@ export const configSchema = z.object({
 	REDIS_INSIGHT_PORT: portSchema,
 
 	// --- APIs ---
-	GEMINI_API_KEY: z.string().min(1),
 	ENABLE_BANKING_API_URL: z.string().url(),
 	ENABLE_BANKING_APPLICATION_ID: z.string().min(1),
 	ENABLE_BANKING_PRIVATE_KEY_B64: z.string().min(1),
@@ -58,14 +57,6 @@ export const configSchema = z.object({
 	// --- Rate limiting ---
 	THROTTLE_TTL: durationSchema,
 	THROTTLE_LIMIT: z.coerce.number().int().positive(),
-
-	// --- S3 Object storage ---
-	MINIO_ROOT_USER: z.string().min(1),
-	MINIO_ROOT_PASSWORD: z.string().min(1),
-	S3_ENDPOINT: z.string().url(),
-	S3_REGION: z.string().min(1),
-	S3_BUCKET: z.string().min(1),
-	S3_URL_EXPIRATION: durationSchema,
 });
 
 export type Config = z.infer<typeof configSchema>;

@@ -2,9 +2,6 @@ import {plainToInstance} from 'class-transformer';
 import {validate} from 'class-validator';
 import 'reflect-metadata';
 
-import {PaginationDto} from '@modules/bank-statement/api/dtos/pagination.dto';
-import {TransactionQueryPaginationDto} from '@modules/transaction/api/transaction-query-pagination.dto';
-
 import {BankConnectionTransactionsQueryDto} from './bank-connection-transactions-query.dto';
 import {BankTransactionPaginationQueryDto} from './bank-transaction-query.dto';
 
@@ -67,52 +64,6 @@ describe('BankTransactionPaginationQueryDto', () => {
 		['a page size above the allowed range', {pageSize: '51'}],
 	])('rejects %s', async (_case, query) => {
 		const errors = await validateQuery(BankTransactionPaginationQueryDto, query);
-
-		expect(errors).not.toHaveLength(0);
-	});
-});
-
-describe('TransactionQueryPaginationDto', () => {
-	it.each([
-		['page index zero', {pageIndex: '0', pageSize: '10'}],
-		['a positive page index', {pageIndex: '1', pageSize: '50'}],
-	])('accepts %s', async (_case, query) => {
-		const errors = await validateQuery(TransactionQueryPaginationDto, query);
-
-		expect(errors).toHaveLength(0);
-	});
-
-	it.each([
-		['a suffix in the page index', {pageIndex: '1oops', pageSize: '10'}],
-		['scientific notation in the page size', {pageIndex: '0', pageSize: '1e1'}],
-		['whitespace in the page index', {pageIndex: ' 1', pageSize: '10'}],
-		['a plus sign in the page size', {pageIndex: '0', pageSize: '+10'}],
-	])('rejects %s', async (_case, query) => {
-		const errors = await validateQuery(TransactionQueryPaginationDto, query);
-
-		expect(errors).not.toHaveLength(0);
-	});
-});
-
-describe('PaginationDto', () => {
-	it.each([
-		['the default pagination values', {}],
-		['explicit pagination values', {pageIndex: '0', pageSize: '10'}],
-	])('accepts %s', async (_case, query) => {
-		const errors = await validateQuery(PaginationDto, query);
-
-		expect(errors).toHaveLength(0);
-	});
-
-	it.each([
-		['a suffix in the page index', {pageIndex: '1oops'}],
-		['scientific notation in the page size', {pageSize: '1e1'}],
-		['whitespace in the page index', {pageIndex: ' 1'}],
-		['a plus sign in the page size', {pageSize: '+10'}],
-		['a negative page index', {pageIndex: '-1'}],
-		['zero page size', {pageSize: '0'}],
-	])('rejects %s', async (_case, query) => {
-		const errors = await validateQuery(PaginationDto, query);
 
 		expect(errors).not.toHaveLength(0);
 	});
