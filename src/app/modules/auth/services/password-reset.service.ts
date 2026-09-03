@@ -44,7 +44,7 @@ export class PasswordResetService {
 
 		const token = await this._createToken(account.id);
 		const resetUrl = this._createUrl(account.email, token);
-		const expiration = ms(ms(this.EXPIRATION), {long: true});
+		const expiration = ms(ms(this.EXPIRATION as ms.StringValue), {long: true});
 
 		await this.emailService.send({
 			to: account.email,
@@ -73,7 +73,7 @@ export class PasswordResetService {
 		const token: string = crypto.randomUUID();
 		const key = `${this.REDIS_KEY}:${token}`;
 
-		const expirationSeconds = Math.floor(ms(this.EXPIRATION) / 1000);
+		const expirationSeconds = Math.floor(ms(this.EXPIRATION as ms.StringValue) / 1000);
 		await this.redisClient.set(key, accountId, 'EX', expirationSeconds);
 		return token;
 	}

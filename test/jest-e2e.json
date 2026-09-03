@@ -2,9 +2,10 @@
   "moduleFileExtensions": ["js", "json", "ts"],
   "rootDir": "..",
   "testEnvironment": "node",
+  "extensionsToTreatAsEsm": [".ts"],
   "testRegex": ".e2e.spec.ts$",
   "transform": {
-    "^.+\\.(t|j)s$": "ts-jest"
+    "^.+\\.(t|j)s$": ["ts-jest", {"useESM": true, "tsconfig": "<rootDir>/test/tsconfig.e2e.json"}]
   },
   "moduleNameMapper": {
     "^@core/(.*)$": "<rootDir>/src/app/core/$1",

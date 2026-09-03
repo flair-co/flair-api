@@ -1,5 +1,5 @@
 import {MailerModule} from '@nestjs-modules/mailer';
-import {HandlebarsAdapter} from '@nestjs-modules/mailer/dist/adapters/handlebars.adapter';
+import {HandlebarsAdapter} from '@nestjs-modules/mailer/adapters/handlebars.adapter';
 import {BullModule} from '@nestjs/bullmq';
 import {Module} from '@nestjs/common';
 import {join} from 'path';
@@ -9,6 +9,8 @@ import {EMAIL_QUEUE} from '@core/queue/queue.constants';
 
 import {EmailProcessor} from './email.processor';
 import {EmailService} from './email.service';
+
+const emailModuleDirectory = typeof __dirname === 'undefined' ? join(process.cwd(), 'src/app/core/email') : __dirname;
 
 @Module({
 	imports: [
@@ -22,13 +24,13 @@ import {EmailService} from './email.service';
 				},
 				defaults: {from: '"Flair" <no-reply@flair.com>'},
 				template: {
-					dir: join(__dirname, 'templates'),
+					dir: join(emailModuleDirectory, 'templates'),
 					adapter: new HandlebarsAdapter(),
 					options: {strict: true},
 				},
 				options: {
 					partials: {
-						dir: join(__dirname, 'templates/partials'),
+						dir: join(emailModuleDirectory, 'templates/partials'),
 						options: {strict: true},
 					},
 				},

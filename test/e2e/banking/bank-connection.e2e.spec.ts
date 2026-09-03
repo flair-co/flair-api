@@ -1,4 +1,5 @@
 import {faker} from '@faker-js/faker';
+import {jest} from '@jest/globals';
 import {INestApplication} from '@nestjs/common';
 import {getRepositoryToken} from '@nestjs/typeorm';
 import Redis from 'ioredis';

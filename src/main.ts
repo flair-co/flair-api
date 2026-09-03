@@ -13,6 +13,7 @@ async function bootstrap() {
 	const config = app.get(ConfigurationService);
 
 	app.enableShutdownHooks();
+	app.set('query parser', 'extended');
 	app.enableCors({origin: config.get('WEB_BASE_URL'), credentials: true});
 	app.use(helmet());
 	app.disable('x-powered-by');
