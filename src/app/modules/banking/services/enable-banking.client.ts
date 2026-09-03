@@ -41,8 +41,17 @@ export class EnableBankingClient {
 	}
 
 	async getAspsps(country: string): Promise<EnableBankingAspsp[]> {
-		const response = await this.request(`/aspsps?country=${encodeURIComponent(country)}`);
-		return this.parseAspsps(response);
+		const filteredParams = new URLSearchParams({country, psu_type: 'personal', service: 'AIS'});
+
+		try {
+			const response = await this.request(`/aspsps?${filteredParams.toString()}`);
+			return this.parseAspsps(response);
+		} catch (error) {
+			if (!this.isUnsupportedAspspFilterError(error)) throw error;
+
+			const response = await this.request(`/aspsps?country=${encodeURIComponent(country)}`);
+			return this.parseAspsps(response);
+		}
 	}
 
 	async startAuthorization(
@@ -377,6 +386,24 @@ export class EnableBankingClient {
 		}
 
 		return 'provider_request_failed';
+	}
+
+	private isUnsupportedAspspFilterError(error: unknown): boolean {
+		if (
+			!(error instanceof EnableBankingClientError) ||
+			(error.providerStatus !== 400 && error.providerStatus !== 422)
+		) {
+			return false;
+		}
+
+		const normalizedCode = error.code
+			.trim()
+			.toLowerCase()
+			.replace(/[\s-]+/g, '_');
+		return (
+			normalizedCode === 'wrong_request_parameters' ||
+			/^(?:unsupported|unknown|unrecognized|invalid)_(?:query_)?(?:parameter|filter)s?$/.test(normalizedCode)
+		);
 	}
 
 	private asRecord(value: unknown): Record<string, unknown> | undefined {

@@ -2,7 +2,7 @@ import {ConfigurationService} from '@core/config/config.service';
 
 import {EnableBankingClient} from './enable-banking.client';
 
-describe('EnableBankingClient account data', () => {
+describe('EnableBankingClient', () => {
 	let client: EnableBankingClient;
 	let fetchMock: jest.SpyInstance;
 
@@ -22,6 +22,114 @@ describe('EnableBankingClient account data', () => {
 
 	afterEach(() => {
 		fetchMock.mockRestore();
+	});
+
+	it('requests ASPSPs for personal account-information access', async () => {
+		fetchMock.mockResolvedValueOnce(
+			new Response(
+				JSON.stringify({
+					aspsps: [{name: 'Nordea', country: 'FI', maximum_consent_validity: 86_400}],
+				}),
+				{status: 200, headers: {'content-type': 'application/json'}},
+			),
+		);
+
+		await expect(client.getAspsps('FI')).resolves.toEqual([
+			{name: 'Nordea', country: 'FI', maximumConsentValiditySeconds: 86_400},
+		]);
+
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+		const requestUrl = new URL(String(fetchMock.mock.calls[0][0]));
+		expect(requestUrl.pathname).toBe('/aspsps');
+		expect(requestUrl.searchParams.get('country')).toBe('FI');
+		expect(requestUrl.searchParams.get('psu_type')).toBe('personal');
+		expect(requestUrl.searchParams.get('service')).toBe('AIS');
+	});
+
+	it('falls back to country-only discovery when a provider does not support filters', async () => {
+		fetchMock
+			.mockResolvedValueOnce(
+				new Response(JSON.stringify({error: 'WRONG_REQUEST_PARAMETERS'}), {
+					status: 400,
+					headers: {'content-type': 'application/json'},
+				}),
+			)
+			.mockResolvedValueOnce(
+				new Response(
+					JSON.stringify({
+						aspsps: [{name: 'Nordea', country: 'FI', maximum_consent_validity: 86_400}],
+					}),
+					{status: 200, headers: {'content-type': 'application/json'}},
+				),
+			);
+
+		await expect(client.getAspsps('FI')).resolves.toEqual([
+			{name: 'Nordea', country: 'FI', maximumConsentValiditySeconds: 86_400},
+		]);
+
+		expect(fetchMock).toHaveBeenCalledTimes(2);
+		const filteredUrl = new URL(String(fetchMock.mock.calls[0][0]));
+		expect(filteredUrl.searchParams.get('country')).toBe('FI');
+		expect(filteredUrl.searchParams.get('psu_type')).toBe('personal');
+		expect(filteredUrl.searchParams.get('service')).toBe('AIS');
+
+		const fallbackUrl = new URL(String(fetchMock.mock.calls[1][0]));
+		expect(fallbackUrl.pathname).toBe('/aspsps');
+		expect(fallbackUrl.searchParams.get('country')).toBe('FI');
+		expect(fallbackUrl.searchParams.has('psu_type')).toBe(false);
+		expect(fallbackUrl.searchParams.has('service')).toBe(false);
+	});
+
+	it('does not fall back for non-filter provider errors', async () => {
+		fetchMock.mockResolvedValueOnce(
+			new Response(JSON.stringify({error: 'provider_unavailable'}), {
+				status: 503,
+				headers: {'content-type': 'application/json'},
+			}),
+		);
+
+		await expect(client.getAspsps('FI')).rejects.toMatchObject({
+			code: 'provider_unavailable',
+			providerStatus: 503,
+		});
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+	});
+
+	it('does not fall back for unrelated client errors', async () => {
+		fetchMock.mockResolvedValueOnce(
+			new Response(JSON.stringify({error: 'invalid_country'}), {
+				status: 400,
+				headers: {'content-type': 'application/json'},
+			}),
+		);
+
+		await expect(client.getAspsps('FI')).rejects.toMatchObject({
+			code: 'invalid_country',
+			providerStatus: 400,
+		});
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+	});
+
+	it('propagates an error from the country-only fallback', async () => {
+		fetchMock
+			.mockResolvedValueOnce(
+				new Response(JSON.stringify({error: 'WRONG_REQUEST_PARAMETERS'}), {
+					status: 422,
+					headers: {'content-type': 'application/json'},
+				}),
+			)
+			.mockResolvedValueOnce(
+				new Response(JSON.stringify({error: 'provider_unavailable'}), {
+					status: 503,
+					headers: {'content-type': 'application/json'},
+				}),
+			);
+
+		await expect(client.getAspsps('FI')).rejects.toMatchObject({
+			code: 'provider_unavailable',
+			providerStatus: 503,
+		});
+		expect(fetchMock).toHaveBeenCalledTimes(2);
 	});
 
 	it('maps account balances without retaining the provider response', async () => {
