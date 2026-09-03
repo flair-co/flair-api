@@ -74,6 +74,23 @@ type SyncFetchResult = {
 	connectionExpired: boolean;
 };
 
+function compareDescending(left: string, right: string): number {
+	if (left === right) return 0;
+	return left > right ? -1 : 1;
+}
+
+function getBalanceTieBreaker(balance: EnableBankingBalance): string {
+	return JSON.stringify([
+		balance.balanceType,
+		balance.amount,
+		balance.currency,
+		balance.name ?? '',
+		balance.lastChangeDateTime ?? '',
+		balance.referenceDate ?? '',
+		balance.lastCommittedTransaction ?? '',
+	]);
+}
+
 @Injectable()
 export class BankingSyncService {
 	private readonly logger = new Logger(BankingSyncService.name);
@@ -501,9 +518,17 @@ export class BankingSyncService {
 			const preferenceDifference =
 				getBalancePreference(right.balanceType) - getBalancePreference(left.balanceType);
 			if (preferenceDifference !== 0) return preferenceDifference;
-			return (right.referenceDate ?? right.lastChangeDateTime ?? '').localeCompare(
-				left.referenceDate ?? left.lastChangeDateTime ?? '',
+
+			const referenceDateDifference = compareDescending(left.referenceDate ?? '', right.referenceDate ?? '');
+			if (referenceDateDifference !== 0) return referenceDateDifference;
+
+			const lastChangeDifference = compareDescending(
+				left.lastChangeDateTime ?? '',
+				right.lastChangeDateTime ?? '',
 			);
+			if (lastChangeDifference !== 0) return lastChangeDifference;
+
+			return compareDescending(getBalanceTieBreaker(left), getBalanceTieBreaker(right));
 		})[0];
 	}
 
