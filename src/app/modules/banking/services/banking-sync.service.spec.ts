@@ -1,6 +1,7 @@
 import Redis from 'ioredis';
 import {DataSource, Repository} from 'typeorm';
 
+import {BANKING_SERVICE_UNAVAILABLE} from '../api/constants/banking-messages.constants';
 import {BankConnection} from '../bank-connection.entity';
 import {BankSyncRun} from '../bank-sync-run.entity';
 import {ExternalAccountBalance} from '../external-account-balance.entity';
@@ -132,5 +133,169 @@ describe('BankingSyncService', () => {
 		expect(redisMock.set).toHaveBeenCalledTimes(1);
 		expect(redisMock.eval).toHaveBeenCalledTimes(1);
 		expect(locks.size).toBe(0);
+	});
+});
+
+type LockOwner = {
+	token: string;
+	expiresAt: number;
+};
+
+describe('BankingSyncService synchronization lock', () => {
+	let service: BankingSyncService;
+	let redis: {
+		set: jest.Mock;
+		eval: jest.Mock;
+	};
+	let transactionGate: Deferred<[]>;
+	let lockOwner: LockOwner | undefined;
+	let renewalShouldFail: boolean;
+	let enableBankingClient: {
+		getAccountBalances: jest.Mock;
+		getAccountTransactions: jest.Mock;
+	};
+
+	beforeEach(() => {
+		jest.useFakeTimers();
+		transactionGate = deferred<[]>();
+		lockOwner = undefined;
+		renewalShouldFail = false;
+		redis = {
+			set: jest.fn(async (_key: string, token: string, _expiration: string, ttl: number) => {
+				if (lockOwner && lockOwner.expiresAt <= Date.now()) lockOwner = undefined;
+				if (lockOwner) return null;
+				lockOwner = {token, expiresAt: Date.now() + ttl * 1000};
+				return 'OK';
+			}),
+			eval: jest.fn(async (script: string, _keyCount: number, _key: string, token: string, ttl?: number) => {
+				if (script.includes('expire')) {
+					if (renewalShouldFail) return 0;
+					if (lockOwner?.token !== token || lockOwner.expiresAt <= Date.now()) return 0;
+					lockOwner.expiresAt = Date.now() + (ttl ?? 0) * 1000;
+					return 1;
+				}
+
+				if (lockOwner?.token !== token) return 0;
+				lockOwner = undefined;
+				return 1;
+			}),
+		};
+
+		const connection = {
+			id: 'connection-id',
+			status: 'AUTHORIZED',
+			providerSessionId: 'encrypted-session',
+			consentValidUntil: new Date(Date.now() + 60 * 60 * 1000),
+			lastSyncedAt: null,
+			lastSyncError: null,
+		} as unknown as BankConnection;
+		const externalAccount = {
+			id: 'external-account-id',
+			providerAccountId: 'provider-account-id',
+		} as unknown as ExternalAccount;
+		const run = {
+			id: 'run-id',
+			startedAt: new Date(),
+			requestedFrom: null,
+			requestedTo: '2026-09-03',
+			status: 'RUNNING',
+		} as unknown as BankSyncRun;
+		const completedRun = {
+			...run,
+			status: 'SUCCEEDED',
+			finishedAt: new Date(),
+			accountsFetched: 1,
+			balancesFetched: 0,
+			transactionsFetched: 0,
+			errorMessage: null,
+		} as unknown as BankSyncRun;
+
+		const bankConnectionRepository = {
+			findOne: jest.fn().mockResolvedValue(connection),
+			update: jest.fn().mockResolvedValue(undefined),
+		};
+		const externalAccountRepository = {
+			find: jest.fn().mockResolvedValue([externalAccount]),
+			update: jest.fn().mockResolvedValue(undefined),
+		};
+		const bankSyncRunRepository = {
+			create: jest.fn().mockReturnValue(run),
+			save: jest.fn().mockResolvedValue(run),
+			findOne: jest.fn().mockResolvedValue(null),
+			findOneBy: jest.fn().mockResolvedValue(completedRun),
+			update: jest.fn().mockResolvedValue(undefined),
+		};
+		const externalTransactionRepository = {};
+		const transactionRepository = {
+			insert: jest.fn().mockResolvedValue(undefined),
+			upsert: jest.fn().mockResolvedValue(undefined),
+			update: jest.fn().mockResolvedValue(undefined),
+		};
+		const dataSource = {
+			transaction: jest.fn(async (callback: (manager: unknown) => Promise<void>) =>
+				callback({getRepository: jest.fn().mockReturnValue(transactionRepository)}),
+			),
+		};
+		enableBankingClient = {
+			getAccountBalances: jest.fn().mockResolvedValue([]),
+			getAccountTransactions: jest.fn().mockImplementation(() => transactionGate.promise),
+		};
+		const encryptionService = {
+			decrypt: jest.fn().mockReturnValue('provider-session'),
+		};
+
+		service = new BankingSyncService(
+			bankConnectionRepository as unknown as Repository<BankConnection>,
+			externalAccountRepository as unknown as Repository<ExternalAccount>,
+			bankSyncRunRepository as unknown as Repository<BankSyncRun>,
+			externalTransactionRepository as unknown as Repository<ExternalTransaction>,
+			redis as unknown as Redis,
+			dataSource as unknown as DataSource,
+			enableBankingClient as unknown as EnableBankingClient,
+			encryptionService as unknown as BankingEncryptionService,
+		);
+	});
+
+	afterEach(() => {
+		jest.useRealTimers();
+	});
+
+	it('renews a long-running lock so a second synchronization cannot overlap', async () => {
+		const firstSync = service.synchronize('account-id', 'connection-id');
+		await jest.advanceTimersByTimeAsync(0);
+		expect(redis.set).toHaveBeenCalledTimes(1);
+
+		await jest.advanceTimersByTimeAsync(15 * 60 * 1000 + 1);
+		const secondSync = service.synchronize('account-id', 'connection-id');
+		const secondSyncResult = expect(secondSync).rejects.toThrow('A bank synchronization is already in progress.');
+		await jest.advanceTimersByTimeAsync(0);
+
+		transactionGate.resolve([]);
+
+		await secondSyncResult;
+		await expect(firstSync).resolves.toEqual(
+			expect.objectContaining({
+				id: 'run-id',
+				status: 'SUCCEEDED',
+			}),
+		);
+		expect(redis.eval.mock.calls.some(([script]) => String(script).includes('expire'))).toBe(true);
+	});
+
+	it('cancels the synchronization when renewal loses lock ownership', async () => {
+		const firstSync = service.synchronize('account-id', 'connection-id');
+		const firstSyncResult = expect(firstSync).rejects.toThrow(BANKING_SERVICE_UNAVAILABLE);
+		await jest.advanceTimersByTimeAsync(0);
+
+		const requestSignal = enableBankingClient.getAccountTransactions.mock.calls[0][2] as AbortSignal;
+		renewalShouldFail = true;
+		await jest.advanceTimersByTimeAsync((15 * 60 * 1000) / 3 + 1);
+
+		expect(requestSignal.aborted).toBe(true);
+		lockOwner = {token: 'new-owner', expiresAt: Date.now() + 15 * 60 * 1000};
+		transactionGate.resolve([]);
+
+		await firstSyncResult;
+		expect(lockOwner.token).toBe('new-owner');
 	});
 });

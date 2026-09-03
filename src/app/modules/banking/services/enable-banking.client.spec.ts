@@ -258,6 +258,24 @@ describe('EnableBankingClient', () => {
 		expect(secondUrl.searchParams.get('continuation_key')).toBe('next-page');
 	});
 
+	it('propagates a supplied cancellation signal to transaction requests', async () => {
+		const controller = new AbortController();
+		fetchMock.mockResolvedValueOnce(
+			new Response(JSON.stringify({transactions: []}), {
+				status: 200,
+				headers: {'content-type': 'application/json'},
+			}),
+		);
+
+		await client.getAccountTransactions('account-id', {strategy: 'default'}, controller.signal);
+
+		const requestInit = fetchMock.mock.calls[0][1] as RequestInit;
+		expect(requestInit.signal).toEqual(expect.any(AbortSignal));
+		expect(requestInit.signal?.aborted).toBe(false);
+		controller.abort();
+		expect(requestInit.signal?.aborted).toBe(true);
+	});
+
 	it('ignores malformed optional transaction metadata while retaining the transaction', async () => {
 		fetchMock.mockResolvedValueOnce(
 			new Response(

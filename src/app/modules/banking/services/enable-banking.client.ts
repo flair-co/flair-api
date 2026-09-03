@@ -105,14 +105,15 @@ export class EnableBankingClient {
 		};
 	}
 
-	async getAccountBalances(accountId: string): Promise<EnableBankingBalance[]> {
-		const response = await this.request(`/accounts/${encodeURIComponent(accountId)}/balances`);
+	async getAccountBalances(accountId: string, signal?: AbortSignal): Promise<EnableBankingBalance[]> {
+		const response = await this.request(`/accounts/${encodeURIComponent(accountId)}/balances`, undefined, signal);
 		return this.parseBalances(response);
 	}
 
 	async getAccountTransactions(
 		accountId: string,
 		options: EnableBankingTransactionFetchOptions,
+		signal?: AbortSignal,
 	): Promise<EnableBankingTransaction[]> {
 		const transactions: EnableBankingTransaction[] = [];
 		let continuationKey: string | undefined;
@@ -125,6 +126,8 @@ export class EnableBankingClient {
 
 			const response = await this.request(
 				`/accounts/${encodeURIComponent(accountId)}/transactions?${params.toString()}`,
+				undefined,
+				signal,
 			);
 			const parsed = this.parseTransactionsPage(response);
 			transactions.push(...parsed.transactions);
@@ -136,8 +139,10 @@ export class EnableBankingClient {
 		throw new EnableBankingClientError('provider_pagination_limit_exceeded');
 	}
 
-	private async request(path: string, body?: Record<string, unknown>): Promise<unknown> {
+	private async request(path: string, body?: Record<string, unknown>, signal?: AbortSignal): Promise<unknown> {
 		let response: Response;
+		const timeoutSignal = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
+		const requestSignal = signal ? AbortSignal.any([signal, timeoutSignal]) : timeoutSignal;
 
 		try {
 			response = await fetch(`${this.apiUrl}${path}`, {
@@ -148,7 +153,7 @@ export class EnableBankingClient {
 					Authorization: `Bearer ${this.createJwt()}`,
 				},
 				...(body ? {body: JSON.stringify(body)} : {}),
-				signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+				signal: requestSignal,
 			});
 		} catch {
 			throw new EnableBankingClientError('provider_unreachable');

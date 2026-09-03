@@ -57,7 +57,13 @@ const PARTIAL = 'PARTIAL';
 
 const INCREMENTAL_OVERLAP_DAYS = 7;
 const SYNC_LOCK_TTL_SECONDS = 15 * 60;
+const SYNC_LOCK_RENEWAL_INTERVAL_MS = (SYNC_LOCK_TTL_SECONDS * 1000) / 3;
+const SYNC_LOCK_RENEWAL_TIMEOUT_MS = 15_000;
 const SYNC_LOCK_PREFIX = 'banking:sync:';
+const SYNC_LOCK_RENEW_SCRIPT =
+	"if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('expire', KEYS[1], ARGV[2]) else return 0 end";
+const SYNC_LOCK_RELEASE_SCRIPT =
+	"if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end";
 
 type AccountFetchResult = {
 	externalAccount: ExternalAccount;
@@ -91,6 +97,12 @@ function getBalanceTieBreaker(balance: EnableBankingBalance): string {
 	]);
 }
 
+type SyncLockLease = {
+	signal: AbortSignal;
+	assertHealthy: () => void;
+	stop: () => void;
+};
+
 @Injectable()
 export class BankingSyncService {
 	private readonly logger = new Logger(BankingSyncService.name);
@@ -115,6 +127,7 @@ export class BankingSyncService {
 		const connection = await this.findOwnedConnection(accountId, connectionId);
 		const lockToken = randomUUID();
 		await this.acquireLock(connectionId, lockToken);
+		const lockLease = this.startLockRenewal(connectionId, lockToken);
 
 		try {
 			await this.validateConnection(connection);
@@ -143,8 +156,9 @@ export class BankingSyncService {
 
 			let fetchResult: SyncFetchResult;
 			try {
-				fetchResult = await this.fetchAccounts(externalAccounts, transactionOptions);
+				fetchResult = await this.fetchAccounts(externalAccounts, transactionOptions, lockLease);
 			} catch {
+				lockLease.assertHealthy();
 				fetchResult = {
 					accounts: [],
 					hasFailure: true,
@@ -152,6 +166,7 @@ export class BankingSyncService {
 					connectionExpired: false,
 				};
 			}
+			lockLease.assertHealthy();
 
 			const status = this.getRunStatus(fetchResult);
 			const finishedAt = new Date();
@@ -162,12 +177,15 @@ export class BankingSyncService {
 				await this.markPersistenceFailure(connection.id, run.id);
 				throw new InternalServerErrorException(BANKING_PERSISTENCE_SYNC_ERROR);
 			}
+			lockLease.assertHealthy();
 
 			const completedRun = await this.bankSyncRunRepository.findOneBy({id: run.id});
 			if (!completedRun) throw new InternalServerErrorException(BANKING_PERSISTENCE_SYNC_ERROR);
+			lockLease.assertHealthy();
 
 			return this.toSyncRunResponse(completedRun);
 		} finally {
+			lockLease.stop();
 			try {
 				await this.releaseLock(connectionId, lockToken);
 			} catch {
@@ -247,6 +265,7 @@ export class BankingSyncService {
 	private async fetchAccounts(
 		externalAccounts: ExternalAccount[],
 		transactionOptions: EnableBankingTransactionFetchOptions,
+		lockLease: SyncLockLease,
 	): Promise<SyncFetchResult> {
 		const accounts: AccountFetchResult[] = [];
 		let hasFailure = false;
@@ -254,16 +273,22 @@ export class BankingSyncService {
 		let connectionExpired = false;
 
 		for (const externalAccount of externalAccounts) {
+			lockLease.assertHealthy();
 			let balances: EnableBankingBalance[] = [];
 			let transactions: EnableBankingTransaction[] = [];
 			let balancesSucceeded = false;
 			let transactionsSucceeded = false;
 
 			try {
-				balances = await this.enableBankingClient.getAccountBalances(externalAccount.providerAccountId);
+				balances = await this.enableBankingClient.getAccountBalances(
+					externalAccount.providerAccountId,
+					lockLease.signal,
+				);
+				lockLease.assertHealthy();
 				balancesSucceeded = true;
 				hasSuccessfulEndpoint = true;
 			} catch (error) {
+				lockLease.assertHealthy();
 				hasFailure = true;
 				connectionExpired ||= this.isExpiredSessionError(error);
 			}
@@ -274,10 +299,13 @@ export class BankingSyncService {
 				transactions = await this.enableBankingClient.getAccountTransactions(
 					externalAccount.providerAccountId,
 					transactionOptions,
+					lockLease.signal,
 				);
+				lockLease.assertHealthy();
 				transactionsSucceeded = true;
 				hasSuccessfulEndpoint = true;
 			} catch (error) {
+				lockLease.assertHealthy();
 				hasFailure = true;
 				connectionExpired ||= this.isExpiredSessionError(error);
 			}
@@ -291,6 +319,7 @@ export class BankingSyncService {
 			});
 
 			if (connectionExpired) break;
+			lockLease.assertHealthy();
 		}
 
 		return {accounts, hasFailure, hasSuccessfulEndpoint, connectionExpired};
@@ -611,12 +640,75 @@ export class BankingSyncService {
 		if (result !== 'OK') throw new ConflictException(BANKING_SYNC_ALREADY_IN_PROGRESS);
 	}
 
+	/**
+	 * A failed renewal aborts provider requests and makes the next health checkpoint
+	 * fail, so the sync cannot continue after losing its lock lease.
+	 */
+	private startLockRenewal(connectionId: string, token: string): SyncLockLease {
+		const abortController = new AbortController();
+		let renewalFailure: ServiceUnavailableException | undefined;
+		let renewalInProgress = false;
+		let stopped = false;
+
+		const failRenewal = () => {
+			if (stopped || renewalFailure) return;
+			renewalFailure = new ServiceUnavailableException(BANKING_SERVICE_UNAVAILABLE);
+			clearInterval(timer);
+			abortController.abort();
+			this.logger.warn('Bank synchronization lock renewal failed; synchronization canceled.');
+		};
+
+		const renew = async () => {
+			if (stopped || renewalFailure || renewalInProgress) return;
+			renewalInProgress = true;
+			try {
+				if (!(await this.renewLock(connectionId, token))) failRenewal();
+			} finally {
+				renewalInProgress = false;
+			}
+		};
+
+		const timer = setInterval(() => void renew(), SYNC_LOCK_RENEWAL_INTERVAL_MS);
+
+		return {
+			signal: abortController.signal,
+			assertHealthy: () => {
+				if (renewalFailure) throw renewalFailure;
+			},
+			stop: () => {
+				stopped = true;
+				clearInterval(timer);
+			},
+		};
+	}
+
+	private async renewLock(connectionId: string, token: string): Promise<boolean> {
+		let timeout: ReturnType<typeof setTimeout> | undefined;
+		try {
+			const result = await Promise.race([
+				this.redis.eval(
+					SYNC_LOCK_RENEW_SCRIPT,
+					1,
+					`${SYNC_LOCK_PREFIX}${connectionId}`,
+					token,
+					SYNC_LOCK_TTL_SECONDS,
+				),
+				new Promise<never>((_, reject) => {
+					timeout = setTimeout(
+						() => reject(new Error('Bank synchronization lock renewal timed out.')),
+						SYNC_LOCK_RENEWAL_TIMEOUT_MS,
+					);
+				}),
+			]);
+			return result === 1 || result === '1';
+		} catch {
+			return false;
+		} finally {
+			if (timeout) clearTimeout(timeout);
+		}
+	}
+
 	private async releaseLock(connectionId: string, token: string): Promise<void> {
-		await this.redis.eval(
-			"if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end",
-			1,
-			`${SYNC_LOCK_PREFIX}${connectionId}`,
-			token,
-		);
+		await this.redis.eval(SYNC_LOCK_RELEASE_SCRIPT, 1, `${SYNC_LOCK_PREFIX}${connectionId}`, token);
 	}
 }
