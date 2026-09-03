@@ -549,6 +549,26 @@ describe('BankConnectionController', () => {
 		});
 	});
 
+	it.each([
+		['minimum allowed limit', '1', 200],
+		['maximum allowed limit', '100', 200],
+		['a suffix', '10oops', 400],
+		['scientific notation', '1e2', 400],
+		['leading whitespace', ' 10', 400],
+		['trailing whitespace', '10 ', 400],
+		['a plus sign', '+10', 400],
+		['a negative sign', '-1', 400],
+		['zero', '0', 400],
+		['a value above the maximum', '101', 400],
+	])('validates the transaction limit for %s', async (_case, limit, expectedStatus) => {
+		const {connection} = await createAuthorizedConnection(`limit-validation-${String(limit)}`);
+
+		await verifiedAgent
+			.get(`/bank-connections/${connection.id}/transactions`)
+			.query({limit})
+			.expect(expectedStatus);
+	});
+
 	it('enforces authentication, verification, ownership, and authorized status for synchronization', async () => {
 		const {connection} = await createAuthorizedConnection('auth-check-session');
 

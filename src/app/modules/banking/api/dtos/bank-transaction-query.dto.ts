@@ -1,4 +1,4 @@
-import {Transform, TransformFnParams, Type} from 'class-transformer';
+import {Transform, Type} from 'class-transformer';
 import {
 	IsArray,
 	IsDateString,
@@ -15,8 +15,7 @@ import {
 } from 'class-validator';
 
 import {DEFAULT_PAGE_INDEX, DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS} from '@core/pagination/pagination.constants';
-
-const transformOptionalNumber = ({value}: TransformFnParams) => (value === undefined ? undefined : Number(value));
+import {transformStrictDecimalInteger} from '@core/pagination/pagination.transform';
 
 export const DEFAULT_BANK_TRANSACTION_PAGE_INDEX = DEFAULT_PAGE_INDEX;
 export const DEFAULT_BANK_TRANSACTION_PAGE_SIZE = DEFAULT_PAGE_SIZE;
@@ -35,13 +34,13 @@ export enum BankTransactionSortOrder {
 
 export class BankTransactionPaginationQueryDto {
 	@IsOptional()
-	@Transform(transformOptionalNumber)
+	@Transform(transformStrictDecimalInteger)
 	@IsInt()
 	@Min(0)
 	pageIndex: number = DEFAULT_BANK_TRANSACTION_PAGE_INDEX;
 
 	@IsOptional()
-	@Transform(transformOptionalNumber)
+	@Transform(transformStrictDecimalInteger)
 	@IsInt()
 	@Min(1)
 	@IsIn(BANK_TRANSACTION_PAGE_SIZE_OPTIONS)

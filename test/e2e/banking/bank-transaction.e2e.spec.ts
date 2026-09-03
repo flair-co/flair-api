@@ -274,6 +274,23 @@ describe('BankTransactionController', () => {
 		await verifiedAgent.get('/bank-transactions').query({'pagination[pageSize]': '11'}).expect(400);
 	});
 
+	it.each([
+		['a valid page index', 'pagination[pageIndex]', '0', 200],
+		['a valid page size', 'pagination[pageSize]', '10', 200],
+		['a suffix in the page index', 'pagination[pageIndex]', '1oops', 400],
+		['scientific notation in the page size', 'pagination[pageSize]', '1e1', 400],
+		['whitespace in the page index', 'pagination[pageIndex]', ' 1', 400],
+		['a plus sign in the page size', 'pagination[pageSize]', '+10', 400],
+		['a negative page index', 'pagination[pageIndex]', '-1', 400],
+		['zero page size', 'pagination[pageSize]', '0', 400],
+		['a page size above the allowed range', 'pagination[pageSize]', '51', 400],
+	])('validates pagination input for %s', async (_case, field, value, expectedStatus) => {
+		await verifiedAgent
+			.get('/bank-transactions')
+			.query({[field]: value})
+			.expect(expectedStatus);
+	});
+
 	it('does not expose another account’s transactions or details', async () => {
 		const listResponse = await otherVerifiedAgent.get('/bank-transactions').expect(200);
 		expect(listResponse.body).toEqual({transactions: [], total: 0});
