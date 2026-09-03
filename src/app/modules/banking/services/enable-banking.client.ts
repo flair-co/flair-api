@@ -16,6 +16,7 @@ import {
 } from '../enable-banking.types';
 
 const JWT_TTL_SECONDS = 60 * 60;
+const JWT_REFRESH_MARGIN_SECONDS = 60;
 const REQUEST_TIMEOUT_MS = 15_000;
 const MAX_TRANSACTION_PAGES = 1_000;
 
@@ -34,6 +35,7 @@ export class EnableBankingClient {
 	private readonly apiUrl: string;
 	private readonly applicationId: string;
 	private readonly privateKey: string;
+	private cachedJwt: {token: string; expiresAt: number} | undefined;
 
 	constructor(config: ConfigurationService) {
 		this.apiUrl = config.get('ENABLE_BANKING_API_URL').replace(/\/$/, '');
@@ -197,12 +199,17 @@ export class EnableBankingClient {
 
 	private createJwt(): string {
 		const issuedAt = Math.floor(Date.now() / 1000);
+		if (this.cachedJwt && this.cachedJwt.expiresAt - issuedAt > JWT_REFRESH_MARGIN_SECONDS) {
+			return this.cachedJwt.token;
+		}
+
+		const expiresAt = issuedAt + JWT_TTL_SECONDS;
 		const header = this.base64UrlEncode({typ: 'JWT', alg: 'RS256', kid: this.applicationId});
 		const payload = this.base64UrlEncode({
 			iss: 'enablebanking.com',
 			aud: 'api.enablebanking.com',
 			iat: issuedAt,
-			exp: issuedAt + JWT_TTL_SECONDS,
+			exp: expiresAt,
 		});
 		const unsignedToken = `${header}.${payload}`;
 
@@ -211,7 +218,9 @@ export class EnableBankingClient {
 			signer.update(unsignedToken);
 			signer.end();
 			const signature = signer.sign(this.privateKey).toString('base64url');
-			return `${unsignedToken}.${signature}`;
+			const token = `${unsignedToken}.${signature}`;
+			this.cachedJwt = {token, expiresAt};
+			return token;
 		} catch {
 			throw new EnableBankingClientError('provider_authentication_failed');
 		}

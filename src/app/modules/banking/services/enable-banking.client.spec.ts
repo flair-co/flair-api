@@ -1,3 +1,5 @@
+import {generateKeyPairSync} from 'node:crypto';
+
 import {ConfigurationService} from '@core/config/config.service';
 
 import {EnableBankingClient} from './enable-banking.client';
@@ -22,6 +24,32 @@ describe('EnableBankingClient', () => {
 
 	afterEach(() => {
 		fetchMock.mockRestore();
+	});
+
+	it('reuses a JWT while it remains valid', () => {
+		const {privateKey} = generateKeyPairSync('rsa', {modulusLength: 2048});
+		const values: Record<string, string> = {
+			ENABLE_BANKING_API_URL: 'https://api.example.test',
+			ENABLE_BANKING_APPLICATION_ID: 'application-id',
+			ENABLE_BANKING_PRIVATE_KEY_B64: Buffer.from(
+				privateKey.export({type: 'pkcs8', format: 'pem'}).toString(),
+			).toString('base64'),
+		};
+		const config = {
+			get: (key: string) => values[key],
+		} as unknown as ConfigurationService;
+		const jwtClient = new EnableBankingClient(config);
+		const createJwt = (jwtClient as unknown as {createJwt: () => string}).createJwt.bind(jwtClient);
+		const now = jest.spyOn(Date, 'now').mockReturnValue(1_700_000_000_000);
+
+		try {
+			const firstToken = createJwt();
+			now.mockReturnValue(1_700_000_001_000);
+
+			expect(createJwt()).toBe(firstToken);
+		} finally {
+			now.mockRestore();
+		}
 	});
 
 	it('requests ASPSPs for personal account-information access', async () => {

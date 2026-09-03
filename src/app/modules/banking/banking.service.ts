@@ -143,7 +143,7 @@ export class BankingService {
 			.orderBy('connection.createdAt', 'DESC')
 			.getMany();
 
-		const externalAccountsByConnection = await Promise.all(
+		return Promise.all(
 			connections.map(async (connection) => {
 				const externalAccounts = await this.externalAccountRepository.find({
 					where: {bankConnection: {id: connection.id}},
@@ -155,23 +155,20 @@ export class BankingService {
 						return [externalAccount, latestBalances] as const;
 					}),
 				);
-				return [connection.id, accountsWithBalances] as const;
+				return {
+					id: connection.id,
+					provider: connection.provider,
+					aspspName: connection.aspspName,
+					aspspCountry: connection.aspspCountry,
+					status: connection.status,
+					consentValidUntil: connection.consentValidUntil,
+					lastSyncedAt: connection.lastSyncedAt,
+					externalAccounts: accountsWithBalances.map(([externalAccount, latestBalances]) =>
+						this.toExternalAccountResponse(externalAccount, latestBalances),
+					),
+				};
 			}),
 		);
-		const externalAccountsMap = new Map(externalAccountsByConnection);
-
-		return connections.map((connection) => ({
-			id: connection.id,
-			provider: connection.provider,
-			aspspName: connection.aspspName,
-			aspspCountry: connection.aspspCountry,
-			status: connection.status,
-			consentValidUntil: connection.consentValidUntil,
-			lastSyncedAt: connection.lastSyncedAt,
-			externalAccounts: (externalAccountsMap.get(connection.id) ?? []).map(([externalAccount, latestBalances]) =>
-				this.toExternalAccountResponse(externalAccount, latestBalances),
-			),
-		}));
 	}
 
 	async handleCallback(query: BankConnectionCallbackDto): Promise<BankConnectionCallbackResult> {
@@ -243,16 +240,6 @@ export class BankingService {
 		await this.dataSource.transaction(async (manager) => {
 			const connectionRepository = manager.getRepository(BankConnection);
 			const externalAccountRepository = manager.getRepository(ExternalAccount);
-			const connection = await connectionRepository.findOneBy({
-				id: connectionId,
-				status: PENDING_AUTHORIZATION,
-				authorizationStateHash,
-			});
-
-			if (!connection) {
-				throw new Error('Bank connection is no longer pending.');
-			}
-
 			const connectionUpdate = await connectionRepository.update(
 				{id: connectionId, status: PENDING_AUTHORIZATION, authorizationStateHash},
 				{

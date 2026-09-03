@@ -391,13 +391,14 @@ export class BankingSyncService {
 		status: string,
 		finishedAt: Date,
 	): Promise<void> {
-		const errorMessage = fetchResult.connectionExpired
-			? BANKING_CONSENT_EXPIRED
-			: status === PARTIAL
-				? BANKING_PARTIAL_SYNC_ERROR
-				: status === FAILED
-					? BANKING_FAILED_SYNC_ERROR
-					: null;
+		let errorMessage: string | null = null;
+		if (fetchResult.connectionExpired) {
+			errorMessage = BANKING_CONSENT_EXPIRED;
+		} else if (status === PARTIAL) {
+			errorMessage = BANKING_PARTIAL_SYNC_ERROR;
+		} else if (status === FAILED) {
+			errorMessage = BANKING_FAILED_SYNC_ERROR;
+		}
 
 		await this.dataSource.transaction(async (manager) => {
 			const connectionRepository = manager.getRepository(BankConnection);
