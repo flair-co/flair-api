@@ -310,6 +310,7 @@ describe('BankingSyncService account reconciliation', () => {
 	let service: BankingSyncService;
 	let externalAccounts: ExternalAccount[];
 	let getSessionAccounts: jest.Mock;
+	let getAccountBalances: jest.Mock;
 	let externalAccountPersistence: {update: jest.Mock};
 	let syncRunPersistence: {update: jest.Mock};
 
@@ -361,7 +362,7 @@ describe('BankingSyncService account reconciliation', () => {
 		});
 		const enableBankingClient = {
 			getSessionAccounts,
-			getAccountBalances: jest.fn().mockResolvedValue([]),
+			getAccountBalances: (getAccountBalances = jest.fn().mockResolvedValue([])),
 			getAccountTransactions: jest.fn().mockResolvedValue([]),
 		};
 		const bankConnectionRepository = {
@@ -484,4 +485,13 @@ describe('BankingSyncService account reconciliation', () => {
 			);
 		},
 	);
+
+	it('returns provider rate-limit retry metadata for a partial sync', async () => {
+		getAccountBalances.mockRejectedValueOnce(new EnableBankingClientError('ASPSP_RATE_LIMIT_EXCEEDED', 429));
+
+		await expect(service.synchronize('account-id', 'connection-id')).resolves.toMatchObject({
+			rateLimitSource: 'enable-banking',
+			retryAfterSeconds: 6 * 60 * 60,
+		});
+	});
 });

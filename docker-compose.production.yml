@@ -73,7 +73,7 @@ services:
       dockerfile: Dockerfile.production
       args:
         VITE_API_URL: /flair/api
-        VITE_APP_URL: ${WEB_BASE_URL}
+        VITE_APP_URL: '${WEB_BASE_URL:?WEB_BASE_URL must be set}'
         VITE_BASE_PATH: /flair/
         VITE_EMAIL_UI_URL: ${EMAIL_UI_URL}
     restart: unless-stopped

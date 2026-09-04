@@ -165,6 +165,21 @@ describe('EnableBankingClient', () => {
 		expect(fetchMock).toHaveBeenCalledTimes(1);
 	});
 
+	it('captures the provider retry delay for rate-limited responses', async () => {
+		fetchMock.mockResolvedValueOnce(
+			new Response(JSON.stringify({error: 'ASPSP_RATE_LIMIT_EXCEEDED'}), {
+				status: 429,
+				headers: {'content-type': 'application/json', 'retry-after': '17'},
+			}),
+		);
+
+		await expect(client.getAccountBalances('account-id')).rejects.toMatchObject({
+			code: 'ASPSP_RATE_LIMIT_EXCEEDED',
+			providerStatus: 429,
+			retryAfterSeconds: 17,
+		});
+	});
+
 	it('propagates an error from the country-only fallback', async () => {
 		fetchMock
 			.mockResolvedValueOnce(

@@ -25,6 +25,7 @@ export class EnableBankingClientError extends Error {
 	constructor(
 		public readonly code: string,
 		public readonly providerStatus?: number,
+		public readonly retryAfterSeconds?: number,
 	) {
 		super(code);
 		this.name = 'EnableBankingClientError';
@@ -185,18 +186,24 @@ export class EnableBankingClient {
 		}
 
 		const responseText = await response.text();
+		const retryAfterSeconds =
+			response.status === 429 ? this.parseRetryAfter(response.headers.get('retry-after')) : undefined;
 		let responseBody: unknown;
 
 		if (responseText) {
 			try {
 				responseBody = JSON.parse(responseText) as unknown;
 			} catch {
-				throw new EnableBankingClientError('invalid_provider_response', response.status);
+				throw new EnableBankingClientError('invalid_provider_response', response.status, retryAfterSeconds);
 			}
 		}
 
 		if (!response.ok) {
-			throw new EnableBankingClientError(this.extractProviderErrorCode(responseBody), response.status);
+			throw new EnableBankingClientError(
+				this.extractProviderErrorCode(responseBody),
+				response.status,
+				retryAfterSeconds,
+			);
 		}
 
 		return responseBody;
@@ -423,6 +430,17 @@ export class EnableBankingClient {
 		}
 
 		return 'provider_request_failed';
+	}
+
+	private parseRetryAfter(value: string | null): number | undefined {
+		if (!value) return undefined;
+
+		if (/^\d+$/.test(value)) return Number(value);
+
+		const retryAt = Date.parse(value);
+		if (Number.isNaN(retryAt)) return undefined;
+
+		return Math.max(0, Math.ceil((retryAt - Date.now()) / 1000));
 	}
 
 	private isUnsupportedAspspFilterError(error: unknown): boolean {

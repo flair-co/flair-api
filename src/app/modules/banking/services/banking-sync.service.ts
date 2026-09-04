@@ -60,6 +60,7 @@ const SYNC_LOCK_TTL_SECONDS = 15 * 60;
 const SYNC_LOCK_RENEWAL_INTERVAL_MS = (SYNC_LOCK_TTL_SECONDS * 1000) / 3;
 const SYNC_LOCK_RENEWAL_TIMEOUT_MS = 15_000;
 const SYNC_LOCK_PREFIX = 'banking:sync:';
+const ENABLE_BANKING_BACKGROUND_RETRY_AFTER_SECONDS = 6 * 60 * 60;
 const SYNC_LOCK_RENEW_SCRIPT =
 	"if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('expire', KEYS[1], ARGV[2]) else return 0 end";
 const SYNC_LOCK_RELEASE_SCRIPT =
@@ -80,6 +81,12 @@ type SyncFetchResult = {
 	hasFailure: boolean;
 	hasSuccessfulEndpoint: boolean;
 	connectionExpired: boolean;
+	rateLimit?: SyncRateLimit;
+};
+
+type SyncRateLimit = {
+	source: 'enable-banking';
+	retryAfterSeconds: number;
 };
 
 function compareDescending(left: string, right: string): number {
@@ -192,7 +199,7 @@ export class BankingSyncService {
 			if (!completedRun) throw new InternalServerErrorException(BANKING_PERSISTENCE_SYNC_ERROR);
 			lockLease.assertHealthy();
 
-			return this.toSyncRunResponse(completedRun);
+			return this.toSyncRunResponse(completedRun, fetchResult.rateLimit);
 		} finally {
 			lockLease.stop();
 			try {
@@ -285,6 +292,7 @@ export class BankingSyncService {
 		let hasFailure = false;
 		let hasSuccessfulEndpoint = false;
 		let connectionExpired = false;
+		let rateLimit: SyncRateLimit | undefined;
 
 		try {
 			const sessionAccounts = await this.enableBankingClient.getSessionAccounts(
@@ -303,6 +311,7 @@ export class BankingSyncService {
 			lockLease.assertHealthy();
 			hasFailure = true;
 			connectionExpired ||= this.isExpiredSessionError(error);
+			rateLimit = this.mergeRateLimit(rateLimit, this.toRateLimit(error));
 		}
 
 		if (connectionExpired) {
@@ -313,6 +322,7 @@ export class BankingSyncService {
 				hasFailure,
 				hasSuccessfulEndpoint,
 				connectionExpired,
+				rateLimit,
 			};
 		}
 
@@ -338,6 +348,7 @@ export class BankingSyncService {
 				lockLease.assertHealthy();
 				hasFailure = true;
 				connectionExpired ||= this.isExpiredSessionError(error);
+				rateLimit = this.mergeRateLimit(rateLimit, this.toRateLimit(error));
 			}
 
 			if (connectionExpired) break;
@@ -355,6 +366,7 @@ export class BankingSyncService {
 				lockLease.assertHealthy();
 				hasFailure = true;
 				connectionExpired ||= this.isExpiredSessionError(error);
+				rateLimit = this.mergeRateLimit(rateLimit, this.toRateLimit(error));
 			}
 
 			accounts.push({
@@ -376,6 +388,7 @@ export class BankingSyncService {
 			hasFailure,
 			hasSuccessfulEndpoint,
 			connectionExpired,
+			rateLimit,
 		};
 	}
 
@@ -591,7 +604,7 @@ export class BankingSyncService {
 		};
 	}
 
-	private toSyncRunResponse(run: BankSyncRun): BankSyncRunResponseDto {
+	private toSyncRunResponse(run: BankSyncRun, rateLimit?: SyncRateLimit): BankSyncRunResponseDto {
 		return {
 			id: run.id,
 			status: run.status,
@@ -603,7 +616,27 @@ export class BankingSyncService {
 			balancesFetched: run.balancesFetched,
 			transactionsFetched: run.transactionsFetched,
 			errorMessage: run.errorMessage,
+			rateLimitSource: rateLimit?.source ?? null,
+			retryAfterSeconds: rateLimit?.retryAfterSeconds ?? null,
 		};
+	}
+
+	private toRateLimit(error: unknown): SyncRateLimit | undefined {
+		if (!(error instanceof EnableBankingClientError) || error.providerStatus !== 429) return undefined;
+
+		return {
+			source: 'enable-banking',
+			retryAfterSeconds: error.retryAfterSeconds ?? ENABLE_BANKING_BACKGROUND_RETRY_AFTER_SECONDS,
+		};
+	}
+
+	private mergeRateLimit(
+		current: SyncRateLimit | undefined,
+		next: SyncRateLimit | undefined,
+	): SyncRateLimit | undefined {
+		if (!current) return next;
+		if (!next || next.retryAfterSeconds <= current.retryAfterSeconds) return current;
+		return next;
 	}
 
 	private selectPreferredBalance(balances: EnableBankingBalance[]): EnableBankingBalance | undefined {
