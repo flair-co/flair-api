@@ -1,5 +1,6 @@
 import {Injectable} from '@nestjs/common';
 import {createSign} from 'node:crypto';
+import {readFileSync} from 'node:fs';
 
 import {ConfigurationService} from '@core/config/config.service';
 
@@ -40,7 +41,11 @@ export class EnableBankingClient {
 	constructor(config: ConfigurationService) {
 		this.apiUrl = config.get('ENABLE_BANKING_API_URL').replace(/\/$/, '');
 		this.applicationId = config.get('ENABLE_BANKING_APPLICATION_ID');
-		this.privateKey = Buffer.from(config.get('ENABLE_BANKING_PRIVATE_KEY_B64'), 'base64').toString('utf8');
+		const privateKeyPath = config.get('ENABLE_BANKING_PRIVATE_KEY_PATH');
+		const privateKeyB64 = config.get('ENABLE_BANKING_PRIVATE_KEY_B64');
+		this.privateKey = privateKeyPath
+			? readFileSync(privateKeyPath, 'utf8')
+			: Buffer.from(privateKeyB64 as string, 'base64').toString('utf8');
 	}
 
 	async getAspsps(country: string): Promise<EnableBankingAspsp[]> {

@@ -18,7 +18,7 @@ import {EmailService} from './email.service';
 				transport: {
 					host: config.get('EMAIL_HOST'),
 					port: config.get('EMAIL_PORT'),
-					secure: config.get('NODE_ENV') === 'production',
+					secure: config.get('EMAIL_SECURE'),
 				},
 				defaults: {from: '"Flair" <no-reply@flair.com>'},
 				template: {

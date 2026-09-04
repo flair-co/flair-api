@@ -1,4 +1,7 @@
 import {generateKeyPairSync} from 'node:crypto';
+import {mkdtempSync, rmSync, writeFileSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
 
 import {ConfigurationService} from '@core/config/config.service';
 
@@ -49,6 +52,30 @@ describe('EnableBankingClient', () => {
 			expect(createJwt()).toBe(firstToken);
 		} finally {
 			now.mockRestore();
+		}
+	});
+
+	it('loads the signing key from a configured file path', () => {
+		const {privateKey} = generateKeyPairSync('rsa', {modulusLength: 2048});
+		const directory = mkdtempSync(join(tmpdir(), 'flair-enable-banking-'));
+		const privateKeyPath = join(directory, 'private.key');
+		writeFileSync(privateKeyPath, privateKey.export({type: 'pkcs8', format: 'pem'}));
+
+		const values: Record<string, string | undefined> = {
+			ENABLE_BANKING_API_URL: 'https://api.example.test',
+			ENABLE_BANKING_APPLICATION_ID: 'application-id',
+			ENABLE_BANKING_PRIVATE_KEY_PATH: privateKeyPath,
+		};
+		const config = {
+			get: (key: string) => values[key],
+		} as unknown as ConfigurationService;
+		const jwtClient = new EnableBankingClient(config);
+		const createJwt = (jwtClient as unknown as {createJwt: () => string}).createJwt.bind(jwtClient);
+
+		try {
+			expect(createJwt().split('.')).toHaveLength(3);
+		} finally {
+			rmSync(directory, {recursive: true, force: true});
 		}
 	});
 
