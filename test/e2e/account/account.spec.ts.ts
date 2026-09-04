@@ -47,7 +47,6 @@ describe('Account controller - /me', () => {
 			expect(account.isEmailVerified).toBe(true);
 			expect(account.createdAt).toBeDefined();
 			expect(account.password).toBeUndefined();
-			expect(account.bankAccounts).toBeUndefined();
 		});
 
 		it('should return the current UNVERIFIED authenticated account', async () => {
@@ -71,7 +70,6 @@ describe('Account controller - /me', () => {
 			expect(account.isEmailVerified).toBe(false);
 			expect(account.createdAt).toBeDefined();
 			expect(account.password).toBeUndefined();
-			expect(account.bankAccounts).toBeUndefined();
 		});
 
 		it('should return 401 Unauthorized if the user is not authenticated', async () => {

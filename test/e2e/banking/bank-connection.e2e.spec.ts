@@ -1,0 +1,775 @@
+import {faker} from '@faker-js/faker';
+import {jest} from '@jest/globals';
+import {INestApplication} from '@nestjs/common';
+import {getRepositoryToken} from '@nestjs/typeorm';
+import Redis from 'ioredis';
+import {Server} from 'node:net';
+import request from 'supertest';
+import TestAgent from 'supertest/lib/agent';
+import {Repository} from 'typeorm';
+
+import {REDIS} from '@core/redis/redis.constants';
+import {Account} from '@modules/account/account.entity';
+import {AccountService} from '@modules/account/account.service';
+import {BankConnection} from '@modules/banking/bank-connection.entity';
+import {BankSyncRun} from '@modules/banking/bank-sync-run.entity';
+import {EnableBankingBalance, EnableBankingTransaction} from '@modules/banking/enable-banking.types';
+import {ExternalAccountBalance} from '@modules/banking/external-account-balance.entity';
+import {ExternalAccount} from '@modules/banking/external-account.entity';
+import {ExternalTransaction} from '@modules/banking/external-transaction.entity';
+import {BankingEncryptionService} from '@modules/banking/services/banking-encryption.service';
+import {EnableBankingClient, EnableBankingClientError} from '@modules/banking/services/enable-banking.client';
+
+import {getApp} from '../../setup/e2e.setup';
+import {
+	SESSION_TEST_ACCOUNT_EMAIL,
+	SESSION_TEST_ACCOUNT_PASSWORD,
+	UNVERIFIED_ACCOUNT_EMAIL,
+	UNVERIFIED_ACCOUNT_PASSWORD,
+	VERIFIED_ACCOUNT_EMAIL,
+	VERIFIED_ACCOUNT_PASSWORD,
+} from '../../setup/seed.constants';
+
+describe('BankConnectionController', () => {
+	let app: INestApplication;
+	let httpServer: Server;
+	let verifiedAgent: TestAgent;
+	let unverifiedAgent: TestAgent;
+	let otherVerifiedAgent: TestAgent;
+	let account: Account;
+	let bankConnectionRepository: Repository<BankConnection>;
+	let externalAccountRepository: Repository<ExternalAccount>;
+	let bankSyncRunRepository: Repository<BankSyncRun>;
+	let externalAccountBalanceRepository: Repository<ExternalAccountBalance>;
+	let externalTransactionRepository: Repository<ExternalTransaction>;
+	let redis: Redis;
+	let enableBankingClient: EnableBankingClient;
+	let getAspsps: jest.SpiedFunction<EnableBankingClient['getAspsps']>;
+	let startAuthorization: jest.SpiedFunction<EnableBankingClient['startAuthorization']>;
+	let createSession: jest.SpiedFunction<EnableBankingClient['createSession']>;
+	let getSessionAccounts: jest.SpiedFunction<EnableBankingClient['getSessionAccounts']>;
+	let getAccountBalances: jest.SpiedFunction<EnableBankingClient['getAccountBalances']>;
+	let getAccountTransactions: jest.SpiedFunction<EnableBankingClient['getAccountTransactions']>;
+	const sessionAccountIdsBySession = new Map<string, string[]>();
+
+	beforeAll(async () => {
+		app = getApp();
+		httpServer = app.getHttpServer();
+		const seededAccount = await app.get(AccountService).findByEmail(VERIFIED_ACCOUNT_EMAIL);
+		if (!seededAccount) throw new Error('Test account was not seeded.');
+		account = seededAccount;
+
+		bankConnectionRepository = app.get<Repository<BankConnection>>(getRepositoryToken(BankConnection));
+		externalAccountRepository = app.get<Repository<ExternalAccount>>(getRepositoryToken(ExternalAccount));
+		bankSyncRunRepository = app.get<Repository<BankSyncRun>>(getRepositoryToken(BankSyncRun));
+		externalAccountBalanceRepository = app.get<Repository<ExternalAccountBalance>>(
+			getRepositoryToken(ExternalAccountBalance),
+		);
+		externalTransactionRepository = app.get<Repository<ExternalTransaction>>(
+			getRepositoryToken(ExternalTransaction),
+		);
+		redis = app.get<Redis>(REDIS);
+		enableBankingClient = app.get(EnableBankingClient);
+		getAspsps = jest.spyOn(enableBankingClient, 'getAspsps');
+		startAuthorization = jest.spyOn(enableBankingClient, 'startAuthorization');
+		createSession = jest.spyOn(enableBankingClient, 'createSession');
+		getSessionAccounts = jest.spyOn(enableBankingClient, 'getSessionAccounts');
+		getSessionAccounts.mockImplementation(async (sessionId) => ({
+			status: 'AUTHORIZED',
+			accountIds: sessionAccountIdsBySession.get(sessionId) ?? [],
+		}));
+		getAccountBalances = jest.spyOn(enableBankingClient, 'getAccountBalances');
+		getAccountTransactions = jest.spyOn(enableBankingClient, 'getAccountTransactions');
+
+		getAspsps.mockResolvedValue([
+			{
+				name: 'ABN AMRO',
+				country: 'NL',
+				maximumConsentValiditySeconds: 60 * 60 * 24 * 90,
+			},
+		]);
+		startAuthorization.mockResolvedValue({
+			url: 'https://auth.example.test/authorize',
+			authorizationId: faker.string.uuid(),
+		});
+
+		verifiedAgent = request.agent(httpServer);
+		await verifiedAgent
+			.post('/auth/login')
+			.send({email: VERIFIED_ACCOUNT_EMAIL, password: VERIFIED_ACCOUNT_PASSWORD})
+			.expect(200);
+
+		unverifiedAgent = request.agent(httpServer);
+		await unverifiedAgent
+			.post('/auth/login')
+			.send({email: UNVERIFIED_ACCOUNT_EMAIL, password: UNVERIFIED_ACCOUNT_PASSWORD})
+			.expect(200);
+
+		otherVerifiedAgent = request.agent(httpServer);
+		await otherVerifiedAgent
+			.post('/auth/login')
+			.send({email: SESSION_TEST_ACCOUNT_EMAIL, password: SESSION_TEST_ACCOUNT_PASSWORD})
+			.expect(200);
+
+		await bankConnectionRepository
+			.createQueryBuilder()
+			.delete()
+			.where('accountId = :accountId', {accountId: account.id})
+			.execute();
+	});
+
+	afterAll(async () => {
+		await bankConnectionRepository
+			.createQueryBuilder()
+			.delete()
+			.where('accountId = :accountId', {accountId: account.id})
+			.execute();
+		jest.restoreAllMocks();
+	});
+
+	it('requires an authenticated, verified account to start authorization', async () => {
+		await request(httpServer)
+			.post('/bank-connections/authorize')
+			.send({aspspName: 'ABN AMRO', aspspCountry: 'NL'})
+			.expect(401);
+
+		await unverifiedAgent
+			.post('/bank-connections/authorize')
+			.send({aspspName: 'ABN AMRO', aspspCountry: 'NL'})
+			.expect(403);
+	});
+
+	it('validates the requested ASPSP', async () => {
+		await verifiedAgent
+			.post('/bank-connections/authorize')
+			.send({aspspName: 'ABN AMRO', aspspCountry: 'NLD'})
+			.expect(400);
+
+		getAspsps.mockResolvedValueOnce([]);
+		await verifiedAgent
+			.post('/bank-connections/authorize')
+			.send({aspspName: 'Unknown Bank', aspspCountry: 'NL'})
+			.expect(400);
+	});
+
+	it('persists a successful authorization without exposing sensitive provider values', async () => {
+		const sessionId = 'provider-session-success';
+		createSession.mockResolvedValueOnce({
+			sessionId,
+			consentValidUntil: '2030-01-01T00:00:00.000Z',
+			aspsp: {name: 'ABN AMRO', country: 'NL'},
+			accounts: [
+				{
+					uid: 'provider-account-success',
+					identificationHash: 'stable-account-hash-success',
+					name: 'Joe',
+					details: 'Main account',
+					currency: 'eur',
+					cashAccountType: 'CACC',
+					usage: 'PRIV',
+				},
+			],
+		});
+
+		const authorizationResponse = await verifiedAgent
+			.post('/bank-connections/authorize')
+			.send({aspspName: 'ABN AMRO', aspspCountry: 'NL'})
+			.expect(201);
+		const state = startAuthorization.mock.calls.at(-1)?.[0].state;
+		expect(authorizationResponse.body).toEqual({authorizationUrl: 'https://auth.example.test/authorize'});
+		expect(state).toEqual(expect.any(String));
+
+		await request(httpServer)
+			.get('/bank-connections/callback')
+			.query({state, code: 'one-time-provider-code'})
+			.expect(302)
+			.expect('Location', 'http://localhost:5173/bank-connections?result=connected');
+
+		const connection = await bankConnectionRepository.findOne({
+			where: {account: {id: account.id}},
+			order: {createdAt: 'DESC'},
+		});
+		if (!connection) throw new Error('Bank connection was not persisted.');
+		const externalAccount = await externalAccountRepository.findOne({
+			where: {bankConnection: {id: connection.id}},
+		});
+
+		expect(connection.status).toBe('AUTHORIZED');
+		expect(connection.providerSessionId).toBeDefined();
+		expect(connection.providerSessionId).not.toBe(sessionId);
+		expect(externalAccount).toMatchObject({
+			providerAccountId: 'provider-account-success',
+			identificationHash: 'stable-account-hash-success',
+			currency: 'EUR',
+			name: 'Joe',
+			details: 'Main account',
+		});
+		expect(externalAccount?.currentBalanceAmount).toBeNull();
+
+		const response = await verifiedAgent.get('/bank-connections').expect(200);
+		expect(response.body).toEqual([
+			expect.objectContaining({
+				id: connection.id,
+				status: 'AUTHORIZED',
+				externalAccounts: [
+					expect.objectContaining({
+						name: 'Joe',
+						currency: 'EUR',
+					}),
+				],
+			}),
+		]);
+		expect(JSON.stringify(response.body)).not.toContain('providerSessionId');
+		expect(JSON.stringify(response.body)).not.toContain('stable-account-hash-success');
+		expect(JSON.stringify(response.body)).not.toContain('provider-account-success');
+	});
+
+	it('handles cancellation and prevents callback replay', async () => {
+		await verifiedAgent
+			.post('/bank-connections/authorize')
+			.send({aspspName: 'ABN AMRO', aspspCountry: 'NL'})
+			.expect(201);
+		const cancelledState = startAuthorization.mock.calls.at(-1)?.[0].state;
+
+		await request(httpServer)
+			.get('/bank-connections/callback')
+			.query({state: cancelledState, error: 'access_denied', error_description: 'do not persist this'})
+			.expect(302)
+			.expect('Location', 'http://localhost:5173/bank-connections?result=cancelled');
+
+		const cancelledConnection = await bankConnectionRepository.findOne({
+			where: {account: {id: account.id}},
+			order: {createdAt: 'DESC'},
+		});
+		expect(cancelledConnection?.status).toBe('CANCELLED');
+
+		const successfulResponse = await verifiedAgent
+			.post('/bank-connections/authorize')
+			.send({aspspName: 'ABN AMRO', aspspCountry: 'NL'})
+			.expect(201);
+		const successfulState = startAuthorization.mock.calls.at(-1)?.[0].state;
+		createSession.mockResolvedValueOnce({
+			sessionId: 'provider-session-replay-test',
+			consentValidUntil: '2030-01-01T00:00:00.000Z',
+			aspsp: {name: 'ABN AMRO', country: 'NL'},
+			accounts: [],
+		});
+
+		await request(httpServer)
+			.get('/bank-connections/callback')
+			.query({state: successfulState, code: 'replay-test-code'})
+			.expect(302)
+			.expect('Location', 'http://localhost:5173/bank-connections?result=connected');
+		await request(httpServer)
+			.get('/bank-connections/callback')
+			.query({state: successfulState, code: 'replay-test-code'})
+			.expect(302)
+			.expect('Location', 'http://localhost:5173/bank-connections?result=error');
+		expect(successfulResponse.body).toEqual({authorizationUrl: 'https://auth.example.test/authorize'});
+	});
+
+	it('rejects an expired authorization state', async () => {
+		await verifiedAgent
+			.post('/bank-connections/authorize')
+			.send({aspspName: 'ABN AMRO', aspspCountry: 'NL'})
+			.expect(201);
+		const state = startAuthorization.mock.calls.at(-1)?.[0].state;
+
+		await redis.expire(`banking:authorization:${state}`, 1);
+		await new Promise((resolve) => setTimeout(resolve, 1100));
+
+		await request(httpServer)
+			.get('/bank-connections/callback')
+			.query({state, code: 'expired-provider-code'})
+			.expect(302)
+			.expect('Location', 'http://localhost:5173/bank-connections?result=error');
+		expect(createSession).not.toHaveBeenCalledWith('expired-provider-code');
+
+		const expiredConnection = await bankConnectionRepository.findOne({
+			where: {account: {id: account.id}},
+			order: {createdAt: 'DESC'},
+		});
+		expect(expiredConnection?.status).toBe('FAILED');
+	});
+
+	it('marks provider failures as failed without leaking provider details', async () => {
+		const authorizationResponse = await verifiedAgent
+			.post('/bank-connections/authorize')
+			.send({aspspName: 'ABN AMRO', aspspCountry: 'NL'})
+			.expect(201);
+		const state = startAuthorization.mock.calls.at(-1)?.[0].state;
+		createSession.mockRejectedValueOnce(new EnableBankingClientError('secret-provider-error'));
+
+		await request(httpServer)
+			.get('/bank-connections/callback')
+			.query({state, code: 'provider-failure-code'})
+			.expect(302)
+			.expect('Location', 'http://localhost:5173/bank-connections?result=error');
+
+		const connection = await bankConnectionRepository.findOne({
+			where: {account: {id: account.id}},
+			order: {createdAt: 'DESC'},
+		});
+		expect(connection?.status).toBe('FAILED');
+		expect(authorizationResponse.body).not.toHaveProperty('providerSessionId');
+	});
+
+	it('rolls back the connection transaction when external-account persistence fails', async () => {
+		const authorizationResponse = await verifiedAgent
+			.post('/bank-connections/authorize')
+			.send({aspspName: 'ABN AMRO', aspspCountry: 'NL'})
+			.expect(201);
+		const state = startAuthorization.mock.calls.at(-1)?.[0].state;
+		createSession.mockResolvedValueOnce({
+			sessionId: 'provider-session-rollback-test',
+			consentValidUntil: '2030-01-01T00:00:00.000Z',
+			aspsp: {name: 'ABN AMRO', country: 'NL'},
+			accounts: [
+				{
+					uid: 'provider-account-before-failure',
+					identificationHash: 'stable-account-before-failure',
+					currency: 'EUR',
+				},
+				{
+					uid: 'provider-account-invalid',
+					identificationHash: 'stable-account-invalid',
+					currency: 'USDD',
+				},
+			],
+		});
+
+		await request(httpServer)
+			.get('/bank-connections/callback')
+			.query({state, code: 'rollback-test-code'})
+			.expect(302)
+			.expect('Location', 'http://localhost:5173/bank-connections?result=error');
+
+		const connection = await bankConnectionRepository.findOne({
+			where: {account: {id: account.id}},
+			order: {createdAt: 'DESC'},
+		});
+		if (!connection) throw new Error('Bank connection was not persisted.');
+
+		expect(connection.status).toBe('FAILED');
+		expect(connection.providerSessionId).toBeNull();
+		expect(await externalAccountRepository.count({where: {bankConnection: {id: connection.id}}})).toBe(0);
+		expect(authorizationResponse.body).not.toHaveProperty('providerSessionId');
+	});
+
+	it('retains separate session account IDs and hashes across re-authorization', async () => {
+		await verifiedAgent
+			.post('/bank-connections/authorize')
+			.send({aspspName: 'ABN AMRO', aspspCountry: 'NL'})
+			.expect(201);
+		const firstState = startAuthorization.mock.calls.at(-1)?.[0].state;
+		const firstConnection = (
+			await bankConnectionRepository.find({
+				where: {account: {id: account.id}},
+				order: {createdAt: 'DESC'},
+			})
+		)[0];
+
+		await verifiedAgent
+			.post('/bank-connections/authorize')
+			.send({aspspName: 'ABN AMRO', aspspCountry: 'NL'})
+			.expect(201);
+		const secondState = startAuthorization.mock.calls.at(-1)?.[0].state;
+		const secondConnection = (
+			await bankConnectionRepository.find({
+				where: {account: {id: account.id}},
+				order: {createdAt: 'DESC'},
+			})
+		)[0];
+
+		if (!firstConnection || !secondConnection) {
+			throw new Error('Expected both authorization connections to be persisted');
+		}
+
+		createSession
+			.mockResolvedValueOnce({
+				sessionId: 'provider-session-first-reauthorization',
+				consentValidUntil: '2030-01-01T00:00:00.000Z',
+				aspsp: {name: 'ABN AMRO', country: 'NL'},
+				accounts: [
+					{
+						uid: 'provider-account-first-reauthorization',
+						identificationHash: 'stable-account-reauthorization',
+						currency: 'EUR',
+					},
+				],
+			})
+			.mockResolvedValueOnce({
+				sessionId: 'provider-session-second-reauthorization',
+				consentValidUntil: '2030-01-01T00:00:00.000Z',
+				aspsp: {name: 'ABN AMRO', country: 'NL'},
+				accounts: [
+					{
+						uid: 'provider-account-second-reauthorization',
+						identificationHash: 'stable-account-reauthorization',
+						currency: 'EUR',
+					},
+				],
+			});
+
+		await request(httpServer)
+			.get('/bank-connections/callback')
+			.query({state: firstState, code: 'first-reauthorization-code'})
+			.expect(302);
+		await request(httpServer)
+			.get('/bank-connections/callback')
+			.query({state: secondState, code: 'second-reauthorization-code'})
+			.expect(302);
+
+		const connections = await bankConnectionRepository.find({
+			where: {account: {id: account.id}},
+			order: {createdAt: 'DESC'},
+		});
+		expect(connections).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({id: firstConnection.id, status: 'AUTHORIZED'}),
+				expect.objectContaining({id: secondConnection.id, status: 'AUTHORIZED'}),
+			]),
+		);
+
+		const firstExternalAccount = await externalAccountRepository.findOne({
+			where: {bankConnection: {id: firstConnection.id}},
+		});
+		const secondExternalAccount = await externalAccountRepository.findOne({
+			where: {bankConnection: {id: secondConnection.id}},
+		});
+		expect(firstExternalAccount).toMatchObject({
+			providerAccountId: 'provider-account-first-reauthorization',
+			identificationHash: 'stable-account-reauthorization',
+		});
+		expect(secondExternalAccount).toMatchObject({
+			providerAccountId: 'provider-account-second-reauthorization',
+			identificationHash: 'stable-account-reauthorization',
+		});
+	});
+
+	it('does not expose one account owner’s connections to another account', async () => {
+		const response = await otherVerifiedAgent.get('/bank-connections').expect(200);
+		expect(response.body).toEqual([]);
+	});
+
+	it('synchronizes balances and transactions without exposing provider identifiers', async () => {
+		const {connection, externalAccount} = await createAuthorizedConnection('sync-provider-session');
+		const balances = makeBalances();
+		const transactions = makeTransactions('sync');
+		getAccountBalances.mockResolvedValueOnce(balances);
+		getAccountTransactions.mockResolvedValueOnce(transactions);
+
+		const firstResponse = await verifiedAgent.post(`/bank-connections/${connection.id}/sync`).expect(200);
+		expect(firstResponse.body).toEqual(
+			expect.objectContaining({
+				status: 'SUCCEEDED',
+				accountsFetched: 1,
+				balancesFetched: 2,
+				transactionsFetched: 5,
+			}),
+		);
+		expect(getAccountTransactions).toHaveBeenCalledWith(
+			externalAccount.providerAccountId,
+			{strategy: 'longest'},
+			expect.any(AbortSignal),
+		);
+
+		const persistedBalances = await externalAccountBalanceRepository.find({
+			where: {externalAccountId: externalAccount.id},
+			order: {balanceType: 'ASC'},
+		});
+		expect(persistedBalances).toHaveLength(2);
+
+		const persistedTransactions = await externalTransactionRepository.find({
+			where: {externalAccountId: externalAccount.id},
+		});
+		expect(persistedTransactions).toHaveLength(5);
+		expect(persistedTransactions.find(({creditDebitIndicator}) => creditDebitIndicator === 'DBIT')?.amount).toBe(
+			'-12.50000000',
+		);
+		expect(
+			persistedTransactions.find(
+				({providerTransactionId}) => providerTransactionId === 'provider-transaction-sync-0',
+			),
+		).toMatchObject({
+			transactionDate: '2026-08-24',
+			transactionType: 'CARD_PAYMENT',
+			bankTransactionCode: 'PMNT',
+			bankTransactionSubCode: 'CARD',
+			bankTransactionDescription: 'Card payment',
+			balanceAfterAmount: '110.95000000',
+			balanceAfterCurrency: 'EUR',
+			instructedAmount: '12.00000000',
+			instructedCurrency: 'USD',
+			exchangeRate: '0.923400000000000000',
+			exchangeRateUnitCurrency: 'USD',
+			exchangeRateType: 'SPOT',
+			referenceNumber: 'reference-sync-0',
+			referenceNumberScheme: 'RF',
+		});
+
+		const refreshedAccount = await externalAccountRepository.findOneBy({id: externalAccount.id});
+		expect(refreshedAccount).toMatchObject({
+			currentBalanceAmount: '123.45000000',
+			currentBalanceType: 'AVAILABLE',
+		});
+
+		const safeConnectionsResponse = await verifiedAgent.get('/bank-connections').expect(200);
+		const safeConnection = safeConnectionsResponse.body.find(({id}: {id: string}) => id === connection.id);
+		expect(safeConnection.externalAccounts[0].latestBalances).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({balanceType: 'AVAILABLE', amount: '123.45000000', isPrimary: true}),
+				expect.objectContaining({balanceType: 'BOOKED', amount: '120.00000000', isPrimary: false}),
+			]),
+		);
+		expect(JSON.stringify(safeConnectionsResponse.body)).not.toContain('sync-provider-session');
+		expect(JSON.stringify(safeConnectionsResponse.body)).not.toContain('sync-provider-account');
+
+		const transactionsResponse = await verifiedAgent
+			.get(`/bank-connections/${connection.id}/transactions?limit=5`)
+			.expect(200);
+		expect(transactionsResponse.body.transactions).toHaveLength(5);
+		expect(JSON.stringify(transactionsResponse.body)).not.toContain('provider-transaction-sync');
+		expect(JSON.stringify(transactionsResponse.body)).not.toContain('provider-entry-sync');
+		expect(transactionsResponse.body.transactions[0]).not.toHaveProperty('externalAccountId');
+
+		getAccountBalances.mockResolvedValueOnce(balances);
+		const updatedTransactions = makeTransactions('sync');
+		updatedTransactions[0] = {
+			...updatedTransactions[0],
+			bankTransactionDescription: 'Updated card payment',
+			balanceAfterAmount: '111.95',
+			referenceNumber: 'reference-sync-0-updated',
+		};
+		getAccountTransactions.mockResolvedValueOnce(updatedTransactions);
+		getAccountTransactions.mockClear();
+
+		const secondResponse = await verifiedAgent.post(`/bank-connections/${connection.id}/sync`).expect(200);
+		expect(secondResponse.body.status).toBe('SUCCEEDED');
+		expect(getAccountTransactions).toHaveBeenCalledWith(
+			externalAccount.providerAccountId,
+			expect.objectContaining({
+				strategy: 'default',
+				dateFrom: expect.any(String),
+				dateTo: expect.any(String),
+			}),
+			expect.any(AbortSignal),
+		);
+		expect(await externalTransactionRepository.count({where: {externalAccountId: externalAccount.id}})).toBe(5);
+		expect(await externalAccountBalanceRepository.count({where: {externalAccountId: externalAccount.id}})).toBe(4);
+		const updatedTransaction = await externalTransactionRepository.findOneBy({
+			externalAccountId: externalAccount.id,
+			providerTransactionId: 'provider-transaction-sync-0',
+		});
+		expect(updatedTransaction).toMatchObject({
+			bankTransactionDescription: 'Updated card payment',
+			balanceAfterAmount: '111.95000000',
+			referenceNumber: 'reference-sync-0-updated',
+		});
+	});
+
+	it.each([
+		['minimum allowed limit', '1', 200],
+		['maximum allowed limit', '100', 200],
+		['a suffix', '10oops', 400],
+		['scientific notation', '1e2', 400],
+		['leading whitespace', ' 10', 400],
+		['trailing whitespace', '10 ', 400],
+		['a plus sign', '+10', 400],
+		['a negative sign', '-1', 400],
+		['zero', '0', 400],
+		['a value above the maximum', '101', 400],
+	])('validates the transaction limit for %s', async (_case, limit, expectedStatus) => {
+		const {connection} = await createAuthorizedConnection(`limit-validation-${String(limit)}`);
+
+		await verifiedAgent
+			.get(`/bank-connections/${connection.id}/transactions`)
+			.query({limit})
+			.expect(expectedStatus);
+	});
+
+	it('enforces authentication, verification, ownership, and authorized status for synchronization', async () => {
+		const {connection} = await createAuthorizedConnection('auth-check-session');
+
+		await request(httpServer).post(`/bank-connections/${connection.id}/sync`).expect(401);
+		await unverifiedAgent.post(`/bank-connections/${connection.id}/sync`).expect(403);
+		await otherVerifiedAgent.post(`/bank-connections/${connection.id}/sync`).expect(404);
+
+		const pendingConnection = await bankConnectionRepository.save(
+			bankConnectionRepository.create({
+				account,
+				provider: 'enable-banking',
+				aspspName: 'ABN AMRO',
+				aspspCountry: 'NL',
+				status: 'PENDING_AUTHORIZATION',
+			}),
+		);
+		await verifiedAgent.post(`/bank-connections/${pendingConnection.id}/sync`).expect(409);
+	});
+
+	it('marks a run partial when one account fails and preserves successful account data', async () => {
+		const connection = await createAuthorizedConnectionWithAccounts('partial-session', [
+			'partial-success-account',
+			'partial-failed-account',
+		]);
+		getAccountBalances.mockImplementation(async (accountId) => {
+			if (accountId === 'partial-failed-account') {
+				throw new EnableBankingClientError('provider_unreachable');
+			}
+			return makeBalances();
+		});
+		getAccountTransactions.mockImplementation(async (accountId) => {
+			if (accountId === 'partial-failed-account') {
+				throw new EnableBankingClientError('provider_unreachable');
+			}
+			return makeTransactions('partial');
+		});
+
+		const response = await verifiedAgent.post(`/bank-connections/${connection.id}/sync`).expect(200);
+		expect(response.body.status).toBe('PARTIAL');
+		expect(response.body.errorMessage).toBe('Some bank data could not be synchronized.');
+		const successfulExternalAccount = await externalAccountRepository.findOne({
+			where: {bankConnection: {id: connection.id}, providerAccountId: 'partial-success-account'},
+		});
+		if (!successfulExternalAccount) throw new Error('Expected successful external account.');
+		expect(
+			await externalTransactionRepository.count({where: {externalAccountId: successfulExternalAccount.id}}),
+		).toBe(5);
+		expect(JSON.stringify(response.body)).not.toContain('provider_unreachable');
+	});
+
+	it('rolls back balance and transaction persistence when a transaction cannot be stored', async () => {
+		const {connection, externalAccount} = await createAuthorizedConnection('rollback-sync-session');
+		getAccountBalances.mockResolvedValueOnce(makeBalances());
+		getAccountTransactions.mockResolvedValueOnce([
+			{
+				...makeTransactions('rollback')[0],
+				amount: 'not-a-number',
+			},
+		]);
+
+		const response = await verifiedAgent.post(`/bank-connections/${connection.id}/sync`).expect(500);
+		expect(response.body.message).toBe('Bank synchronization could not be saved.');
+		expect(await externalAccountBalanceRepository.count({where: {externalAccountId: externalAccount.id}})).toBe(0);
+		expect(await externalTransactionRepository.count({where: {externalAccountId: externalAccount.id}})).toBe(0);
+		expect(await bankSyncRunRepository.count({where: {bankConnection: {id: connection.id}}})).toBe(1);
+		expect(await bankSyncRunRepository.findOne({where: {bankConnection: {id: connection.id}}})).toMatchObject({
+			status: 'FAILED',
+			errorMessage: 'Bank synchronization could not be saved.',
+		});
+	});
+
+	type ExternalAccountFixture = {
+		providerAccountId: string;
+		identificationHash: string;
+		details?: string;
+	};
+
+	async function createAuthorizedConnection(providerSessionId: string) {
+		const {connection, externalAccounts} = await createAuthorizedConnectionFixture(providerSessionId, [
+			{
+				providerAccountId: 'sync-provider-account',
+				identificationHash: `hash-${providerSessionId}`,
+				details: 'Test account',
+			},
+		]);
+		return {connection, externalAccount: externalAccounts[0]};
+	}
+
+	async function createAuthorizedConnectionWithAccounts(providerSessionId: string, providerAccountIds: string[]) {
+		const {connection} = await createAuthorizedConnectionFixture(
+			providerSessionId,
+			providerAccountIds.map((providerAccountId) => ({
+				providerAccountId,
+				identificationHash: `hash-${providerAccountId}`,
+			})),
+		);
+		return connection;
+	}
+
+	async function createAuthorizedConnectionFixture(
+		providerSessionId: string,
+		externalAccountFixtures: ExternalAccountFixture[],
+	) {
+		const connection = await bankConnectionRepository.save(
+			bankConnectionRepository.create({
+				account,
+				provider: 'enable-banking',
+				aspspName: 'ABN AMRO',
+				aspspCountry: 'NL',
+				status: 'AUTHORIZED',
+				providerSessionId: app.get(BankingEncryptionService).encrypt(providerSessionId),
+				consentValidUntil: new Date(Date.now() + 60 * 60 * 1000),
+			}),
+		);
+		const externalAccounts = await externalAccountRepository.save(
+			externalAccountFixtures.map(({providerAccountId, identificationHash, details}) =>
+				externalAccountRepository.create({
+					bankConnection: connection,
+					providerAccountId,
+					identificationHash,
+					name: 'Sync account',
+					details,
+					currency: 'EUR',
+					isActive: true,
+				}),
+			),
+		);
+		sessionAccountIdsBySession.set(
+			providerSessionId,
+			externalAccounts.map((externalAccount) => externalAccount.providerAccountId),
+		);
+		return {connection, externalAccounts};
+	}
+});
+
+function makeBalances(): EnableBankingBalance[] {
+	return [
+		{
+			name: 'Available balance',
+			balanceType: 'AVAILABLE',
+			amount: '123.45',
+			currency: 'EUR',
+			lastChangeDateTime: '2026-08-26T12:00:00.000Z',
+			referenceDate: '2026-08-26',
+			lastCommittedTransaction: 'provider-entry-sync-last',
+		},
+		{
+			name: 'Booked balance',
+			balanceType: 'BOOKED',
+			amount: '120.00',
+			currency: 'EUR',
+			referenceDate: '2026-08-26',
+		},
+	];
+}
+
+function makeTransactions(prefix: string): EnableBankingTransaction[] {
+	return Array.from({length: 5}, (_, index) => ({
+		providerTransactionId: `provider-transaction-${prefix}-${index}`,
+		entryReference: `provider-entry-${prefix}-${index}`,
+		merchantCategoryCode: '5411',
+		amount: index === 0 ? '12.50' : '4.00',
+		currency: 'EUR',
+		creditDebitIndicator: index === 0 ? 'DBIT' : 'CRDT',
+		status: 'BOOK',
+		bookingDate: `2026-08-${String(26 - index).padStart(2, '0')}`,
+		valueDate: `2026-08-${String(26 - index).padStart(2, '0')}`,
+		description: `Provider description ${index}`,
+		counterpartyName: `Counterparty ${index}`,
+		remittanceInformation: `Payment ${index}`,
+		transactionDate: index === 0 ? '2026-08-24' : `2026-08-${String(26 - index).padStart(2, '0')}`,
+		bankTransactionCode: index === 0 ? 'PMNT' : undefined,
+		bankTransactionSubCode: index === 0 ? 'CARD' : undefined,
+		bankTransactionDescription: index === 0 ? 'Card payment' : undefined,
+		balanceAfterAmount: index === 0 ? '110.95' : undefined,
+		balanceAfterCurrency: index === 0 ? 'EUR' : undefined,
+		instructedAmount: index === 0 ? '12.00' : undefined,
+		instructedCurrency: index === 0 ? 'USD' : undefined,
+		exchangeRate: index === 0 ? '0.9234' : undefined,
+		exchangeRateUnitCurrency: index === 0 ? 'USD' : undefined,
+		exchangeRateType: index === 0 ? 'SPOT' : undefined,
+		referenceNumber: index === 0 ? 'reference-sync-0' : undefined,
+		referenceNumberScheme: index === 0 ? 'RF' : undefined,
+	}));
+}
