@@ -5,6 +5,7 @@ import ms from 'ms';
 import crypto from 'node:crypto';
 
 import {ConfigurationService} from '@core/config/config.service';
+import {createWebUrl} from '@core/config/web-url';
 import {EmailService} from '@core/email/email.service';
 import {REDIS} from '@core/redis/redis.constants';
 import {Account} from '@modules/account/account.entity';
@@ -113,7 +114,7 @@ export class EmailVerifierService {
 	}
 
 	private _createUrl(path: string, params: Record<string, string>) {
-		const url = new URL(path, this.WEB_BASE_URL);
+		const url = new URL(createWebUrl(path, this.WEB_BASE_URL));
 		url.search = new URLSearchParams(params).toString();
 		return url.toString();
 	}

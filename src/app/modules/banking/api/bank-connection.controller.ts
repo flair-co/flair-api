@@ -4,6 +4,7 @@ import {Throttle, minutes} from '@nestjs/throttler';
 import {Response} from 'express';
 
 import {ConfigurationService} from '@core/config/config.service';
+import {createWebUrl} from '@core/config/web-url';
 import {Account} from '@modules/account/account.entity';
 import {CurrentAccount} from '@modules/auth/decorators/current-user.decorator';
 import {Public} from '@modules/auth/decorators/public.decorator';
@@ -50,7 +51,7 @@ export class BankConnectionController {
 	async handleCallback(@Query() query: BankConnectionCallbackDto, @Res() response: Response) {
 		const result = await this.bankingService.handleCallback(query);
 
-		const redirectUrl = new URL('/bank-connections', this.configurationService.get('WEB_BASE_URL'));
+		const redirectUrl = new URL(createWebUrl('/bank-connections', this.configurationService.get('WEB_BASE_URL')));
 		redirectUrl.searchParams.set('result', result);
 		return response.redirect(302, redirectUrl.toString());
 	}

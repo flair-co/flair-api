@@ -5,6 +5,7 @@ import ms from 'ms';
 import crypto from 'node:crypto';
 
 import {ConfigurationService} from '@core/config/config.service';
+import {createWebUrl} from '@core/config/web-url';
 import {EmailService} from '@core/email/email.service';
 import {REDIS} from '@core/redis/redis.constants';
 import {Account} from '@modules/account/account.entity';
@@ -79,7 +80,7 @@ export class PasswordResetService {
 	}
 
 	private _createUrl(email: Account['email'], token: string) {
-		const url = new URL('/reset-password', this.WEB_BASE_URL);
+		const url = new URL(createWebUrl('/reset-password', this.WEB_BASE_URL));
 		url.search = new URLSearchParams({email, token}).toString();
 		return url.toString();
 	}

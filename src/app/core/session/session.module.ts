@@ -34,7 +34,6 @@ export class SessionModule implements NestModule {
 						httpOnly: true,
 						sameSite: 'strict',
 						maxAge: ms(this.config.get('SESSION_EXPIRATION') as ms.StringValue),
-						...(isProduction ? {domain: this.config.get('WEB_BASE_URL')} : {}),
 					},
 				}),
 				passport.initialize(),

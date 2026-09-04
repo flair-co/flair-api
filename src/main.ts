@@ -14,7 +14,8 @@ async function bootstrap() {
 
 	app.enableShutdownHooks();
 	app.set('query parser', 'extended');
-	app.enableCors({origin: config.get('WEB_BASE_URL'), credentials: true});
+	app.enableCors({origin: new URL(config.get('WEB_BASE_URL')).origin, credentials: true});
+	if (config.get('NODE_ENV') === 'production') app.set('trust proxy', 1);
 	app.use(helmet());
 	app.disable('x-powered-by');
 	app.useGlobalPipes(new ValidationPipe({whitelist: true, transform: true}));
